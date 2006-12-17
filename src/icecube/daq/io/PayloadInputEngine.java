@@ -255,9 +255,11 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
         isRunningFlag.set(false);
         Iterator payloadListIterator = payloadEngineList.iterator();
         while (payloadListIterator.hasNext()) {
-            PayloadReceiveChannel payload = (PayloadReceiveChannel) payloadListIterator.next();
+            PayloadReceiveChannel payload =
+                (PayloadReceiveChannel) payloadListIterator.next();
             payload.stopEngine();
         }
+        payloadEngineList.clear();
     }
 
     protected void exitIdle() {
@@ -320,9 +322,11 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
     protected void enterDestroyed() {
         Iterator payloadListIterator = payloadEngineList.iterator();
         while (payloadListIterator.hasNext()) {
-            PayloadReceiveChannel payload = (PayloadReceiveChannel) payloadListIterator.next();
+            PayloadReceiveChannel payload =
+                (PayloadReceiveChannel) payloadListIterator.next();
             payload.stopEngine();
         }
+        payloadEngineList.clear();
     }
 
     // instance member method (alphabetic)
