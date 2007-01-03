@@ -78,6 +78,7 @@ public class PayloadInputEngineTest
     }
 
     private static final void checkGetters(PayloadInputEngine engine,
+                                           int numReceiveChans,
                                            long bufsAcquired,
                                            long bytesAcquired,
                                            long bytesRcvd, long recsRcvd,
@@ -85,8 +86,12 @@ public class PayloadInputEngineTest
     {
         Boolean[] allocStopped = engine.getAllocationStopped();
         assertNotNull("Got null allocationStopped array", allocStopped);
-        assertEquals("Bad allocationStopped length", 1, allocStopped.length);
-        assertFalse("allocationStopped[0] was not false", allocStopped[0].booleanValue());
+        assertEquals("Bad allocationStopped length",
+                     numReceiveChans, allocStopped.length);
+        if (numReceiveChans > 0) {
+            assertFalse("allocationStopped[0] was not false",
+                        allocStopped[0].booleanValue());
+        }
 
         for (int i = 0; i < 9; i++) {
             Long[] data;
@@ -147,9 +152,12 @@ public class PayloadInputEngineTest
             }
 
             assertNotNull("Got null " + name + " array", data);
-            assertEquals("Bad " + name + " length", 1, data.length);
-            assertEquals("Bad " + name + "[0] value",
-                         val, data[0].longValue());
+            assertEquals("Bad " + name + " length",
+                         numReceiveChans, data.length);
+            if (numReceiveChans > 0) {
+                assertEquals("Bad " + name + "[0] value",
+                             val, data[0].longValue());
+            }
         }
     }
                                            
@@ -714,7 +722,7 @@ public class PayloadInputEngineTest
         assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
                    ", not Running after startup", testOutput.isRunning());
 
-        checkGetters(engine, 0, 0, 0, 0, 0);
+        checkGetters(engine, 1, 0, 0, 0, 0, 0);
 
         // now move some buffers
         ByteBuffer testBuf;
@@ -737,7 +745,7 @@ public class PayloadInputEngineTest
             Thread.sleep(100);
         }
 
-        checkGetters(engine, 1, BUFFER_BLEN, bufLen, 1, 0);
+        checkGetters(engine, 1, 1, BUFFER_BLEN, bufLen, 1, 0);
 
         assertFalse("PayloadInputEngine in Error state after ErrorSig",
                    engine.isError());
@@ -756,7 +764,7 @@ public class PayloadInputEngineTest
         assertTrue("Sink stop notification was not received.",
                    sinkStopNotificationCalled);
 
-        checkGetters(engine, 1, BUFFER_BLEN, bufLen, 1, 1);
+        checkGetters(engine, 0, 0, BUFFER_BLEN, bufLen, 1, 1);
     }
 
     /**
