@@ -125,15 +125,6 @@ public class PayloadOutputEngineTest
                 SelectionKey selKey = (SelectionKey) iter.next();
                 iter.remove();
 
-                if (true) {
-                    StringBuffer keyBuf = new StringBuffer("KEYS=");
-                    if(selKey.isReadable())keyBuf.append('r');
-                    if(selKey.isWritable())keyBuf.append('w');
-                    if(selKey.isConnectable())keyBuf.append('c');
-                    if(selKey.isAcceptable())keyBuf.append('a');
-                    System.err.println(keyBuf.toString());
-                }
-
                 if (!selKey.isAcceptable()) {
                     selKey.cancel();
                     continue;
