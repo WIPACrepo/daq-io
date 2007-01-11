@@ -15,23 +15,12 @@ import java.nio.channels.ReadableByteChannel;
  * @author mcp
  * @version $Id: DAQComponentInputProcessor, v 1.1, Nov 13, 2006 4:45:35 PM artur $
  */
-public interface DAQComponentInputProcessor {
-
-    public void startProcessing();
+public interface DAQComponentInputProcessor extends DAQComponentIOProcess {
 
     public void startDisposing();
-
-    public void forcedStopProcessing();
-
-    public void destroyProcessor();
-
-    public boolean isRunning();
-
-    public boolean isStopped();
 
     public boolean isDisposing();
 
     public PayloadReceiveChannel addDataChannel(ReadableByteChannel channel, IByteBufferCache bufMgr);
 
-    public void registerComponentObserver(DAQComponentObserver compObserver);
 }

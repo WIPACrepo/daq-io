@@ -21,22 +21,10 @@ import java.nio.channels.WritableByteChannel;
  * @version $Id: DAQComponentOutputProcess.java,v 1.3 2005/04/06 01:37:42 mcp Exp $
  * @author mcp
  */
-public interface DAQComponentOutputProcess {
-
-    public void startProcessing();
-
-    public void forcedStopProcessing();
+public interface DAQComponentOutputProcess extends DAQComponentIOProcess {
 
     public void sendLastAndStop();
     
-    public void destroyProcessor();
-
-    public boolean isRunning();
-
-    public boolean isStopped();
-
     public PayloadTransmitChannel addDataChannel(WritableByteChannel channel, IByteBufferCache bufMgr);
-
-    public void registerComponentObserver(DAQComponentObserver compObserver);
 
 }
