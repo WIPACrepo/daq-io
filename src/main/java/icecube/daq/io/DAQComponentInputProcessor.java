@@ -9,6 +9,8 @@ package icecube.daq.io;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.common.DAQComponentObserver;
 
+import java.io.IOException;
+
 import java.nio.channels.ReadableByteChannel;
 
 /**
@@ -17,10 +19,14 @@ import java.nio.channels.ReadableByteChannel;
  */
 public interface DAQComponentInputProcessor extends DAQComponentIOProcess {
 
-    public void startDisposing();
+    public PayloadReceiveChannel addDataChannel(ReadableByteChannel channel, IByteBufferCache bufMgr);
+
+    public int getServerPort();
 
     public boolean isDisposing();
 
-    public PayloadReceiveChannel addDataChannel(ReadableByteChannel channel, IByteBufferCache bufMgr);
+    public void startDisposing();
 
+    public void startServer(IByteBufferCache cache)
+        throws IOException;
 }
