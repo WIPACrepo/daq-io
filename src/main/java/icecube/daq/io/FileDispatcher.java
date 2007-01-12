@@ -28,6 +28,7 @@ public class FileDispatcher implements Dispatcher {
     private int numStarts;
     private WritableByteChannel outChannel;
     private IByteBufferCache bufferCache;
+    private long totalDispatchedEvents;
 
     public FileDispatcher(String baseFileName){
         this(baseFileName, null);
@@ -76,6 +77,7 @@ public class FileDispatcher implements Dispatcher {
         if (message.startsWith(START_PREFIX)) {
             numStarts++;
             prefix = START_PREFIX;
+            totalDispatchedEvents = 0;
         } else if (message.startsWith(STOP_PREFIX)) {
             if (numStarts == 0) {
                 errMsg = "FileDispatcher stopped while not running";
@@ -160,6 +162,7 @@ public class FileDispatcher implements Dispatcher {
             }
             throw new DispatchException(ioe);
         }
+        ++totalDispatchedEvents;
     }
 
     /**
@@ -219,5 +222,13 @@ public class FileDispatcher implements Dispatcher {
             throws DispatchException
     {
         throw new Error("Unimplemented");
+    }
+
+    /**
+     * Get the total of the dispatched events
+     * @return a long value
+     */
+    public long getTotalDispatchedEvents(){
+        return totalDispatchedEvents;
     }
 }

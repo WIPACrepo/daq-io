@@ -91,4 +91,10 @@ public interface Dispatcher
      */
     void dispatchEvents(ByteBuffer buffer, int[] indices, int count)throws DispatchException;
 
+    /**
+     * Get the total of the dispatched events
+     * @return a long value
+     */
+    long getTotalDispatchedEvents();
+
 }
