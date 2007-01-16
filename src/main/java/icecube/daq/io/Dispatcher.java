@@ -97,4 +97,17 @@ public interface Dispatcher
      */
     long getTotalDispatchedEvents();
 
+    /**
+     * Set the destination directory where the dispatch files will be saved.
+     *
+     * @param dirName The absolute path of directory where the dispatch files will be stored.
+     */
+    public void setDispatchDestStorage(String dirName);
+
+    /**
+     * Set the maximum size of the dispatch file.
+     *
+     * @param maxFileSize the maximum size of the dispatch file.
+     */
+    public void setMaxFileSize(long maxFileSize);
 }
