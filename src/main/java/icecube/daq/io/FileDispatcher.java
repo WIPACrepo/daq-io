@@ -7,10 +7,12 @@ import icecube.daq.payload.IByteBufferCache;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.FilenameFilter;
 
 import java.nio.ByteBuffer;
 
 import java.nio.channels.WritableByteChannel;
+import java.util.*;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -30,6 +32,9 @@ public class FileDispatcher implements Dispatcher {
     private long maxFileSize = 10000000;
     private File tempFile;
     private String dispatchDestStorage = ".";
+    private int fileIndex;
+    private FilenameFilter filter;
+    private long startingEventNum;
 
     public FileDispatcher(String baseFileName) {
         this(baseFileName, null);
@@ -39,6 +44,11 @@ public class FileDispatcher implements Dispatcher {
         this.baseFileName = baseFileName;
         this.bufferCache = bufferCache;
         tempFile = new File("temp-" + baseFileName);
+        filter = new FilenameFilter() {
+            public boolean accept(File dir, String name) {
+                return name.endsWith(".dat");
+            }
+        };
         LOG.info("creating FileDispatcher for " + baseFileName);
     }
 
@@ -72,8 +82,10 @@ public class FileDispatcher implements Dispatcher {
 
         if (message.startsWith(START_PREFIX)) {
             totalDispatchedEvents = 0;
+            startingEventNum = 0;
             ++numStarts;
             runNumber = Integer.parseInt(message.substring(START_PREFIX.length()));
+            fileIndex = 0;
         } else if (message.startsWith(STOP_PREFIX)) {
             if (numStarts == 0) {
                 throw new DispatchException("FileDispatcher stopped while not running!");
@@ -86,6 +98,8 @@ public class FileDispatcher implements Dispatcher {
                         moveToDest();
                     }
                 }
+                fileIndex = 0;
+                startingEventNum = 0;
                 return;
             }
         } else {
@@ -110,6 +124,30 @@ public class FileDispatcher implements Dispatcher {
             } catch (IOException ioe) {
                 LOG.error("couldn't initiate temp dispatch file ", ioe);
                 throw new DispatchException(ioe);
+            }
+        } else {
+            if (outChannel == null || !outChannel.isOpen()){
+                String tempFileName = "temp-" + baseFileName;
+                int i = 0;
+                while(true){
+                    String name = "temp-" + baseFileName + "_" + runNumber + "_" + i;
+                    File tmp = new File(name);
+                    if (!tmp.exists()){
+                        tempFile.renameTo(tmp);
+                        break;
+                    }
+                    ++i;
+                }
+
+                tempFile = new File(tempFileName);
+                try {
+                    FileOutputStream out = new FileOutputStream(tempFile.getPath());
+                    outChannel = out.getChannel();
+                } catch(IOException ioe){
+                    LOG.error(ioe.getMessage(), ioe);
+                    throw new DispatchException(ioe);
+                }
+                LOG.error("The last temp-" + baseFileName + " file was not moved to the dispatch storage!!!");
             }
         }
         buffer.position(0);
@@ -202,6 +240,11 @@ public class FileDispatcher implements Dispatcher {
      */
     public void setDispatchDestStorage(String dirName) {
         dispatchDestStorage = dirName;
+        File destDirectory = new File(dispatchDestStorage);
+        if (!destDirectory.exists() || !destDirectory.isDirectory()){
+            LOG.error(dispatchDestStorage + " is not a directory!");
+            throw new IllegalArgumentException(dispatchDestStorage + " is not a directory!");
+        }
     }
 
     /**
@@ -213,15 +256,52 @@ public class FileDispatcher implements Dispatcher {
         this.maxFileSize = maxFileSize;
     }
 
-    private File getDestFile() {
-        File fileName;
-        for (int i = 0; true; i++) {
-            fileName = new File(dispatchDestStorage, baseFileName + "_" + runNumber + "_" + i);
-            if (!fileName.exists()) {
-                break;
+    private File getDestFile(){
+
+        File destDispatchStorage = new File(dispatchDestStorage);
+
+        String[] fileNames = destDispatchStorage.list(filter);
+        String runNumberStr = String.valueOf(runNumber);
+        StringBuffer sbBaseFileName = new StringBuffer(baseFileName);
+        StringBuffer sbRunNum = new StringBuffer(runNumberStr);
+        List oldDispatchFiles = new ArrayList();
+        for (int i = 0; i < fileNames.length; i++){
+            if (fileNames[i].contains(sbBaseFileName) && fileNames[i].contains(sbRunNum)){
+                oldDispatchFiles.add(fileNames[i]);
             }
         }
-        return fileName;
+
+        int tmpIndex = 0;
+        if (oldDispatchFiles.size() > 0){
+            List indices = new ArrayList();
+            for (int i = 0; i < oldDispatchFiles.size(); i++){
+                String name = (String)oldDispatchFiles.get(i);
+                StringTokenizer st = new StringTokenizer(name, "_");
+                int y = 0;
+                while(st.hasMoreTokens()){
+                    String tempName = st.nextToken();
+                    if (y == 2){
+                        indices.add(new Integer(tempName));
+                        break;
+                    }
+                    ++y;
+                }
+            }
+            Collections.sort(indices);
+            Integer last = (Integer)indices.get(indices.size() -1);
+            tmpIndex = last.intValue() + 1;
+        } else {
+            tmpIndex = fileIndex;
+            ++fileIndex;
+        }
+
+
+        String fileName = baseFileName + "_" + runNumber + "_" + tmpIndex + "_" +
+                startingEventNum + "_" + totalDispatchedEvents;
+
+        File file = new File(dispatchDestStorage, fileName + ".dat");
+
+        return file;
     }
 
     private void moveToDest() throws DispatchException {
@@ -232,6 +312,8 @@ public class FileDispatcher implements Dispatcher {
                 LOG.error(errorMsg);
                 throw new DispatchException(errorMsg);
             }
+            //++fileIndex;
+            startingEventNum = totalDispatchedEvents + 1;
         } catch(IOException ioe){
             LOG.error("Problem when closing file channel: ", ioe);
             throw new DispatchException(ioe);
