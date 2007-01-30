@@ -102,12 +102,28 @@ public interface Dispatcher
      *
      * @param dirName The absolute path of directory where the dispatch files will be stored.
      */
-    public void setDispatchDestStorage(String dirName);
+    void setDispatchDestStorage(String dirName);
 
     /**
      * Set the maximum size of the dispatch file.
      *
      * @param maxFileSize the maximum size of the dispatch file.
      */
-    public void setMaxFileSize(long maxFileSize);
+    void setMaxFileSize(long maxFileSize);
+
+    /**
+     * Returns the number of units still available in the disk (measured in MB).
+     * If it fails to check the disk space, then it returns -1.
+     *
+     * @return the number of units still available in the disk.
+     */
+    int getDiskAvailable();
+
+    /**
+     * Returns the total number of units in the disk (measured in MB).
+     * If it fails to check the disk space, then it returns -1.
+     *
+     * @return the total number of units in the disk.
+     */
+    int getDiskSize();
 }

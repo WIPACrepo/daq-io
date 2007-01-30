@@ -3,6 +3,7 @@ package icecube.daq.io;
 import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.payload.splicer.Payload;
 import icecube.daq.payload.IByteBufferCache;
+import icecube.icebucket.util.DiskUsage;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -17,11 +18,16 @@ import java.util.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+/**
+ *
+ */
 public class FileDispatcher implements Dispatcher {
     private static final Log LOG = LogFactory.getLog(FileDispatcher.class);
 
     private static final String START_PREFIX = DAQCmdInterface.DAQ_ONLINE_RUNSTART_FLAG;
     private static final String STOP_PREFIX = DAQCmdInterface.DAQ_ONLINE_RUNSTOP_FLAG;
+    private static final String DISPATCH_DEST_STORAGE = "/mnt/data/pdaqlocal";
+    private static final int KB_IN_MB = 1024;
 
     private String baseFileName;
     private int numStarts;
@@ -29,19 +35,44 @@ public class FileDispatcher implements Dispatcher {
     private IByteBufferCache bufferCache;
     private long totalDispatchedEvents;
     private int runNumber;
-    private long maxFileSize = 10000000;
+    private long maxFileSize = 200000;
     private File tempFile;
-    private String dispatchDestStorage = ".";
+    private String dispatchDestStorage;
     private int fileIndex;
     private FilenameFilter filter;
     private long startingEventNum;
+    private int diskSize;          // measured in MB
+    private int diskAvailable;     // measured in MB
 
     public FileDispatcher(String baseFileName) {
         this(baseFileName, null);
     }
 
     public FileDispatcher(String baseFileName, IByteBufferCache bufferCache) {
+        if (baseFileName == null){
+            throw new IllegalArgumentException("baseFileName cannot be NULL!");
+        } else {
+            if (baseFileName.equalsIgnoreCase("physics")){
+                dispatchDestStorage = DISPATCH_DEST_STORAGE;
+                File destDir = new File(dispatchDestStorage);
+                if (!destDir.exists() || !destDir.isDirectory()){
+                    LOG.error(dispatchDestStorage + " does not exist!");
+                    dispatchDestStorage = ".";
+                }
+            } else if (baseFileName.equalsIgnoreCase("moni") ||
+                    baseFileName.equalsIgnoreCase("tcal") ||
+                    baseFileName.equalsIgnoreCase("sn")){
+                // TODO: replace this later with the right directory
+                dispatchDestStorage = ".";
+            } else {
+                throw new IllegalArgumentException(baseFileName + " is unvalid name!");
+            }
+        }
+        LOG.info("dispatchDestStorage is set to: " + dispatchDestStorage);
+
         this.baseFileName = baseFileName;
+        LOG.info("baseFileName is set to: " + baseFileName);
+
         this.bufferCache = bufferCache;
         tempFile = new File("temp-" + baseFileName);
         filter = new FilenameFilter() {
@@ -100,11 +131,11 @@ public class FileDispatcher implements Dispatcher {
                 }
                 fileIndex = 0;
                 startingEventNum = 0;
-                return;
             }
         } else {
             throw new DispatchException("Unknown dispatcher message: " + message);
         }
+        checkDisk();
     }
 
     /**
@@ -127,6 +158,15 @@ public class FileDispatcher implements Dispatcher {
             }
         } else {
             if (outChannel == null || !outChannel.isOpen()){
+                try {
+                    FileOutputStream out = new FileOutputStream(tempFile.getPath());
+                    outChannel = out.getChannel();
+                } catch (IOException ioe) {
+                    LOG.error("couldn't initiate temp dispatch file ", ioe);
+                    throw new DispatchException(ioe);
+                }
+                // TODO: remove this later
+                /*
                 String tempFileName = "temp-" + baseFileName;
                 int i = 0;
                 while(true){
@@ -147,6 +187,7 @@ public class FileDispatcher implements Dispatcher {
                     LOG.error(ioe.getMessage(), ioe);
                     throw new DispatchException(ioe);
                 }
+                */
                 LOG.error("The last temp-" + baseFileName + " file was not moved to the dispatch storage!!!");
             }
         }
@@ -242,9 +283,10 @@ public class FileDispatcher implements Dispatcher {
         dispatchDestStorage = dirName;
         File destDirectory = new File(dispatchDestStorage);
         if (!destDirectory.exists() || !destDirectory.isDirectory()){
-            LOG.error(dispatchDestStorage + " is not a directory!");
-            throw new IllegalArgumentException(dispatchDestStorage + " is not a directory!");
+            LOG.error(dispatchDestStorage + " does not exist!");
+            throw new IllegalArgumentException(dispatchDestStorage + " does not exist!");
         }
+        LOG.info("dispatchDestStorage is set to: " + dispatchDestStorage);
     }
 
     /**
@@ -254,6 +296,26 @@ public class FileDispatcher implements Dispatcher {
      */
     public void setMaxFileSize(long maxFileSize) {
         this.maxFileSize = maxFileSize;
+    }
+
+    /**
+     * Returns the number of units still available in the disk (measured in MB).
+     * If it fails to check the disk space, then it returns -1.
+     *
+     * @return the number of units still available in the disk.
+     */
+    public int getDiskAvailable(){
+        return diskAvailable;
+    }
+
+    /**
+     * Returns the total number of units in the disk (measured in MB).
+     * If it fails to check the disk space, then it returns -1.
+     *
+     * @return the total number of units in the disk.
+     */
+    public int getDiskSize(){
+        return diskSize;
     }
 
     private File getDestFile(){
@@ -318,5 +380,18 @@ public class FileDispatcher implements Dispatcher {
             LOG.error("Problem when closing file channel: ", ioe);
             throw new DispatchException(ioe);
         }
+        checkDisk();
+    }
+
+    private void checkDisk(){
+        DiskUsage usage = DiskUsage.getUsage(dispatchDestStorage);
+        if (null == usage ||
+            null == usage.getVolume()) {
+            diskSize = -1;
+            diskAvailable = -1;
+            return;
+        }
+        diskSize = (int)usage.getBlocks() / KB_IN_MB;
+        diskAvailable = (int) usage.getAvailable() / KB_IN_MB;
     }
 }
