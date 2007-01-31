@@ -35,7 +35,7 @@ public class FileDispatcher implements Dispatcher {
     private IByteBufferCache bufferCache;
     private long totalDispatchedEvents;
     private int runNumber;
-    private long maxFileSize = 200000;
+    private long maxFileSize = 10000000;
     private File tempFile;
     private String dispatchDestStorage;
     private int fileIndex;
