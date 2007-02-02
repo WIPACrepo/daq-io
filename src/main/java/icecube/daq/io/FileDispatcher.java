@@ -7,8 +7,9 @@ import icecube.icebucket.util.DiskUsage;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
+import java.io.IOException;
 
 import java.nio.ByteBuffer;
 
@@ -19,13 +20,15 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- *
+ * Dispatch payload files to PnF
  */
 public class FileDispatcher implements Dispatcher {
     private static final Log LOG = LogFactory.getLog(FileDispatcher.class);
 
-    private static final String START_PREFIX = DAQCmdInterface.DAQ_ONLINE_RUNSTART_FLAG;
-    private static final String STOP_PREFIX = DAQCmdInterface.DAQ_ONLINE_RUNSTOP_FLAG;
+    private static final String START_PREFIX =
+        DAQCmdInterface.DAQ_ONLINE_RUNSTART_FLAG;
+    private static final String STOP_PREFIX =
+        DAQCmdInterface.DAQ_ONLINE_RUNSTOP_FLAG;
     private static final String DISPATCH_DEST_STORAGE = "/mnt/data/pdaqlocal";
     private static final int KB_IN_MB = 1024;
 
@@ -45,42 +48,40 @@ public class FileDispatcher implements Dispatcher {
     private int diskAvailable;     // measured in MB
 
     public FileDispatcher(String baseFileName) {
-        this(baseFileName, null);
+        this(getDefaultDispatchDirectory(baseFileName), baseFileName, null);
     }
 
     public FileDispatcher(String baseFileName, IByteBufferCache bufferCache) {
+        this(getDefaultDispatchDirectory(baseFileName), baseFileName,
+             bufferCache);
+    }
+
+    public FileDispatcher(String destDir, String baseFileName)
+    {
+        this(destDir, baseFileName, null);
+    }
+
+    public FileDispatcher(String destDir, String baseFileName,
+                          IByteBufferCache bufferCache)
+    {
+        setDispatchDestStorage(destDir, true);
+
         if (baseFileName == null){
             throw new IllegalArgumentException("baseFileName cannot be NULL!");
-        } else {
-            if (baseFileName.equalsIgnoreCase("physics")){
-                dispatchDestStorage = DISPATCH_DEST_STORAGE;
-                File destDir = new File(dispatchDestStorage);
-                if (!destDir.exists() || !destDir.isDirectory()){
-                    LOG.error(dispatchDestStorage + " does not exist!");
-                    dispatchDestStorage = ".";
-                }
-            } else if (baseFileName.equalsIgnoreCase("moni") ||
-                    baseFileName.equalsIgnoreCase("tcal") ||
-                    baseFileName.equalsIgnoreCase("sn")){
-                // TODO: replace this later with the right directory
-                dispatchDestStorage = ".";
-            } else {
-                throw new IllegalArgumentException(baseFileName + " is unvalid name!");
-            }
         }
-        LOG.info("dispatchDestStorage is set to: " + dispatchDestStorage);
 
         this.baseFileName = baseFileName;
         LOG.info("baseFileName is set to: " + baseFileName);
 
         this.bufferCache = bufferCache;
-        tempFile = new File("temp-" + baseFileName);
+
+        tempFile = getTempFile(dispatchDestStorage, baseFileName);
+
         filter = new FilenameFilter() {
             public boolean accept(File dir, String name) {
                 return name.endsWith(".dat");
             }
         };
-        LOG.info("creating FileDispatcher for " + baseFileName);
     }
 
     /**
@@ -122,18 +123,22 @@ public class FileDispatcher implements Dispatcher {
                 throw new DispatchException("FileDispatcher stopped while not running!");
             } else {
                 numStarts--;
-                if (numStarts != 0) {
-                    LOG.warn("Problem on receiving a STOP message -- numStarts = " + numStarts);
-                } else {
-                    if (outChannel != null && outChannel.isOpen()) {
-                        moveToDest();
-                    }
+                if (numStarts < 0) {
+                    LOG.warn("Problem on receiving a STOP message --" +
+                             " numStarts = " + numStarts);
+                    numStarts = 0;
                 }
+
+                if (outChannel != null && outChannel.isOpen()) {
+                    moveToDest();
+                }
+
                 fileIndex = 0;
                 startingEventNum = 0;
             }
         } else {
-            throw new DispatchException("Unknown dispatcher message: " + message);
+            throw new DispatchException("Unknown dispatcher message: " +
+                                        message);
         }
         checkDisk();
     }
@@ -148,7 +153,9 @@ public class FileDispatcher implements Dispatcher {
      * @throws DispatchException is there is a problem in the Dispatch system.
      */
     public void dispatchEvent(ByteBuffer buffer) throws DispatchException {
-        if (!tempFile.exists()) {
+        final boolean tempExists = tempFile.exists();
+
+        if (!tempExists || outChannel == null || !outChannel.isOpen()) {
             try {
                 FileOutputStream out = new FileOutputStream(tempFile.getPath());
                 outChannel = out.getChannel();
@@ -156,41 +163,12 @@ public class FileDispatcher implements Dispatcher {
                 LOG.error("couldn't initiate temp dispatch file ", ioe);
                 throw new DispatchException(ioe);
             }
-        } else {
-            if (outChannel == null || !outChannel.isOpen()){
-                try {
-                    FileOutputStream out = new FileOutputStream(tempFile.getPath());
-                    outChannel = out.getChannel();
-                } catch (IOException ioe) {
-                    LOG.error("couldn't initiate temp dispatch file ", ioe);
-                    throw new DispatchException(ioe);
-                }
-                // TODO: remove this later
-                /*
-                String tempFileName = "temp-" + baseFileName;
-                int i = 0;
-                while(true){
-                    String name = "temp-" + baseFileName + "_" + runNumber + "_" + i;
-                    File tmp = new File(name);
-                    if (!tmp.exists()){
-                        tempFile.renameTo(tmp);
-                        break;
-                    }
-                    ++i;
-                }
-
-                tempFile = new File(tempFileName);
-                try {
-                    FileOutputStream out = new FileOutputStream(tempFile.getPath());
-                    outChannel = out.getChannel();
-                } catch(IOException ioe){
-                    LOG.error(ioe.getMessage(), ioe);
-                    throw new DispatchException(ioe);
-                }
-                */
-                LOG.error("The last temp-" + baseFileName + " file was not moved to the dispatch storage!!!");
+            if (tempExists) {
+                LOG.error("The last temp-" + baseFileName +
+                          " file was not moved to the dispatch storage!!!");
             }
         }
+
         buffer.position(0);
         try {
             outChannel.write(buffer);
@@ -201,6 +179,7 @@ public class FileDispatcher implements Dispatcher {
             LOG.error("couldn't write to the file: ", ioe);
             throw new DispatchException(ioe);
         }
+
         ++totalDispatchedEvents;
 
         if (tempFile.length() > maxFileSize) {
@@ -216,14 +195,17 @@ public class FileDispatcher implements Dispatcher {
      */
     public void dispatchEvent(Payload event) throws DispatchException {
         if (bufferCache == null) {
-            LOG.error("ByteBufferCache is null! Cannot dispatch events!");
-            return;
+            final String errMsg =
+                "ByteBufferCache is null! Cannot dispatch events!";
+
+            throw new DispatchException(errMsg);
         }
         ByteBuffer buffer = bufferCache.acquireBuffer(event.getPayloadLength());
         try {
             event.writePayload(false, 0, buffer);
         } catch (IOException ioe) {
-            throw new DispatchException(ioe);
+            ioe.printStackTrace();
+            throw new DispatchException("Couldn't write payload", ioe);
         }
         dispatchEvent(buffer);
         bufferCache.returnBuffer(buffer);
@@ -266,6 +248,67 @@ public class FileDispatcher implements Dispatcher {
     }
 
     /**
+     * Get the byte buffer cache being used.
+     *
+     * @return byte buffer cache
+     */
+    public IByteBufferCache getByteBufferCache()
+    {
+        return bufferCache;
+    }
+
+    /**
+     * Get the default dispatch destination directory for the specified type.
+     *
+     * @param baseFileName base filename for the data stream
+     *
+     * @return destination directory
+     *
+     * @throws IllegalArgumentException if there is a problem
+     */
+    private static String getDefaultDispatchDirectory(String baseFileName)
+    {
+        if (baseFileName == null) {
+            throw new IllegalArgumentException("baseFileName cannot be NULL!");
+        }
+
+        String dir;
+        if (baseFileName.equalsIgnoreCase("physics")){
+            dir = DISPATCH_DEST_STORAGE;
+        } else if (baseFileName.equalsIgnoreCase("moni") ||
+                   baseFileName.equalsIgnoreCase("tcal") ||
+                   baseFileName.equalsIgnoreCase("sn")){
+            // TODO: replace this later with the right directory
+            dir = ".";
+        } else {
+            throw new IllegalArgumentException(baseFileName +
+                                               " is unvalid name!");
+        }
+
+        return dir;
+    }
+
+    /**
+     * Get the destination directory for completed data files.
+     *
+     * @return destination directory
+     */
+    public String getDispatchDestinationDirectory()
+    {
+        return dispatchDestStorage;
+    }
+
+    public static File getTempFile(String destDir, String baseFileName)
+    {
+        return new File(destDir, "temp-" + baseFileName);
+    }
+
+    public int getRunNumber()
+    {
+        return runNumber;
+    }
+
+    /**
      * Get the total of the dispatched events
      *
      * @return a long value
@@ -277,15 +320,81 @@ public class FileDispatcher implements Dispatcher {
     /**
      * Set the destination directory where the dispatch files will be saved.
      *
-     * @param dirName The absolute path of directory where the dispatch files will be stored.
+     * @param dirName The absolute path of directory where the dispatch files
+     *        will be stored.
      */
-    public void setDispatchDestStorage(String dirName) {
-        dispatchDestStorage = dirName;
-        File destDirectory = new File(dispatchDestStorage);
-        if (!destDirectory.exists() || !destDirectory.isDirectory()){
-            LOG.error(dispatchDestStorage + " does not exist!");
-            throw new IllegalArgumentException(dispatchDestStorage + " does not exist!");
+    public void setDispatchDestStorage(String dirName)
+    {
+        setDispatchDestStorage(dirName, false);
+    }
+
+    /**
+     * Set the destination directory where the dispatch files will be saved.
+     *
+     * @param dirName The absolute path of directory where the dispatch files
+     *                will be stored.
+     * @param fallback <tt>true</tt> if method should fall back to current
+     *                 directory if specified directory is invalid
+     */
+    private void setDispatchDestStorage(String dirName, boolean fallback)
+    {
+        if (dirName == null){
+            throw new IllegalArgumentException("destDir cannot be NULL!");
         }
+
+        while (true) {
+            File ddFile = new File(dirName);
+            if (ddFile.exists() && ddFile.isDirectory()) {
+                File testFile = new File(ddFile, "tempDispProbe");
+
+                int nextNum = 1;
+                while (testFile.exists()) {
+                    testFile = new File(ddFile, "tempDispProbe" + nextNum++);
+                }
+
+                FileOutputStream out;
+
+                boolean opened;
+                try {
+                    out = new FileOutputStream(testFile.getPath());
+                    opened = true;
+                } catch (FileNotFoundException fnfe) {
+                    LOG.error("Cannot write to " + dirName + "!");
+                    opened = false;
+                    out = null;
+                }
+
+                if (opened) {
+                    try {
+                        out.close();
+                    } catch (IOException ioe) {
+                        // ignore close errors
+                    }
+
+                    testFile.delete();
+                    break;
+                }
+            }
+
+            final boolean isCurrentDir = dirName.equals(".");
+
+            if (!fallback || isCurrentDir) {
+                final String errMsg;
+
+                if (isCurrentDir) {
+                    errMsg = "Current directory does not exist!?!?!";
+                } else {
+                    errMsg = "\"" + dirName + "\" does not exist!?!?!";
+                }
+
+                throw new IllegalArgumentException(errMsg);
+            }
+
+            LOG.error(dirName + " does not exist!  Using current directory.");
+            dirName = ".";
+        }
+
+        dispatchDestStorage = dirName;
         LOG.info("dispatchDestStorage is set to: " + dispatchDestStorage);
     }
 
@@ -295,6 +404,11 @@ public class FileDispatcher implements Dispatcher {
      * @param maxFileSize the maximum size of the dispatch file.
      */
     public void setMaxFileSize(long maxFileSize) {
+        if (maxFileSize <= 0L) {
+            throw new IllegalArgumentException("Bad maximum file size " +
+                                               maxFileSize);
+        }
+
         this.maxFileSize = maxFileSize;
     }
 
@@ -369,17 +483,20 @@ public class FileDispatcher implements Dispatcher {
     private void moveToDest() throws DispatchException {
         try {
             outChannel.close();
-            if (!tempFile.renameTo(getDestFile())) {
-                String errorMsg = "Couldn't move temp file to " + getDestFile();
-                LOG.error(errorMsg);
-                throw new DispatchException(errorMsg);
-            }
-            //++fileIndex;
-            startingEventNum = totalDispatchedEvents + 1;
         } catch(IOException ioe){
             LOG.error("Problem when closing file channel: ", ioe);
             throw new DispatchException(ioe);
         }
+
+        File destFile = getDestFile();
+        if (!tempFile.renameTo(destFile)) {
+            String errorMsg = "Couldn't move temp file to " + destFile;
+            LOG.error(errorMsg);
+            throw new DispatchException(errorMsg);
+        }
+
+        startingEventNum = totalDispatchedEvents + 1;
+
         checkDisk();
     }
 
