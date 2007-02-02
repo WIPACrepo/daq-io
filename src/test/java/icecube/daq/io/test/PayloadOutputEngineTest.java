@@ -95,20 +95,6 @@ public class PayloadOutputEngineTest
 
     }
 
-    int createServer(Selector sel)
-        throws IOException
-    {
-        ServerSocketChannel ssChan = ServerSocketChannel.open();
-        ssChan.configureBlocking(false);
-        ssChan.socket().setReuseAddress(true);
-
-        ssChan.socket().bind(null);
-
-        ssChan.register(sel, SelectionKey.OP_ACCEPT);
-
-        return ssChan.socket().getLocalPort();
-    }
-
     private SocketChannel acceptChannel(Selector sel)
         throws IOException
     {
@@ -148,6 +134,20 @@ public class PayloadOutputEngineTest
         }
 
         return chan;
+    }
+
+    int createServer(Selector sel)
+        throws IOException
+    {
+        ServerSocketChannel ssChan = ServerSocketChannel.open();
+        ssChan.configureBlocking(false);
+        ssChan.socket().setReuseAddress(true);
+
+        ssChan.socket().bind(null);
+
+        ssChan.register(sel, SelectionKey.OP_ACCEPT);
+
+        return ssChan.socket().getLocalPort();
     }
 
     /**
@@ -493,25 +493,25 @@ public class PayloadOutputEngineTest
                    sourceStopNotificationCalled);
     }
 
-    public synchronized void update(Object object, String notificationID){
-                if (object instanceof NormalState){
-                    NormalState state = (NormalState)object;
-                    if (state == NormalState.STOPPED){
-                        if (notificationID.equals(DAQCmdInterface.SOURCE)){
-                            sourceStopNotificationCalled = true;
-                        }
-                    }
-                } else if (object instanceof ErrorState){
-                    ErrorState state = (ErrorState)object;
-                    if (state == ErrorState.UNKNOWN_ERROR){
-                        if (notificationID.equals(DAQCmdInterface.SOURCE)){
-                            sourceErrorNotificationCalled = true;
-                            receivedErrorNotificationID = DAQCmdInterface.SOURCE;
-                        }
-                    }
+    public synchronized void update(Object object, String notificationID)
+    {
+        if (object instanceof NormalState){
+            NormalState state = (NormalState)object;
+            if (state == NormalState.STOPPED){
+                if (notificationID.equals(DAQCmdInterface.SOURCE)){
+                    sourceStopNotificationCalled = true;
                 }
             }
-
+        } else if (object instanceof ErrorState){
+            ErrorState state = (ErrorState)object;
+            if (state == ErrorState.UNKNOWN_ERROR){
+                if (notificationID.equals(DAQCmdInterface.SOURCE)){
+                    sourceErrorNotificationCalled = true;
+                    receivedErrorNotificationID = DAQCmdInterface.SOURCE;
+                }
+            }
+        }
+    }
 
     /**
      * Main routine which runs text test in standalone mode.
