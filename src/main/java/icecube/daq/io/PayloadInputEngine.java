@@ -625,10 +625,19 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
         this.compObserver = compObserver;
     }
 
-    private void addSocketChannel(SocketChannel chan) throws IOException {
+    private void addSocketChannel(SocketChannel chan)
+        throws IOException
+    {
+        addSocketChannel(chan, serverCache);
+    }
+
+    private PayloadReceiveChannel addSocketChannel(SocketChannel chan,
+                                                   IByteBufferCache bufCache)
+        throws IOException
+    {
         // disable blocking or receive engine will die
         chan.configureBlocking(false);
-        addDataChannel(chan, serverCache);
+        return addDataChannel(chan, bufCache);
     }
 
     public void update(Object object, String notificationID)
@@ -638,6 +647,16 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
         } else {
             log.error("Got " + object + " from " + notificationID);
         }
+    }
+
+    public PayloadReceiveChannel connect(String hostName, int port,
+                                         IByteBufferCache bufCache, int srcId)
+        throws IOException
+    {
+        SocketChannel sock =
+            SocketChannel.open(new InetSocketAddress(hostName, port));
+
+        return addSocketChannel(sock, bufCache);
     }
 
     public void run() {

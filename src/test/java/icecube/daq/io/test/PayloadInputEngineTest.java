@@ -21,10 +21,15 @@ import icecube.daq.payload.ByteBufferCache;
 import icecube.daq.payload.IByteBufferCache;
 //import icecube.daq.payload.TriggerUtilConstants;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.Pipe;
+import java.nio.channels.Selector;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.Iterator;
 
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
@@ -75,6 +80,47 @@ public class PayloadInputEngineTest
     public PayloadInputEngineTest(String name)
     {
         super(name);
+    }
+
+    private SocketChannel acceptChannel(Selector sel)
+        throws IOException
+    {
+        SocketChannel chan = null;
+
+        while (chan == null) {
+            int numSel = sel.select(500);
+            if (numSel == 0) {
+                continue;
+            }
+
+            Iterator iter = sel.selectedKeys().iterator();
+            while (iter.hasNext()) {
+                SelectionKey selKey = (SelectionKey) iter.next();
+                iter.remove();
+
+                if (!selKey.isAcceptable()) {
+                    selKey.cancel();
+                    continue;
+                }
+
+                ServerSocketChannel ssChan =
+                    (ServerSocketChannel) selKey.channel();
+                if (chan != null) {
+                    System.err.println("Got multiple socket connections");
+                    continue;
+                }
+
+                try {
+                    chan = ssChan.accept();
+                } catch (IOException ioe) {
+                    System.err.println("Couldn't accept client socket");
+                    ioe.printStackTrace();
+                    chan = null;
+                }
+            }
+        }
+
+        return chan;
     }
 
     private static final void checkGetters(PayloadInputEngine engine,
@@ -161,6 +207,20 @@ public class PayloadInputEngineTest
         }
     }
                                            
+    int createServer(Selector sel)
+        throws IOException
+    {
+        ServerSocketChannel ssChan = ServerSocketChannel.open();
+        ssChan.configureBlocking(false);
+        ssChan.socket().setReuseAddress(true);
+
+        ssChan.socket().bind(null);
+
+        ssChan.register(sel, SelectionKey.OP_ACCEPT);
+
+        return ssChan.socket().getLocalPort();
+    }
+
     private static final void dumpGetters(PayloadInputEngine engine)
     {
         System.err.println("========================================");
@@ -254,6 +314,16 @@ public class PayloadInputEngineTest
 
         BasicConfigurator.resetConfiguration();
         BasicConfigurator.configure(new MockAppender(logLevel));
+    }
+
+    /**
+     * Create test suite for this class.
+     *
+     * @return the suite of tests declared in this class.
+     */
+    public static Test suite()
+    {
+        return new TestSuite(PayloadInputEngineTest.class);
     }
 
     /**
@@ -981,37 +1051,106 @@ public class PayloadInputEngineTest
         }
     }
 
-    /**
-     * Create test suite for this class.
-     *
-     * @return the suite of tests declared in this class.
-     */
-    public static Test suite()
-    {
-        return new TestSuite(PayloadInputEngineTest.class);
+    public void testServerInput() throws Exception {
+        // buffer caching manager
+        IByteBufferCache cacheMgr =
+            new ByteBufferCache(BUFFER_BLEN, BUFFER_BLEN*20,
+                                BUFFER_BLEN*40, "ServerOutput");
+
+        Selector sel = Selector.open();
+
+        int port = createServer(sel);
+
+        engine = new PayloadInputEngine("ServerInput", 0, "test");
+        engine.registerComponentObserver(this);
+        engine.start();
+
+        PayloadReceiveChannel rcvChan =
+            engine.connect("localhost", port, cacheMgr, 1);
+        rcvChan.registerComponentObserver(this, "ServerInput");
+
+        SocketChannel chan = acceptChannel(sel);
+
+        assertTrue("PayloadInputEngine in " + engine.getPresentState() +
+                   ", not Idle after StopSig", engine.isStopped());
+        engine.startProcessing();
+
+        assertTrue("PayloadInputEngine in " + engine.getPresentState() +
+                   ", not Running after StartSig", engine.isRunning());
+
+        final int bufLen = 40;
+
+        ByteBuffer testBuf = cacheMgr.acquireBuffer(bufLen);
+        assertNotNull("Unable to acquire transmit buffer", testBuf);
+
+        testBuf.putInt(0, bufLen);
+        testBuf.limit(bufLen);
+        testBuf.position(bufLen);
+        testBuf.flip();
+
+        chan.write(testBuf);
+
+        testBuf = cacheMgr.acquireBuffer(4);
+        assertNotNull("Unable to acquire stop buffer", testBuf);
+
+        testBuf.putInt(4);
+        testBuf.limit(4);
+        testBuf.position(4);
+        testBuf.flip();
+
+        chan.write(testBuf);
+
+        // wait until we've got data on all channels
+        boolean gotAll = false;
+        final int numTries = 5;
+        for (int i = 0; !gotAll && i < numTries; i++) {
+            boolean rcvdData = true;
+            Long[] rcvd = engine.getBytesReceived();
+            assertNotNull("Got null byteRcvd array from engine", rcvd);
+            assertEquals("Unexpected number of connections for engine",
+                         1, rcvd.length);
+            if (rcvd[0].longValue() < bufLen) {
+                rcvdData = false;
+            }
+
+            // if we've got data, we're done
+            if (rcvdData) {
+                gotAll = true;
+            } else {
+                Thread.sleep(100);
+            }
+        }
+
+        // stop and destroy
+        engine.forcedStopProcessing();
+        engine.destroyProcessor();
+
+        assertTrue("PayloadInputEngine did not die after kill request",
+                   engine.isDestroyed());
     }
 
-    public synchronized void update(Object object, String notificationID){
-            if (object instanceof NormalState){
-                NormalState state = (NormalState)object;
-                if (state == NormalState.STOPPED){
-                    if (notificationID.equals(DAQCmdInterface.SINK)){
-                        sinkStopNotificationCalled = true;
-                    } else if (notificationID.equals(DAQCmdInterface.SOURCE)){
-                        sourceStopNotificationCalled = true;
-                    }
+    public synchronized void update(Object object, String notificationID)
+    {
+        if (object instanceof NormalState){
+            NormalState state = (NormalState)object;
+            if (state == NormalState.STOPPED){
+                if (notificationID.equals(DAQCmdInterface.SINK)){
+                    sinkStopNotificationCalled = true;
+                } else if (notificationID.equals(DAQCmdInterface.SOURCE)){
+                    sourceStopNotificationCalled = true;
                 }
-            } else if (object instanceof ErrorState){
-                ErrorState state = (ErrorState)object;
-                if (state == ErrorState.UNKNOWN_ERROR){
-                    if (notificationID.equals(DAQCmdInterface.SINK)){
-                        sinkErrorNotificationCalled = true;
-                    } else if (notificationID.equals(DAQCmdInterface.SOURCE)){
-                        sourceErrorNotificationCalled = true;
-                    }
+            }
+        } else if (object instanceof ErrorState){
+            ErrorState state = (ErrorState)object;
+            if (state == ErrorState.UNKNOWN_ERROR){
+                if (notificationID.equals(DAQCmdInterface.SINK)){
+                    sinkErrorNotificationCalled = true;
+                } else if (notificationID.equals(DAQCmdInterface.SOURCE)){
+                    sourceErrorNotificationCalled = true;
                 }
             }
         }
+    }
 
     /**
      * Main routine which runs text test in standalone mode.
