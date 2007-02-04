@@ -107,8 +107,8 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
     // simulated error flag;
     protected boolean simulatedError;
     // collection of individual payload engines
-    protected SyncCollection payloadEngineList = new SyncCollection(new ArrayList(),
-            new Semaphore(1));
+    protected SyncCollection payloadEngineList =
+        new SyncCollection(new ArrayList(), new Semaphore(1));
     // selector timeout
     protected long selectorTimeoutMsec = DEFAULT_SELECTOR_TIMEOUT_MSEC;
     // stop notification counter
@@ -135,6 +135,9 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
     private int port = Integer.MIN_VALUE;
     // server byte buffer
     private IByteBufferCache serverCache;
+
+    // reverse connection list
+    private ArrayList reverseConnList = new ArrayList();
 
     private boolean debug = false;
 
@@ -271,7 +274,8 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
         stopNotificationCounter = payloadEngineList.size();
         Iterator payloadListIterator = payloadEngineList.iterator();
         while (payloadListIterator.hasNext()) {
-            PayloadReceiveChannel payload = (PayloadReceiveChannel) payloadListIterator.next();
+            PayloadReceiveChannel payload =
+                (PayloadReceiveChannel) payloadListIterator.next();
             payloadStartEngineSyncList.add(payload);
         }
         isRunningFlag.set(true);
@@ -350,21 +354,28 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
             stateMachineMUTEX.release();
         } catch (InterruptedException ie) {
             log.error(ie);
-            throw new RuntimeException("InterruptedException on PayloadInputEngine: ", ie);
+            throw new RuntimeException("Forced stop interrupted", ie);
         }
     }
 
     public void startProcessing() {
         if (killFlag.get()) {
-            throw new RuntimeException("PayloadInputEngine: cannot restart destroyed engine");
+            throw new RuntimeException("Cannot restart destroyed engine");
         }
+
+        try {
+            makeReverseConnections();
+        } catch (IOException ioe) {
+            throw new RuntimeException("Cannot make reverse connections", ioe);
+        }
+
         try {
             stateMachineMUTEX.acquire();
             transition(SIG_START);
             stateMachineMUTEX.release();
         } catch (InterruptedException ie) {
             stateMachineMUTEX.release();
-            throw new RuntimeException("InterruptedException on PayloadInputEngine: ", ie);
+            throw new RuntimeException("Interrupted engine start", ie);
         }
     }
 
@@ -376,7 +387,7 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
             stateMachineMUTEX.release();
         } catch (InterruptedException ie) {
             stateMachineMUTEX.release();
-            throw new RuntimeException("PayloadInputEngine: unable to destroy engine: ", ie);
+            throw new RuntimeException("Cannot destroy engine", ie);
         }
     }
 
@@ -387,7 +398,10 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
             stateMachineMUTEX.release();
         } catch (InterruptedException ie) {
             stateMachineMUTEX.release();
-            throw new RuntimeException("PayloadInputEngine: unable to start disposing: ", ie);
+
+            final String errMsg =
+                "PayloadInputEngine: unable to start disposing: ";
+            throw new RuntimeException(errMsg, ie);
         }
     }
 
@@ -399,7 +413,8 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
         ArrayList stateList = new ArrayList();
         Iterator payloadListIterator = payloadEngineList.iterator();
         while (payloadListIterator.hasNext()) {
-            PayloadReceiveChannel msg = (PayloadReceiveChannel) payloadListIterator.next();
+            PayloadReceiveChannel msg =
+                (PayloadReceiveChannel) payloadListIterator.next();
             stateList.add(msg.presentState());
         }
         return (String[]) stateList.toArray(new String[0]);
@@ -409,7 +424,8 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
         ArrayList byteCount = new ArrayList();
         Iterator payloadListIterator = payloadEngineList.iterator();
         while (payloadListIterator.hasNext()) {
-            PayloadReceiveChannel msg = (PayloadReceiveChannel) payloadListIterator.next();
+            PayloadReceiveChannel msg =
+                (PayloadReceiveChannel) payloadListIterator.next();
             byteCount.add(new Long(msg.bytesReceived));
         }
         return (Long[]) byteCount.toArray(new Long[0]);
@@ -419,7 +435,8 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
         ArrayList recordCount = new ArrayList();
         Iterator payloadListIterator = payloadEngineList.iterator();
         while (payloadListIterator.hasNext()) {
-            PayloadReceiveChannel msg = (PayloadReceiveChannel) payloadListIterator.next();
+            PayloadReceiveChannel msg =
+                (PayloadReceiveChannel) payloadListIterator.next();
             recordCount.add(new Long(msg.recordsReceived));
         }
         return (Long[]) recordCount.toArray(new Long[0]);
@@ -429,7 +446,8 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
         ArrayList recordCount = new ArrayList();
         Iterator payloadListIterator = payloadEngineList.iterator();
         while (payloadListIterator.hasNext()) {
-            PayloadReceiveChannel msg = (PayloadReceiveChannel) payloadListIterator.next();
+            PayloadReceiveChannel msg =
+                (PayloadReceiveChannel) payloadListIterator.next();
             recordCount.add(new Long(msg.stopMsgReceived));
         }
         return (Long[]) recordCount.toArray(new Long[0]);
@@ -439,7 +457,8 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
         ArrayList byteLimit = new ArrayList();
         Iterator payloadListIterator = payloadEngineList.iterator();
         while (payloadListIterator.hasNext()) {
-            PayloadReceiveChannel msg = (PayloadReceiveChannel) payloadListIterator.next();
+            PayloadReceiveChannel msg =
+                (PayloadReceiveChannel) payloadListIterator.next();
             byteLimit.add(new Long(msg.limitToStopAllocation));
         }
         return (Long[]) byteLimit.toArray(new Long[0]);
@@ -449,7 +468,8 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
         ArrayList byteLimit = new ArrayList();
         Iterator payloadListIterator = payloadEngineList.iterator();
         while (payloadListIterator.hasNext()) {
-            PayloadReceiveChannel msg = (PayloadReceiveChannel) payloadListIterator.next();
+            PayloadReceiveChannel msg =
+                (PayloadReceiveChannel) payloadListIterator.next();
             byteLimit.add(new Long(msg.limitToRestartAllocation));
         }
         return (Long[]) byteLimit.toArray(new Long[0]);
@@ -459,7 +479,8 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
         ArrayList byteLimit = new ArrayList();
         Iterator payloadListIterator = payloadEngineList.iterator();
         while (payloadListIterator.hasNext()) {
-            PayloadReceiveChannel msg = (PayloadReceiveChannel) payloadListIterator.next();
+            PayloadReceiveChannel msg =
+                (PayloadReceiveChannel) payloadListIterator.next();
             byteLimit.add(new Long(msg.percentOfMaxStopAllocation));
         }
         return (Long[]) byteLimit.toArray(new Long[0]);
@@ -469,7 +490,8 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
         ArrayList byteLimit = new ArrayList();
         Iterator payloadListIterator = payloadEngineList.iterator();
         while (payloadListIterator.hasNext()) {
-            PayloadReceiveChannel msg = (PayloadReceiveChannel) payloadListIterator.next();
+            PayloadReceiveChannel msg =
+                (PayloadReceiveChannel) payloadListIterator.next();
             byteLimit.add(new Long(msg.percentOfMaxRestartAllocation));
         }
         return (Long[]) byteLimit.toArray(new Long[0]);
@@ -479,7 +501,8 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
         ArrayList byteLimit = new ArrayList();
         Iterator payloadListIterator = payloadEngineList.iterator();
         while (payloadListIterator.hasNext()) {
-            PayloadReceiveChannel msg = (PayloadReceiveChannel) payloadListIterator.next();
+            PayloadReceiveChannel msg =
+                (PayloadReceiveChannel) payloadListIterator.next();
             byteLimit.add(new Long(msg.getBufferCurrentAcquiredBytes()));
         }
         return (Long[]) byteLimit.toArray(new Long[0]);
@@ -489,7 +512,8 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
         ArrayList byteLimit = new ArrayList();
         Iterator payloadListIterator = payloadEngineList.iterator();
         while (payloadListIterator.hasNext()) {
-            PayloadReceiveChannel msg = (PayloadReceiveChannel) payloadListIterator.next();
+            PayloadReceiveChannel msg =
+                (PayloadReceiveChannel) payloadListIterator.next();
             byteLimit.add(new Long(msg.getBufferCurrentAcquiredBuffers()));
         }
 
@@ -500,7 +524,8 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
         ArrayList allocationStatus = new ArrayList();
         Iterator payloadListIterator = payloadEngineList.iterator();
         while (payloadListIterator.hasNext()) {
-            PayloadReceiveChannel msg = (PayloadReceiveChannel) payloadListIterator.next();
+            PayloadReceiveChannel msg =
+                (PayloadReceiveChannel) payloadListIterator.next();
             allocationStatus.add(new Boolean(msg.allocationStopped));
         }
         return (Boolean[]) allocationStatus.toArray(new Boolean[0]);
@@ -535,12 +560,17 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
         return !allStopped;
     }
 
-    PayloadReceiveChannel createReceiveChannel(String name, ReadableByteChannel channel, IByteBufferCache bufMgr) {
+    PayloadReceiveChannel createReceiveChannel(String name,
+                                               ReadableByteChannel channel,
+                                               IByteBufferCache bufMgr)
+    {
         return new PayloadReceiveChannel(name, selector, channel, bufMgr,
                                          inputAvailable);
     }
 
-    public PayloadReceiveChannel addDataChannel(ReadableByteChannel channel, IByteBufferCache bufMgr) {
+    public PayloadReceiveChannel addDataChannel(ReadableByteChannel channel,
+                                                IByteBufferCache bufMgr)
+    {
         try {
             stateMachineMUTEX.acquire();
         } catch (InterruptedException ie) {
@@ -548,7 +578,9 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
         }
 
         if (presState != STATE_IDLE) {
-            throw new RuntimeException("Cannot add data channel while engine is " + getPresentState());
+            final String errMsg = "Cannot add data channel while engine is " +
+                getPresentState();
+            throw new RuntimeException(errMsg);
         }
 
         payloadEngineNum++;
@@ -561,7 +593,8 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
                     payloadEngineNum;
         }
 
-        PayloadReceiveChannel payload = createReceiveChannel(recvName, channel, bufMgr);
+        PayloadReceiveChannel payload =
+            createReceiveChannel(recvName, channel, bufMgr);
         payload.registerComponentObserver(this, recvName);
 
         payloadEngineList.add(payload);
@@ -588,7 +621,9 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
             }
         } catch (InterruptedException ie) {
             log.error(ie);
-            throw new RuntimeException("InterruptedException on PayloadInputEngine: ", ie);
+
+            final String errMsg = "Low level error injection interrupted";
+            throw new RuntimeException(errMsg, ie);
         }
     }
 
@@ -602,7 +637,8 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
         if (presState == STATE_DISPOSING) {
             stopNotificationCounter--;
             if (stopNotificationCounter <= 0) {
-                // all payload engines have timed out...hope all data has been disposed of
+                // all payload engines have timed out ...
+                // hope all data has been disposed of
                 transition(SIG_IDLE);
             }
         }
@@ -649,14 +685,24 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
         }
     }
 
-    public PayloadReceiveChannel connect(String hostName, int port,
-                                         IByteBufferCache bufCache, int srcId)
+    public void addReverseConnection(String hostName, int port,
+                                     IByteBufferCache bufCache)
         throws IOException
     {
-        SocketChannel sock =
-            SocketChannel.open(new InetSocketAddress(hostName, port));
+        synchronized (reverseConnList) {
+            ReverseConnection rConn =
+                new ReverseConnection(hostName, port, bufCache);
+            reverseConnList.add(rConn);
+        }
+    }
 
-        return addSocketChannel(sock, bufCache);
+    public void makeReverseConnections()
+        throws IOException
+    {
+        IOException deferred = null;
+        for (Iterator iter = reverseConnList.iterator(); iter.hasNext(); ) {
+            ((ReverseConnection) iter.next()).connect();
+        }
     }
 
     public void run() {
@@ -1098,5 +1144,32 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
             }
         }
 */
+    }
+
+    /**
+     * An internet port which input engine needs to connect to in order to
+     * receive data.
+     */
+    class ReverseConnection
+    {
+        private String hostName;
+        private int port;
+        private IByteBufferCache bufCache;
+
+        ReverseConnection(String hostName, int port, IByteBufferCache bufCache)
+        {
+            this.hostName = hostName;
+            this.port = port;
+            this.bufCache = bufCache;
+        }
+
+        void connect()
+            throws IOException
+        {
+            SocketChannel sock =
+                SocketChannel.open(new InetSocketAddress(hostName, port));
+
+            addSocketChannel(sock, bufCache);
+        }
     }
 }

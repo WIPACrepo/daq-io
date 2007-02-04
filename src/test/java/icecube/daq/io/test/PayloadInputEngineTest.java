@@ -31,6 +31,9 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 
@@ -49,6 +52,8 @@ public class PayloadInputEngineTest
     extends TestCase
     implements DAQComponentObserver
 {
+    private Log LOG = LogFactory.getLog(PayloadInputEngineTest.class);
+
     private static final int INPUT_OUTPUT_LOOP_CNT = 5;
     private static final int NUM_BUFFERS = 100;
     private static final int BUFFER_BLEN = 5000;
@@ -458,8 +463,9 @@ public class PayloadInputEngineTest
     {
 
         // buffer caching manager
-        IByteBufferCache cacheMgr = new ByteBufferCache(BUFFER_BLEN, BUFFER_BLEN*20,
-                                                        BUFFER_BLEN*40, "OutputInput");
+        IByteBufferCache cacheMgr =
+            new ByteBufferCache(BUFFER_BLEN, BUFFER_BLEN*20,
+                                BUFFER_BLEN*40, "OutputInput");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -487,7 +493,8 @@ public class PayloadInputEngineTest
         testOutput.registerComponentObserver(this);
         testOutput.start();
 
-        PayloadTransmitChannel transmitEng = testOutput.addDataChannel(sinkChannel, cacheMgr);
+        PayloadTransmitChannel transmitEng =
+            testOutput.addDataChannel(sinkChannel, cacheMgr);
         testOutput.registerStopNotificationCallback(SOURCE_NOTIFICATION_ID);
         testOutput.registerErrorNotificationCallback(SOURCE_NOTIFICATION_ID);
 
@@ -524,9 +531,11 @@ public class PayloadInputEngineTest
                 Thread.sleep(100);
             } else {
                 recvCnt++;
-                ByteBuffer engineBuf = (ByteBuffer)receiveChannel.inputQueue.take();
+                ByteBuffer engineBuf =
+                    (ByteBuffer)receiveChannel.inputQueue.take();
                 assertEquals("Bad payload length", bufLen, engineBuf.getInt(0));
-                assertEquals("Bad buffer position", bufLen, engineBuf.position());
+                assertEquals("Bad buffer position",
+                             bufLen, engineBuf.position());
                 // return the buffer for later use
                 cacheMgr.returnBuffer(engineBuf);
             }
@@ -552,8 +561,9 @@ public class PayloadInputEngineTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache cacheMgr = new ByteBufferCache(BUFFER_BLEN, BUFFER_BLEN*20,
-                                                        BUFFER_BLEN*40, "OutInSem");
+        IByteBufferCache cacheMgr =
+            new ByteBufferCache(BUFFER_BLEN, BUFFER_BLEN*20,
+                                BUFFER_BLEN*40, "OutInSem");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -625,7 +635,8 @@ public class PayloadInputEngineTest
 
                 recvCnt++;
 
-                ByteBuffer engineBuf = (ByteBuffer)receiveChannel.inputQueue.take();
+                ByteBuffer engineBuf =
+                    (ByteBuffer)receiveChannel.inputQueue.take();
                 assertEquals("Bad payload length",
                              bufLen, engineBuf.getInt(0));
                 assertEquals("Bad buffer position",
@@ -662,8 +673,9 @@ public class PayloadInputEngineTest
     {
 
         // buffer caching manager
-        IByteBufferCache cacheMgr = new ByteBufferCache(BUFFER_BLEN, BUFFER_BLEN*20,
-                                                        BUFFER_BLEN*40, "SimError");
+        IByteBufferCache cacheMgr =
+            new ByteBufferCache(BUFFER_BLEN, BUFFER_BLEN*20,
+                                BUFFER_BLEN*40, "SimError");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -692,7 +704,8 @@ public class PayloadInputEngineTest
         testOutput = new PayloadOutputEngine("SimErrorOut", 0, "test");
         testOutput.registerComponentObserver(this);
 
-        PayloadTransmitChannel transmitEng = testOutput.addDataChannel(sinkChannel, cacheMgr);
+        PayloadTransmitChannel transmitEng =
+            testOutput.addDataChannel(sinkChannel, cacheMgr);
         testOutput.registerStopNotificationCallback(SOURCE_NOTIFICATION_ID);
         testOutput.registerErrorNotificationCallback(SOURCE_NOTIFICATION_ID);
 
@@ -749,8 +762,9 @@ public class PayloadInputEngineTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache cacheMgr = new ByteBufferCache(BUFFER_BLEN, BUFFER_BLEN*20,
-                                                        BUFFER_BLEN*40, "Getters");
+        IByteBufferCache cacheMgr =
+            new ByteBufferCache(BUFFER_BLEN, BUFFER_BLEN*20,
+                                BUFFER_BLEN*40, "Getters");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -781,7 +795,8 @@ public class PayloadInputEngineTest
 
         testOutput.registerComponentObserver(this);
 
-        PayloadTransmitChannel transmitEng = testOutput.addDataChannel(sinkChannel, cacheMgr);
+        PayloadTransmitChannel transmitEng =
+            testOutput.addDataChannel(sinkChannel, cacheMgr);
         testOutput.registerStopNotificationCallback(SOURCE_NOTIFICATION_ID);
         testOutput.registerErrorNotificationCallback(SOURCE_NOTIFICATION_ID);
 
@@ -848,7 +863,6 @@ public class PayloadInputEngineTest
                                 BUFFER_BLEN*40, "InetServer");
 
         engine = new PayloadInputEngine("InetServer", 0, "test");
-        engine.registerComponentObserver(this);
         engine.start();
 
         assertTrue("PayloadInputEngine in " + engine.getPresentState() +
@@ -939,7 +953,9 @@ public class PayloadInputEngineTest
     /**
      * Test multiple input engine servers.
      */
-    public void testMultiServer() throws Exception {
+    public void testMultiServer()
+        throws Exception
+    {
         IByteBufferCache cacheMgr =
             new ByteBufferCache(BUFFER_BLEN, BUFFER_BLEN*20,
                                 BUFFER_BLEN*40, "MultiServer");
@@ -951,7 +967,6 @@ public class PayloadInputEngineTest
         // create a bunch of engines
         for (int i = 0; i < numEngines; i++) {
             engines[i] = new PayloadInputEngine("MultiServer", i, "test");
-            engines[i].registerComponentObserver(this);
             engines[i].start();
 
             assertTrue("PayloadInputEngine in " + engines[i].getPresentState() +
@@ -1051,80 +1066,98 @@ public class PayloadInputEngineTest
         }
     }
 
-    public void testServerInput() throws Exception {
+    public void testServerInput()
+        throws Exception
+    {
         // buffer caching manager
         IByteBufferCache cacheMgr =
             new ByteBufferCache(BUFFER_BLEN, BUFFER_BLEN*20,
-                                BUFFER_BLEN*40, "ServerOutput");
+                                BUFFER_BLEN*40, "ServerInput");
 
         Selector sel = Selector.open();
 
         int port = createServer(sel);
 
         engine = new PayloadInputEngine("ServerInput", 0, "test");
-        engine.registerComponentObserver(this);
         engine.start();
 
-        PayloadReceiveChannel rcvChan =
-            engine.connect("localhost", port, cacheMgr, 1);
-        rcvChan.registerComponentObserver(this, "ServerInput");
-
-        SocketChannel chan = acceptChannel(sel);
-
+        engine.addReverseConnection("localhost", port, cacheMgr);
         assertTrue("PayloadInputEngine in " + engine.getPresentState() +
-                   ", not Idle after StopSig", engine.isStopped());
-        engine.startProcessing();
+                   ", not Idle after start", engine.isStopped());
 
-        assertTrue("PayloadInputEngine in " + engine.getPresentState() +
-                   ", not Running after StartSig", engine.isRunning());
+        ByteBuffer testBuf;
 
-        final int bufLen = 40;
+        for (int i = 0; i < 2; i++) {
+            engine.startProcessing();
+            assertTrue("PayloadInputEngine in " + engine.getPresentState() +
+                       ", not Running after StartSig", engine.isRunning());
 
-        ByteBuffer testBuf = cacheMgr.acquireBuffer(bufLen);
-        assertNotNull("Unable to acquire transmit buffer", testBuf);
+            SocketChannel chan = acceptChannel(sel);
 
-        testBuf.putInt(0, bufLen);
-        testBuf.limit(bufLen);
-        testBuf.position(bufLen);
-        testBuf.flip();
+            final int bufLen = 40;
 
-        chan.write(testBuf);
+            testBuf = cacheMgr.acquireBuffer(bufLen);
+            testBuf.putInt(0, bufLen);
+            testBuf.limit(bufLen);
+            testBuf.position(bufLen);
+            testBuf.flip();
 
-        testBuf = cacheMgr.acquireBuffer(4);
-        assertNotNull("Unable to acquire stop buffer", testBuf);
+            chan.write(testBuf);
 
-        testBuf.putInt(4);
-        testBuf.limit(4);
-        testBuf.position(4);
-        testBuf.flip();
+            // wait until we've got data on all channels
+            boolean gotAll = false;
+            final int numTries = 5;
+            for (int t = 0; !gotAll && t < numTries; t++) {
+                boolean rcvdData = true;
+                Long[] rcvd = engine.getBytesReceived();
+                assertNotNull("Got null byteRcvd array from engine", rcvd);
+                assertEquals("Unexpected number of connections for engine",
+                             1, rcvd.length);
+                if (rcvd[0].longValue() < bufLen) {
+                    rcvdData = false;
+                }
 
-        chan.write(testBuf);
+                // if we've got data, we're done
+                if (rcvdData) {
+                    gotAll = true;
+                } else {
+                    Thread.sleep(100);
+                }
+            }
 
-        // wait until we've got data on all channels
-        boolean gotAll = false;
-        final int numTries = 5;
-        for (int i = 0; !gotAll && i < numTries; i++) {
-            boolean rcvdData = true;
-            Long[] rcvd = engine.getBytesReceived();
-            assertNotNull("Got null byteRcvd array from engine", rcvd);
+            Long[] totRcvd = engine.getBytesReceived();
+            assertNotNull("Got null byteRcvd array from engine", totRcvd);
             assertEquals("Unexpected number of connections for engine",
-                         1, rcvd.length);
-            if (rcvd[0].longValue() < bufLen) {
-                rcvdData = false;
+                         1, totRcvd.length);
+            assertEquals("Bad number of bytes", bufLen, totRcvd[0].longValue());
+
+            testBuf = cacheMgr.acquireBuffer(4);
+            assertNotNull("Unable to acquire stop buffer", testBuf);
+
+            testBuf.putInt(4);
+            testBuf.limit(4);
+            testBuf.position(4);
+            testBuf.flip();
+
+            chan.write(testBuf);
+
+            int reps = 0;
+            while (reps < 10 && !engine.isStopped()) {
+                Thread.sleep(10);
+                reps++;
+            }
+            if (reps >= 10) {
+                fail("Engine did not stop after receiving stop msg");
             }
 
-            // if we've got data, we're done
-            if (rcvdData) {
-                gotAll = true;
-            } else {
-                Thread.sleep(100);
-            }
+            // make sure receive engines have been detatched
+            Long[] postRcvd = engine.getBytesReceived();
+            assertNotNull("Got null byteRcvd array from engine", postRcvd);
+            assertEquals("Unexpected number of connections for engine",
+                         0, postRcvd.length);
         }
 
-        // stop and destroy
-        engine.forcedStopProcessing();
         engine.destroyProcessor();
-
         assertTrue("PayloadInputEngine did not die after kill request",
                    engine.isDestroyed());
     }
