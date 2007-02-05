@@ -208,15 +208,13 @@ public class PayloadReceiveChannel {
         }
         // check for allocation limits--flow control
         if (!allocationStopped) {
-            if (bufferMgr.getCurrentAquiredBytes()
-                    >= limitToStopAllocation) {
-                if (TRACE_DATA && log.isErrorEnabled()) {
+            if (bufferMgr.getCurrentAquiredBytes() >= limitToStopAllocation) {
+                if (log.isErrorEnabled()) {
                     log.error(id + ":RECV:AcqBytes " +
                             bufferMgr.getCurrentAquiredBytes() + " >= " +
                             limitToStopAllocation);
                 }
                 allocationStopped = true;
-                //System.out.println("allocationStopped");
                 buf = null;
             } else {
                 buf = bufferMgr.acquireBuffer(neededBufBlen);
