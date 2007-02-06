@@ -78,8 +78,8 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
 
     // print log messages with state change information?
     private static final boolean TRACE_STATE = false;
-    // print log messages with data
-    private static final boolean TRACE_DATA = false;
+    // print log messages with data dumps
+    private static final boolean TRACE_DATADUMP = false;
 
     // sempahore to be used as a mutex to lock out cuncurrent ops
     // between wait code and channel locator callbacks
@@ -159,7 +159,7 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
     protected void enterGetBuffer() {
         if (outputQueue.isEmpty()) {
             if (debug && !queueStillEmpty) {
-                System.err.println(id + ":XMIT:EmptyQueue");
+                log.info(id + ":XMIT:EmptyQueue");
                 queueStillEmpty = true;
             }
         } else {
@@ -170,7 +170,7 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
                 log.error(e);
             }
             if (debug) {
-                System.err.println(id + ":XMIT:GotBuf " + buf);
+                log.info(id + ":XMIT:GotBuf " + buf);
                 queueStillEmpty = false;
             }
         }
@@ -196,27 +196,24 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
         if (buf.getInt(0) == INT_SIZE) {
             // this is the last message, flag state machine to stop when complete
             lastMsgAndStop = true;
-            if (TRACE_DATA && log.isErrorEnabled()) {
+            if (TRACE_DATADUMP && log.isErrorEnabled()) {
                 log.error(id + ":XMIT:stop");
+            } else if (debug) {
+                log.info(id + ":XMIT:stop");
             }
-            if (debug) {
-                System.err.println(id + ":XMIT:stop");
-            }
-        } else if (TRACE_DATA && log.isErrorEnabled()) {
+        } else if (TRACE_DATADUMP && log.isErrorEnabled()) {
             log.error(id + ":XMIT:" + icecube.daq.payload.DebugDumper.toString(buf));
-        } else if (debug) {
-            System.err.println(id + ":XMIT:" + icecube.daq.payload.DebugDumper.toString(buf));
         }
         try {
             channel.write(buf);
             if (debug) {
-                System.err.println(id + ":XMIT:wrote "+icecube.daq.payload.DebugDumper.toString(buf));
+                log.info(id + ":XMIT:wrote " + buf.getInt(0) + " bytes");
             }
         } catch (IOException e) {
             //need to do something here
             transition(SIG_ERROR);
             if (debug) {
-                System.err.println(id + ":XMIT:WriteError");
+                log.info(id + ":XMIT:WriteError");
                 throw new RuntimeException(e);
             }
         }
@@ -226,11 +223,11 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
         // track some statistics
         bytesSent += buf.getInt(0);
         if (debug) {
-            System.err.println(id + ":XMIT:sent " + bytesSent + " bytes");
+            log.info(id + ":XMIT:sent " + bytesSent + " bytes");
         }
         recordsSent += 1;
         if (debug) {
-            System.err.println(id + ":XMIT:sent " + recordsSent + " recs");
+            log.info(id + ":XMIT:sent " + recordsSent + " recs");
         }
         if (buf.getInt(0) == INT_SIZE) {
             stopMsgSent += 1;
@@ -258,7 +255,7 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
     protected void enterError() {
         if (compObserver != null) {
             if (debug) {
-                System.err.println(id + ":XMIT:Error");
+                log.info(id + ":XMIT:Error");
             }
             compObserver.update(ErrorState.UNKNOWN_ERROR, notificationID);
         }
@@ -270,7 +267,7 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
     protected void notifyOnStop() {
         if (compObserver != null) {
             if (debug) {
-                System.err.println(id + ":XMIT:Stop");
+                log.info(id + ":XMIT:Stop");
             }
             compObserver.update(NormalState.STOPPED, notificationID);
         }
@@ -399,8 +396,11 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
             log.debug("PayloadTransmitEngine " + id +
                     " state " + getStateName(presState) +
                     " transition signal " + getSignalName(signal));
+        } else if (debug) {
+            log.info(id + " " + getStateName(presState) + " -> " +
+                     getSignalName(signal));
         }
-        if (debug) System.err.println(id + " " + getStateName(presState) + " -> " + getSignalName(signal));
+
         // note, in order to simplify state machine operation, NO
         // transitions are allowed in state exit routines.  They are allowed
         // in state enter routines, since the present state flag
