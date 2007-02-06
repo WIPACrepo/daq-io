@@ -52,7 +52,8 @@ public class SpliceablePayloadReceiveChannel extends PayloadReceiveChannel {
         if (strandTail == null) {
             // just to be paranoid, check that strandTail has
             // been initialized before continuing.
-            transition(SIG_ERROR);
+            doTransition(STATE_ERROR);
+            enterError();
         } else {
             super.exitIdle();
         }

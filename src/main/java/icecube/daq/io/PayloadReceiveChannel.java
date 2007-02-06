@@ -866,7 +866,7 @@ public class PayloadReceiveChannel {
         }
     }
 
-    private void doTransition(int nextState) {
+    protected void doTransition(int nextState) {
         prevState = presState;
         presState = nextState;
         transitionCnt++;
