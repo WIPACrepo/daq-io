@@ -714,7 +714,7 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
 
     public void run() {
         for (; ;) {
-            if (TRACE_THREAD) System.err.println("RunTop");
+            if (TRACE_THREAD) log.info("RunTop");
             // now, kick everyones timer entry
             Iterator payloadListIterator = payloadEngineList.iterator();
             while (payloadListIterator.hasNext()) {
@@ -766,7 +766,7 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
                 log.error("Error on selection: ", ioe);
                 numSelected = 0;
             }
-            if (TRACE_THREAD) System.err.println("RunSel#" + numSelected);
+            if (TRACE_THREAD) log.info("RunSel#" + numSelected);
             if (numSelected != 0) {
                 // get iterator for select keys
                 Iterator selectorIterator =
@@ -793,10 +793,9 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
                             }
 
                             if (TRACE_THREAD) {
-                                System.err.println("New chan is" +
-                                                   (chan.isRegistered() ?
-                                                    "" : " NOT") +
-                                                   " registered");
+                                log.info("New chan is" +
+                                         (chan.isRegistered() ?  "" : " NOT") +
+                                         " registered");
                             }
                         } catch (IOException ioe) {
                             log.error("Couldn't accept client socket", ioe);
@@ -824,7 +823,7 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
                 }
             }
             if (TRACE_THREAD) {
-                System.err.println("RunState=" + getPresentState());
+                log.info("RunState=" + getPresentState());
             }
             // now we get a lock
             try {
@@ -835,7 +834,7 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
             }
             // do a simulated error?
             if (simulatedError) {
-                if (TRACE_THREAD) System.err.println("RunSimError");
+                if (TRACE_THREAD) log.info("RunSimError");
                 stopNotificiationStatus = false;
                 transition(SIG_ERROR);
                 simulatedError = false;
@@ -844,23 +843,23 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
                 // check if we are stopping
                 if (stopFlag.get()) {
                     transition(SIG_STOP);
-                    if (TRACE_THREAD) System.err.println("RunStopping");
+                    if (TRACE_THREAD) log.info("RunStopping");
                 }
             } else if (presState == STATE_STOPPING) {
                 // all done, so set state and return
                 transition(SIG_DONE);
-                if (TRACE_THREAD) System.err.println("RunDone");
+                if (TRACE_THREAD) log.info("RunDone");
                 isRunningFlag.set(false);
             } else {
                 stopFlag.set(true);
-                if (TRACE_THREAD) System.err.println("RunStop");
+                if (TRACE_THREAD) log.info("RunStop");
                 isRunningFlag.set(false);
             }
             stateMachineMUTEX.release();
 
             if (killFlag.get()) {
                 try {
-                    if (TRACE_THREAD) System.err.println("RunKilled");
+                    if (TRACE_THREAD) log.info("RunKilled");
                     selector.close();
                 } catch (IOException ioe) {
                     // we're bailing now, so not much to do
@@ -878,11 +877,9 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
                     componentType + ":" + componentFcn +
                     " state " + getStateName(presState) +
                     " transition signal " + getSignalName(signal));
-        }
-        if (debug) {
-            System.err.println(componentType + ":" + componentFcn + " " +
-                               getStateName(presState) + " -> " +
-                               getSignalName(signal));
+        } else if (debug) {
+            log.info(componentType + ":" + componentFcn + " " +
+                     getStateName(presState) + " -> " + getSignalName(signal));
         }
         // note, in order to simplify state machine operation, NO
         // transitions are allowed in state exit routines.  They are allowed

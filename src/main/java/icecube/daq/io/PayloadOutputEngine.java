@@ -463,7 +463,7 @@ public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOu
 
     public void sendLastAndStop() {
         if(debug){
-            System.err.println(componentType + ":" + componentFcn +" -- sendLastAndStop");
+            log.info(componentType + ":" + componentFcn +" -- sendLastAndStop");
         }
         try {
             stateMachineMUTEX.acquire();
@@ -607,8 +607,11 @@ public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOu
                       componentType + ":" + componentFcn +
                       " state " + getStateName(presState) +
                       " transition signal " + getSignalName(signal));
+        } else if (debug) {
+            log.info(componentType + ":" + componentFcn + " " +
+                     getStateName(presState) + " -> " + getSignalName(signal));
         }
-if(debug)System.err.println(componentType+":"+componentFcn+" "+getStateName(presState)+" -> "+getSignalName(signal));
+
         // note, in order to simplify state machine operation, NO
         // transitions are allowed in state exit routines.  They are allowed
         // in state enter routines, since the present state flag
