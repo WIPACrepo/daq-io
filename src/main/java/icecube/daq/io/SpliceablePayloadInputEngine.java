@@ -74,6 +74,12 @@ public class SpliceablePayloadInputEngine extends PayloadInputEngine {
                 }
             }
         }
+        try {
+            makeReverseConnections();
+        } catch (IOException ioe) {
+            throw new RuntimeException("Cannot make reverse connections", ioe);
+        }
+
         if (splicer.getStrandCount() == 0) {
             Iterator payloadListIterator = payloadEngineList.iterator();
             while (payloadListIterator.hasNext()) {

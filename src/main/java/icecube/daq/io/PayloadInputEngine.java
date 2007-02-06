@@ -138,6 +138,8 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
 
     // reverse connection list
     private ArrayList reverseConnList = new ArrayList();
+    // <tt>true</tt> if reverse connections have been made
+    private boolean madeReverseConnections;
 
     private boolean debug = false;
 
@@ -263,6 +265,7 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
             payload.stopEngine();
         }
         payloadEngineList.clear();
+        madeReverseConnections = false;
     }
 
     protected void exitIdle() {
@@ -331,6 +334,7 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
             payload.stopEngine();
         }
         payloadEngineList.clear();
+        madeReverseConnections = false;
     }
 
     // instance member method (alphabetic)
@@ -696,12 +700,15 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
         }
     }
 
-    public void makeReverseConnections()
+    void makeReverseConnections()
         throws IOException
     {
-        IOException deferred = null;
-        for (Iterator iter = reverseConnList.iterator(); iter.hasNext(); ) {
-            ((ReverseConnection) iter.next()).connect();
+        if (!madeReverseConnections) {
+            IOException deferred = null;
+            for (Iterator iter = reverseConnList.iterator(); iter.hasNext(); ) {
+                ((ReverseConnection) iter.next()).connect();
+            }
+            madeReverseConnections = true;
         }
     }
 
