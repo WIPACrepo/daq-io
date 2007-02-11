@@ -330,6 +330,11 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
             PayloadReceiveChannel payload =
                 (PayloadReceiveChannel) payloadListIterator.next();
             payload.stopEngine();
+            try {
+                payload.close();
+            } catch (IOException ioe) {
+                log.error("Couldn't close payload receive channel", ioe);
+            }
         }
         payloadEngineList.clear();
         madeReverseConnections = false;

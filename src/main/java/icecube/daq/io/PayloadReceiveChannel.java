@@ -377,6 +377,10 @@ public class PayloadReceiveChannel {
         stateMachineMUTEX.release();
     }
 
+    public void close() throws IOException {
+        channel.close();
+    }
+
     public void startEngine() {
         try {
             stateMachineMUTEX.acquire();
