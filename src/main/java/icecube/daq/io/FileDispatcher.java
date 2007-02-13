@@ -279,7 +279,7 @@ public class FileDispatcher implements Dispatcher {
                    baseFileName.equalsIgnoreCase("tcal") ||
                    baseFileName.equalsIgnoreCase("sn")){
             // TODO: replace this later with the right directory
-            dir = ".";
+            dir = DISPATCH_DEST_STORAGE;
         } else {
             throw new IllegalArgumentException(baseFileName +
                                                " is unvalid name!");
