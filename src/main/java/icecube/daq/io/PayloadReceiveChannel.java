@@ -27,6 +27,7 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.nio.channels.spi.AbstractSelectableChannel;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -113,9 +114,10 @@ public class PayloadReceiveChannel {
     // buffer cache manager that is source of receive buffers
     private IByteBufferCache bufferMgr;
     // receive buffer in use
-    protected ByteBuffer headerBuf;
-    protected ByteBuffer buf;
-    protected int neededBufBlen;
+    protected ByteBuffer inputBuf;
+    protected int bufPos;
+    protected ByteBuffer payloadBuf;
+    private int neededBufBlen;
     // output buffer queue
     public LinkedQueue inputQueue;
     // my ID used for callback identification
@@ -163,8 +165,23 @@ public class PayloadReceiveChannel {
         bufferMgr = bufMgr;
         inputQueue = new LinkedQueue();
         inputAvailable = inputSem;
-        headerBuf = ByteBuffer.allocate(INT_SIZE);
+        inputBuf = ByteBuffer.allocate(2048);
         this.channel = channel;
+
+        if (!(channel instanceof AbstractSelectableChannel)) {
+            throw new Error("Cannot make channel non-blocking");
+        }
+
+        AbstractSelectableChannel selChan =
+            (AbstractSelectableChannel) channel;
+        if (selChan.isBlocking()) {
+            try {
+                selChan.configureBlocking(false);
+            } catch (IOException ioe) {
+                log.error("Couldn't configure channel to non-blocking mode",
+                          ioe);
+            }
+        }
 
         setCacheLimits();
     }
@@ -187,9 +204,15 @@ public class PayloadReceiveChannel {
         }
     }
 
-    protected void enterIdle()
+    public void setInputBufferSize(int size)
     {
-        receivedLastMsg = false;
+        if (inputBuf.position() != 0 || bufPos != 0) {
+            throw new Error("Cannot set buffer size while buffer is in use");
+        } else if (size <= 0) {
+            throw new Error("Bad byte buffer size: " + size);
+        }
+
+        inputBuf = ByteBuffer.allocate(size);
     }
 
     protected void exitIdle()
@@ -199,157 +222,37 @@ public class PayloadReceiveChannel {
         setCacheLimits();
     }
 
-    protected void enterGetBuffer()
-    {
-        // received header, check for illegal length and allocate buffer
-        neededBufBlen = headerBuf.getInt(0);
-        if (TRACE_DATA && log.isErrorEnabled()) {
-            log.error(id + ":RECV:GetBuf LEN=" + neededBufBlen);
-        }
-        if (neededBufBlen < INT_SIZE) {
-            transition(SIG_ERROR);
-            return;
-        }
-        // check for allocation limits--flow control
-        if (!allocationStopped) {
-            if (bufferMgr.getCurrentAquiredBytes() >= limitToStopAllocation) {
-                if (log.isErrorEnabled()) {
-                    log.error(id + ":RECV:AcqBytes " +
-                            bufferMgr.getCurrentAquiredBytes() + " >= " +
-                            limitToStopAllocation);
-                }
-                allocationStopped = true;
-                buf = null;
-            } else {
-                buf = bufferMgr.acquireBuffer(neededBufBlen);
-            }
-        }
-
-        // verify correct capacity, if buffer was allocated
-        if (buf != null) {
-            if (buf.capacity() < neededBufBlen) {
-                if (TRACE_DATA && log.isErrorEnabled()) {
-                    log.error(id + ":RECV:Buf is too small");
-                }
-                transition(SIG_ERROR);
-            } else {
-                // now fix up actual receive buffer and copy in length
-                buf.position(0);
-                buf.limit(neededBufBlen);
-                buf.putInt(neededBufBlen);
-                transition(SIG_START_BODY);
-            }
-        } else {
-            if (TRACE_DATA && log.isErrorEnabled()) {
-                log.error(id + ":RECV:Buf was null");
-            }
-            // if buf == null, always cancel selector interest
-            selectionKey.cancel();
-        }
-    }
-
-    protected void exitGetBuffer()
-    {
-        // do nothing
-    }
-
-    protected void enterRecvHeader()
-    {
-        isStopped = false;
-        headerBuf.clear();
-        try {
-            selectionKey = ((SelectableChannel) channel).register(selector,
-                    SelectionKey.OP_READ, this);
-            // make sure we don't cancel the selector when we exit
-            cancelSelectorOnExit = false;
-        } catch (ClosedChannelException cce) {
-            // flag error and return
-            log.error("Channel is closed: ", cce);
-            transition(SIG_ERROR);
-            throw new RuntimeException(cce);
-        }
-    }
-
     protected void exitRecvHeader()
     {
         // do nothing
     }
 
-    protected void enterRecvBody()
-    {
-        buf.position(0);
-        int length = buf.getInt();
-        if (buf.capacity() < length) {
-            log.warn("buffer capacity (" + buf.capacity() +
-                    ") less than message length (" + length);
-            transition(SIG_ERROR);
-        }
-        buf.limit(length);
-        if (TRACE_DATA && log.isErrorEnabled()) {
-            log.error(id + ":RECVBODY:Buflen=" + length);
-        }
-    }
-
     protected void exitRecvBody()
-    {
-        if (buf.getInt(0) != INT_SIZE) {
+    { 
+       if (payloadBuf.getInt(0) == INT_SIZE) {
+            log.info("PayloadReceiveChannel " + id + " received STOP msg");
+            // count stop message tokens
+            stopMsgReceived += 1;
+        } else {
             if (TRACE_DATA && log.isErrorEnabled()) {
-                log.error(id + ":RECV:" + icecube.daq.payload.DebugDumper.toString(buf));
+                log.error(id + ":RECV:" +
+                          icecube.daq.payload.DebugDumper.toString(payloadBuf));
             }
             // queue the output
             try {
-                inputQueue.put(buf);
+                inputQueue.put(payloadBuf);
                 if (TRACE_DATA && log.isErrorEnabled()) {
-                    log.error(id + ":RECVBODY:Queued buffer is " + (inputQueue.isEmpty() ? "" : "NOT ") + "empty");
+                    log.error(id + ":RECVBODY:Queued buffer is " +
+                              (inputQueue.isEmpty() ? "" : "NOT ") + "empty");
                 }
             } catch (InterruptedException e) {
                 log.error("Could not enqueue buffer", e);
             }
-            bytesReceived += buf.getInt(0);
+            bytesReceived += payloadBuf.getInt(0);
             recordsReceived += 1;
             // let any waiters know data is available
             inputAvailable.release();
-        } else {
-            log.info("PayloadReceiveChannel " + id + " received STOP msg");
-            // count stop message tokens
-            stopMsgReceived += 1;
         }
-    }
-
-    protected void enterRecvDone()
-    {
-        // note: headerBuf always contains the length of the msg.
-        // if its a stop message, buf will not have been filled in,
-        // so we need to check headerBuf, not buf
-        if (headerBuf.getInt(0) == INT_SIZE) {
-            transition(SIG_LAST_MSG);
-        } else {
-            transition(SIG_RESTART);
-        }
-    }
-
-    protected void exitRecvDone()
-    {
-        // do nothing
-    }
-
-    protected void enterDisposing()
-    {
-        startTimeMsec = System.currentTimeMillis();
-        try {
-            selectionKey = ((SelectableChannel) channel).register(selector,
-                    SelectionKey.OP_READ, this);
-        } catch (ClosedChannelException cce) {
-            // flag error and return
-            log.error("Selector register error during disposing: " + cce);
-            transition(SIG_ERROR);
-            throw new RuntimeException(cce);
-        }
-    }
-
-    protected void exitDisposing()
-    {
-        selectionKey.cancel();
     }
 
     protected void enterError()
@@ -357,11 +260,6 @@ public class PayloadReceiveChannel {
         if (compObserver != null) {
             compObserver.update(ErrorState.UNKNOWN_ERROR, notificationID);
         }
-    }
-
-    protected void exitError()
-    {
-        // do nothing
     }
 
     protected void enterSplicerWait()
@@ -377,7 +275,7 @@ public class PayloadReceiveChannel {
     protected boolean splicerAvailable()
     {
         // placeholder for code in SpliceablePayloadReceiveChannel
-        return true;
+        return false;
     }
 
     protected void notifyOnStop()
@@ -477,75 +375,92 @@ public class PayloadReceiveChannel {
     public void processTimer()
     {
         switch (presState) {
-            case STATE_GETBUFFER:
-                {
-                    // we must have previously failed to get
-                    // a buffer...lets try again.
-                    // check for allocation limits--flow control
+        case STATE_GETBUFFER:
+            // we must have previously failed to get
+            // a buffer...lets try again.
+            // check for allocation limits--flow control
 
-                    if (allocationStopped) {
-                        if (((ByteBufferCache) bufferMgr).getCurrentAquiredBytes()
-                                <= limitToRestartAllocation) {
-                            // lets try to allocate
-                            buf = bufferMgr.acquireBuffer(neededBufBlen);
-                            // if successful, then reassert read interest
-                            if (buf != null) {
-                                allocationStopped = false;
-                            }
-                            // let things propagate through normally
-                        } else {
-                            buf = null;
-                        }
-                    } else {
-                        // normal attempt to reallocate
-                        buf = bufferMgr.acquireBuffer(neededBufBlen);
+            if (allocationStopped) {
+                if (((ByteBufferCache) bufferMgr).getCurrentAquiredBytes()
+                    <= limitToRestartAllocation) {
+                    // lets try to allocate
+                    payloadBuf = bufferMgr.acquireBuffer(neededBufBlen);
+                    // if successful, then reassert read interest
+                    if (payloadBuf != null) {
+                        allocationStopped = false;
                     }
-                    if (buf != null) {
-                        if (buf.capacity() < BYTE_COUNT_LEN) {
-                            transition(SIG_ERROR);
-                        } else {
-                            // lets make sure that the buffer is properly initialized
-                            buf.position(0);
-                            buf.limit(neededBufBlen);
-                            buf.putInt(neededBufBlen);
-                            // since we were successful, reassert read interest
-                            try {
-                                selectionKey = ((SelectableChannel) channel).register(selector,
-                                        SelectionKey.OP_READ, this);
-                                // make sure we don't cance the selector when we exit
-                                cancelSelectorOnExit = false;
-                            } catch (ClosedChannelException cce) {
-                                // flag error and return
-                                log.warn("Exception during selector registration: " + cce);
-                                transition(SIG_ERROR);
-                                throw new RuntimeException(cce);
-                            }
-                            transition(SIG_START_BODY);
-                        }
+                    // let things propagate through normally
+                } else {
+                    payloadBuf = null;
+                }
+            } else {
+                // normal attempt to reallocate
+                payloadBuf = bufferMgr.acquireBuffer(neededBufBlen);
+            }
+            if (payloadBuf != null) {
+                if (!initializeBuffer()) {
+                    transition(SIG_ERROR);
+                } else {
+                    // since we were successful, reassert read interest
+                    try {
+                        selectionKey =
+                            ((SelectableChannel) channel).register(selector,
+                                                                   SelectionKey.OP_READ,
+                                                                   this);
+                        // make sure we don't cance the selector when we exit
+                        cancelSelectorOnExit = false;
+                    } catch (ClosedChannelException cce) {
+                        // flag error and return
+                        log.warn("Exception during selector registration", cce);
+                        transition(SIG_ERROR);
+                        throw new RuntimeException(cce);
                     }
-                    break;
                 }
-            case STATE_DISPOSING:
-                {
-                    if ((System.currentTimeMillis() - startTimeMsec) >=
-                            DISPOSE_TIME_MSEC) {
-                        transition(SIG_IDLE);
-                    }
-                    break;
-                }
-            case STATE_SPLICER_WAIT:
-                {
-                    // should not happen unless we are actually extended by
-                    // SpliceablePayloadReceiveChannel.
-                    if (this.splicerAvailable()) {
-                        transition(SIG_DONE);
-                    }
-                    break;
-                }
-            default:
-                {
-                    break;
-                }
+                transition(SIG_START_BODY);
+            }
+            break;
+
+        case STATE_RECVBODY:
+            break;
+
+        case STATE_DISPOSING:
+            if ((System.currentTimeMillis() - startTimeMsec) >=
+                DISPOSE_TIME_MSEC)
+            {
+                transition(SIG_IDLE);
+            }
+            break;
+
+        case STATE_SPLICER_WAIT:
+            // should not happen unless we are actually extended by
+            // SpliceablePayloadReceiveChannel.
+            if (splicerAvailable()) {
+                transition(SIG_DONE);
+            }
+            break;
+
+        default:
+            break;
+        }
+    }
+
+    protected boolean handleMorePayloads()
+    {
+        return (bufPos + INT_SIZE < inputBuf.position());
+    }
+
+    private void adjustOrExpandInputBuffer(int length)
+    {
+        inputBuf.limit(inputBuf.position());
+        inputBuf.position(bufPos);
+        bufPos = 0;
+
+        if (length <= inputBuf.capacity()) {
+            inputBuf.compact();
+        } else {
+            ByteBuffer newBuf = ByteBuffer.allocate(inputBuf.capacity() * 2);
+            newBuf.put(inputBuf);
+            inputBuf = newBuf;
         }
     }
 
@@ -553,74 +468,78 @@ public class PayloadReceiveChannel {
     {
         selectionKey = selKey;
         switch (presState) {
-            case (STATE_RECVHEADER):
+        case STATE_RECVHEADER:
+            while (true) {
+                if (inputBuf.position() < bufPos + INT_SIZE ||
+                    inputBuf.position() < bufPos + inputBuf.getInt(bufPos))
                 {
                     try {
-                        channel.read(headerBuf);
+                        channel.read(inputBuf);
                     } catch (IOException ioe) {
                         //need to do something here
                         transition(SIG_ERROR);
                         log.error("Problem on channel.write(): ", ioe);
                         throw new RuntimeException(ioe);
                     }
-                    if (!headerBuf.hasRemaining()) {
-                        int length = headerBuf.getInt(0);
-                        if (length == INT_SIZE) {
-                            // count stop message tokens
-                            stopMsgReceived += 1;
-                            transition(SIG_DONE);
-                        } else if (length < INT_SIZE) {
-                            // this really should not happen
-                            transition(SIG_ERROR);
-                        } else {
-                            transition(SIG_GET_BUFFER);
-                        }
-                    }
-                    break;
                 }
-            case (STATE_RECVBODY):
-                {
-                    try {
-                        channel.read(buf);
-                    } catch (IOException ioe) {
-                        //need to do something here
+
+                if (inputBuf.position() < bufPos + 4) {
+                    adjustOrExpandInputBuffer(4);
+                } else {
+                    int length = inputBuf.getInt(bufPos);
+                    if (length == INT_SIZE) {
+                        // count stop message tokens
+                        stopMsgReceived += 1;
+                        exitRecvHeader();
+                        notifyOnStop();
+                        presState = STATE_IDLE;
+                        break;
+                    }
+
+                    if (length < INT_SIZE) {
+                        // this really should not happen
                         transition(SIG_ERROR);
-                        log.error("Problem on channel.read(): ", ioe);
-                        throw new RuntimeException(ioe);
+                        break;
                     }
-                    if (!buf.hasRemaining()) {
-                        cancelSelectorOnExit = true;
-                        if (splicerAvailable()) {
-                            // finish normally
-                            transition(SIG_DONE);
-                        } else {
-                            // pend until splicer is available
-                            transition(SIG_WAIT_FOR_SPLICER);
+
+                    if (length <= inputBuf.position() - bufPos) {
+                        exitRecvHeader();
+                        getBuffer();
+                        if (handleMorePayloads()) {
+                            continue;
                         }
+                        break;
                     }
-                    break;
-                }
-            case (STATE_DISPOSING):
-                {
-                    try {
-                        buf.position(0);
-                        buf.limit(buf.capacity());
-                        channel.read(buf);
-                    } catch (IOException ioe) {
-                        //need to do something here
-                        transition(SIG_ERROR);
-                        log.error("Problem on channel.read(): ", ioe);
-                        throw new RuntimeException(ioe);
+
+                    if (length < inputBuf.capacity() - bufPos) {
+                        // didn't read enough, wait for more input
+                        break;
                     }
-                    break;
+
+                    adjustOrExpandInputBuffer(length);
                 }
-            default:
-                {
-                    // should not be getting selects here
-                    selectionKey.cancel();
-                    break;
-                }
+            }
+            break;
+
+        case STATE_DISPOSING:
+            try {
+                payloadBuf.position(0);
+                payloadBuf.limit(payloadBuf.capacity());
+                channel.read(payloadBuf);
+            } catch (IOException ioe) {
+                //need to do something here
+                transition(SIG_ERROR);
+                log.error("Problem on channel.read(): ", ioe);
+                throw new RuntimeException(ioe);
+            }
+            break;
+
+        default:
+            // should not be getting selects here
+            selectionKey.cancel();
+            break;
         }
+
         if (cancelSelectorOnExit) {
             // its ok to do it now.
             selectionKey.cancel();
@@ -640,298 +559,381 @@ public class PayloadReceiveChannel {
         // in state enter routines, since the present state flag
         // has been appropriately changed and things are reentrant
         switch (presState) {
-            case STATE_IDLE:
-                {
-                    switch (signal) {
-                        case SIG_ERROR:
-                            {
-                                exitIdle();
-                                doTransition(STATE_ERROR);
-                                enterError();
-                                break;
-                            }
-                        case SIG_START_HEADER:
-                            {
-                                exitIdle();
-                                doTransition(STATE_RECVHEADER);
-                                enterRecvHeader();
-                                break;
-                            }
-                        case SIG_DISPOSE:
-                            {
-                                exitIdle();
-                                doTransition(STATE_DISPOSING);
-                                enterDisposing();
-                                break;
-                            }
-                        default:
-                            break;
-                    }
-                    break;
-                }
-            case STATE_GETBUFFER:
-                {
-                    switch (signal) {
-                        case SIG_ERROR:
-                            {
-                                exitGetBuffer();
-                                doTransition(STATE_ERROR);
-                                enterError();
-                                break;
-                            }
-                        case SIG_START_BODY:
-                            {
-                                exitGetBuffer();
-                                doTransition(STATE_RECVBODY);
-                                enterRecvBody();
-                                break;
-                            }
-                        case SIG_FORCED_STOP:
-                            {
-                                exitGetBuffer();
-                                doTransition(STATE_IDLE);
-                                notifyOnStop();
-                                enterIdle();
-                                break;
-                            }
-                        default:
-                            break;
-                    }
-                    break;
-                }
-            case STATE_RECVHEADER:
-                {
-                    switch (signal) {
-                        case SIG_ERROR:
-                            {
-                                exitRecvHeader();
-                                doTransition(STATE_ERROR);
-                                enterError();
-                                break;
-                            }
-                        case SIG_GET_BUFFER:
-                            {
-                                exitRecvHeader();
-                                doTransition(STATE_GETBUFFER);
-                                enterGetBuffer();
-                                break;
-                            }
-                        case SIG_DONE:
-                            {
-                                exitRecvHeader();
-                                doTransition(STATE_RECVDONE);
-                                enterRecvDone();
-                                break;
-                            }
-                        case SIG_FORCED_STOP:
-                            {
-                                exitRecvHeader();
-                                doTransition(STATE_IDLE);
-                                notifyOnStop();
-                                enterIdle();
-                                break;
-                            }
-                        default:
-                            break;
-                    }
-                    break;
-                }
-            case STATE_RECVBODY:
-                {
-                    switch (signal) {
-                        case SIG_ERROR:
-                            {
-                                exitRecvBody();
-                                doTransition(STATE_ERROR);
-                                enterError();
-                                break;
-                            }
-                        case SIG_DONE:
-                            {
-                                exitRecvBody();
-                                doTransition(STATE_RECVDONE);
-                                enterRecvDone();
-                                break;
-                            }
-                        case SIG_FORCED_STOP:
-                            {
-                                exitRecvBody();
-                                doTransition(STATE_IDLE);
-                                notifyOnStop();
-                                enterIdle();
-                                break;
-                            }
-                        case SIG_WAIT_FOR_SPLICER:
-                            {
-                                // do not execute exitRecvBody because we
-                                // need to wait for permission to log to splicer
-                                doTransition(STATE_SPLICER_WAIT);
-                                enterSplicerWait();
-                                break;
-                            }
-                        default:
-                            break;
-                    }
-                    break;
-                }
-            case STATE_RECVDONE:
-                {
-                    switch (signal) {
-                        case SIG_ERROR:
-                            {
-                                exitRecvDone();
-                                doTransition(STATE_ERROR);
-                                enterError();
-                                break;
-                            }
-                        case SIG_RESTART:
-                            {
-                                exitRecvDone();
-                                doTransition(STATE_RECVHEADER);
-                                enterRecvHeader();
-                                break;
-                            }
-                        case SIG_LAST_MSG:
-                            {
-                                exitRecvDone();
-                                doTransition(STATE_IDLE);
-                                notifyOnStop();
-                                enterIdle();
-                                break;
-                            }
-                        case SIG_FORCED_STOP:
-                            {
-                                exitRecvDone();
-                                doTransition(STATE_IDLE);
-                                notifyOnStop();
-                                enterIdle();
-                                break;
-                            }
-                        default:
-                            break;
-                    }
-                    break;
-                }
-            case STATE_SPLICER_WAIT:
-                {
-                    switch (signal) {
-                        case SIG_ERROR:
-                            {
-                                exitRecvDone();
-                                doTransition(STATE_ERROR);
-                                enterError();
-                                break;
-                            }
-                        case SIG_FORCED_STOP:
-                            {
-                                exitRecvDone();
-                                doTransition(STATE_IDLE);
-                                notifyOnStop();
-                                enterIdle();
-                                break;
-                            }
-                        case SIG_DONE:
-                            {
-                                // now we can execute exitRecvBody
-                                exitRecvBody();
-                                doTransition(STATE_RECVDONE);
-                                enterRecvDone();
-                                break;
-                            }
-                        default:
-                            break;
-                    }
-                    break;
-                }
-            case STATE_DISPOSING:
-                {
-                    switch (signal) {
-                        case SIG_ERROR:
-                            {
-                                exitDisposing();
-                                doTransition(STATE_ERROR);
-                                enterError();
-                                break;
-                            }
-                        case SIG_IDLE:
-                            {
-                                exitDisposing();
-                                doTransition(STATE_IDLE);
-                                enterIdle();
-                                break;
-                            }
-                        case SIG_FORCED_STOP:
-                            {
-                                exitDisposing();
-                                doTransition(STATE_IDLE);
-                                notifyOnStop();
-                                enterIdle();
-                                break;
-                            }
-                        default:
-                            break;
-                    }
-                    break;
-                }
-            case STATE_ERROR:
-                {
-                    switch (signal) {
-                        case SIG_IDLE:
-                            {
-                                exitError();
-                                doTransition(STATE_IDLE);
-                                enterIdle();
-                                break;
-                            }
-                        default:
-                            break;
-                    }
-                    break;
-                }
+        case STATE_IDLE:
+            if (signal == SIG_ERROR || signal == SIG_START_HEADER ||
+                signal == SIG_DISPOSE)
+            {
+                exitIdle();
+            }
+
+            switch (signal) {
+            case SIG_ERROR:
+                doTransition(signal, STATE_ERROR);
+                break;
+            case SIG_START_HEADER:
+                doTransition(signal, STATE_RECVHEADER);
+                break;
+            case SIG_DISPOSE:
+                doTransition(signal, STATE_DISPOSING);
+                break;
             default:
-                {
-                    break;
-                }
+                break;
+            }
+
+            break;
+
+        case STATE_GETBUFFER:
+            switch (signal) {
+            case SIG_ERROR:
+                doTransition(signal, STATE_ERROR);
+                break;
+            case SIG_START_BODY:
+                doTransition(signal, STATE_RECVBODY);
+                break;
+            case SIG_FORCED_STOP:
+                doTransition(signal, STATE_IDLE);
+                break;
+            default:
+                break;
+            }
+
+            break;
+
+        case STATE_RECVHEADER:
+            if (signal == SIG_ERROR || signal == SIG_GET_BUFFER ||
+                signal == SIG_DONE || signal == SIG_FORCED_STOP)
+            {
+                exitRecvHeader();
+            }
+
+            switch (signal) {
+            case SIG_ERROR:
+                doTransition(signal, STATE_ERROR);
+                break;
+            case SIG_GET_BUFFER:
+                doTransition(signal, STATE_GETBUFFER);
+                break;
+            case SIG_DONE:
+                doTransition(signal, STATE_RECVDONE);
+                break;
+            case SIG_FORCED_STOP:
+                doTransition(signal, STATE_IDLE);
+                break;
+            default:
+                break;
+            }
+
+            break;
+
+        case STATE_RECVBODY:
+            if (signal == SIG_ERROR || signal == SIG_DONE ||
+                signal == SIG_FORCED_STOP)
+            {
+                exitRecvBody();
+            }
+
+            switch (signal) {
+            case SIG_ERROR:
+                doTransition(signal, STATE_ERROR);
+                break;
+            case SIG_DONE:
+                doTransition(signal, STATE_RECVDONE);
+                break;
+            case SIG_FORCED_STOP:
+                doTransition(signal, STATE_IDLE);
+                break;
+            default:
+                break;
+            }
+
+            break;
+
+        case STATE_RECVDONE:
+            switch (signal) {
+            case SIG_ERROR:
+                doTransition(signal, STATE_ERROR);
+                break;
+            case SIG_RESTART:
+                doTransition(signal, STATE_RECVHEADER);
+                break;
+            case SIG_LAST_MSG:
+                doTransition(signal, STATE_IDLE);
+                break;
+            case SIG_FORCED_STOP:
+                doTransition(signal, STATE_IDLE);
+                break;
+            default:
+                break;
+            }
+
+            break;
+
+        case STATE_SPLICER_WAIT:
+            if (signal == SIG_DONE) {
+                // now we can execute exitRecvBody
+                exitRecvBody();
+            }
+
+            switch (signal) {
+            case SIG_ERROR:
+                doTransition(signal, STATE_ERROR);
+                break;
+            case SIG_FORCED_STOP:
+                doTransition(signal, STATE_IDLE);
+                break;
+            case SIG_DONE:
+                doTransition(signal, STATE_RECVDONE);
+                break;
+            default:
+                break;
+            }
+
+            break;
+
+        case STATE_DISPOSING:
+            if (signal == SIG_ERROR || signal == SIG_IDLE ||
+                signal == SIG_FORCED_STOP)
+            {
+                selectionKey.cancel();
+            }
+
+            switch (signal) {
+            case SIG_ERROR:
+                doTransition(signal, STATE_ERROR);
+                break;
+            case SIG_IDLE:
+                doTransition(signal, STATE_IDLE);
+                break;
+            case SIG_FORCED_STOP:
+                doTransition(signal, STATE_IDLE);
+                break;
+            default:
+                break;
+            }
+
+            break;
+
+        case STATE_ERROR:
+            if (signal == SIG_IDLE) {
+                doTransition(signal, STATE_IDLE);
+            }
+
+            break;
+
+        default:
+            break;
         }
     }
 
-    protected void doTransition(int nextState)
+    private boolean initializeBuffer()
+    {
+        if (payloadBuf.capacity() < neededBufBlen) {
+            if (TRACE_DATA && log.isErrorEnabled()) {
+                log.error(id + ":RECV:Buf is too small");
+            }
+            return false;
+        }
+
+        // now fix up actual receive buffer and copy in length
+        payloadBuf.position(0);
+        payloadBuf.limit(neededBufBlen);
+
+        int pos = inputBuf.position();
+        int lim = inputBuf.limit();
+
+        if (lim != inputBuf.capacity()) {
+            log.error("Surprise!  Input buffer " + inputBuf +
+                      " capacity  != limit");
+        }
+
+        inputBuf.position(bufPos);
+        inputBuf.limit(bufPos + neededBufBlen);
+
+        payloadBuf.put(inputBuf);
+
+        inputBuf.limit(lim);
+
+        if (bufPos + neededBufBlen == pos) {
+            inputBuf.position(0);
+            bufPos = 0;
+        } else {
+            inputBuf.position(pos);
+            bufPos += neededBufBlen;
+        }
+
+        return true;
+    }
+
+    private void getBuffer()
     {
         prevState = presState;
+        presState = STATE_GETBUFFER;
+
+        // received header, check for illegal length and allocate buffer
+        neededBufBlen = inputBuf.getInt(bufPos);
+        if (TRACE_DATA && log.isErrorEnabled()) {
+            log.error(id + ":RECV:GetBuf LEN=" + neededBufBlen);
+        }
+        if (neededBufBlen < INT_SIZE) {
+            transition(SIG_ERROR);
+            return;
+        }
+        // check for allocation limits--flow control
+        if (!allocationStopped) {
+            if (bufferMgr.getCurrentAquiredBytes() >=
+                limitToStopAllocation)
+            {
+                if (log.isErrorEnabled()) {
+                    log.error(id + ":RECV:AcqBytes " +
+                              bufferMgr.getCurrentAquiredBytes() + " >= " +
+                              limitToStopAllocation);
+                }
+                allocationStopped = true;
+                payloadBuf = null;
+            } else {
+                payloadBuf = bufferMgr.acquireBuffer(neededBufBlen);
+            }
+        }
+
+        // verify correct capacity, if buffer was allocated
+        if (payloadBuf == null) {
+            if (TRACE_DATA && log.isErrorEnabled()) {
+                log.error(id + ":RECV:Buf was null");
+            }
+            // if payloadBuf == null, always cancel selector interest
+            selectionKey.cancel();
+        } else if (!initializeBuffer()) {
+            transition(SIG_ERROR);
+        } else {
+            presState = STATE_RECVBODY;
+            if (splicerAvailable()) {
+                // do not execute exitRecvBody because we
+                // need to wait for permission to log to splicer
+                presState = STATE_SPLICER_WAIT;
+                enterSplicerWait();
+            } else {
+                exitRecvBody();
+                presState = STATE_RECVDONE;
+                // finish normally
+                // note: inputBuf always contains the length of the msg.
+                // if its a stop message, payloadBuf will not have been
+                //  filled in, so we need to check inputBuf, not payloadBuf
+                if (bufPos + INT_SIZE <= inputBuf.position() &&
+                    inputBuf.getInt(bufPos) == INT_SIZE)
+                {
+                    notifyOnStop();
+                    receivedLastMsg = false;
+                } else {
+                    restart();
+                    presState = STATE_RECVHEADER;
+                }
+            }
+        }
+    }
+
+    private void restart()
+    {
+        isStopped = false;
+        try {
+            selectionKey =
+                ((SelectableChannel) channel).register(selector,
+                                                       SelectionKey.OP_READ,
+                                                       this);
+            // make sure we don't cancel the selector when we exit
+            cancelSelectorOnExit = false;
+        } catch (ClosedChannelException cce) {
+            // flag error and return
+            log.error("Channel is closed: ", cce);
+            transition(SIG_ERROR);
+            throw new RuntimeException(cce);
+        }
+    }
+
+    protected void doTransition(int signal, int nextState) {
+        prevState = presState;
         presState = nextState;
+
+        switch (nextState) {
+        case STATE_DISPOSING:
+            startTimeMsec = System.currentTimeMillis();
+            try {
+                selectionKey =
+                    ((SelectableChannel) channel).register(selector,
+                                                           SelectionKey.OP_READ,
+                                                           this);
+            } catch (ClosedChannelException cce) {
+                // flag error and return
+                log.error("Selector register error during disposing", cce);
+                transition(SIG_ERROR);
+                throw new RuntimeException(cce);
+            }
+            break;
+        case STATE_ERROR:
+            enterError();
+            break;
+        case STATE_GETBUFFER:
+            getBuffer();
+            break;
+        case STATE_IDLE:
+            if (signal == SIG_FORCED_STOP || signal == SIG_LAST_MSG) {
+                notifyOnStop();
+            }
+            receivedLastMsg = false;
+            break;
+        case STATE_RECVBODY:
+            break;
+        case STATE_RECVDONE:
+            // note: inputBuf always contains the length of the msg.
+            // if its a stop message, buf will not have been filled in,
+            // so we need to check inputBuf, not buf
+            if (inputBuf.getInt(bufPos) == INT_SIZE) {
+                transition(SIG_LAST_MSG);
+            } else {
+                transition(SIG_RESTART);
+            }
+            break;
+        case STATE_RECVHEADER:
+            restart();
+            break;
+        case STATE_SPLICER_WAIT:
+            enterSplicerWait();
+            break;
+        default:
+            break;
+        }
     }
 
     private static final String getStateName(int state)
     {
         final String name;
         switch (state) {
-            case STATE_IDLE:
-                name = STATE_IDLE_NAME;
-                break;
-            case STATE_GETBUFFER:
-                name = STATE_GETBUFFER_NAME;
-                break;
-            case STATE_RECVHEADER:
-                name = STATE_RECVHEADER_NAME;
-                break;
-            case STATE_RECVBODY:
-                name = STATE_RECVBODY_NAME;
-                break;
-            case STATE_RECVDONE:
-                name = STATE_RECVDONE_NAME;
-                break;
-            case STATE_DISPOSING:
-                name = STATE_DISPOSING_NAME;
-                break;
-            case STATE_ERROR:
-                name = STATE_ERROR_NAME;
-                break;
-            case STATE_SPLICER_WAIT:
-                name = STATE_SPLICER_WAIT_NAME;
-                break;
-            default:
-                name = "UNKNOWN#" + state;
-                break;
+        case STATE_IDLE:
+            name = STATE_IDLE_NAME;
+            break;
+        case STATE_GETBUFFER:
+            name = STATE_GETBUFFER_NAME;
+            break;
+        case STATE_RECVHEADER:
+            name = STATE_RECVHEADER_NAME;
+            break;
+        case STATE_RECVBODY:
+            name = STATE_RECVBODY_NAME;
+            break;
+        case STATE_RECVDONE:
+            name = STATE_RECVDONE_NAME;
+            break;
+        case STATE_DISPOSING:
+            name = STATE_DISPOSING_NAME;
+            break;
+        case STATE_ERROR:
+            name = STATE_ERROR_NAME;
+            break;
+        case STATE_SPLICER_WAIT:
+            name = STATE_SPLICER_WAIT_NAME;
+            break;
+        default:
+            name = "UNKNOWN#" + state;
+            break;
         }
         return name;
     }
@@ -940,42 +942,42 @@ public class PayloadReceiveChannel {
     {
         final String name;
         switch (signal) {
-            case SIG_IDLE:
-                name = "IDLE";
-                break;
-            case SIG_GET_BUFFER:
-                name = "GET_BUFFER";
-                break;
-            case SIG_START_HEADER:
-                name = "START_HEADER";
-                break;
-            case SIG_START_BODY:
-                name = "START_BODY";
-                break;
-            case SIG_DONE:
-                name = "DONE";
-                break;
-            case SIG_RESTART:
-                name = "RESTART";
-                break;
-            case SIG_DISPOSE:
-                name = "DISPOSE";
-                break;
-            case SIG_ERROR:
-                name = "ERROR";
-                break;
-            case SIG_FORCED_STOP:
-                name = "FORCED_STOP";
-                break;
-            case SIG_LAST_MSG:
-                name = "LAST_MSG";
-                break;
-            case SIG_WAIT_FOR_SPLICER:
-                name = "WAIT_FOR_SPLICER";
-                break;
-            default:
-                name = "UNKNOWN#" + signal;
-                break;
+        case SIG_IDLE:
+            name = "IDLE";
+            break;
+        case SIG_GET_BUFFER:
+            name = "GET_BUFFER";
+            break;
+        case SIG_START_HEADER:
+            name = "START_HEADER";
+            break;
+        case SIG_START_BODY:
+            name = "START_BODY";
+            break;
+        case SIG_DONE:
+            name = "DONE";
+            break;
+        case SIG_RESTART:
+            name = "RESTART";
+            break;
+        case SIG_DISPOSE:
+            name = "DISPOSE";
+            break;
+        case SIG_ERROR:
+            name = "ERROR";
+            break;
+        case SIG_FORCED_STOP:
+            name = "FORCED_STOP";
+            break;
+        case SIG_LAST_MSG:
+            name = "LAST_MSG";
+            break;
+        case SIG_WAIT_FOR_SPLICER:
+            name = "WAIT_FOR_SPLICER";
+            break;
+        default:
+            name = "UNKNOWN#" + signal;
+            break;
         }
         return name;
     }

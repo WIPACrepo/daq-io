@@ -48,34 +48,18 @@ public class SpliceablePayloadReceiveChannel extends PayloadReceiveChannel {
     }
 
     protected void exitIdle() {
-        setCacheLimits();
+        super.exitIdle();
         if (strandTail == null) {
             // just to be paranoid, check that strandTail has
             // been initialized before continuing.
-            doTransition(STATE_ERROR);
+            doTransition(SIG_ERROR, STATE_ERROR);
             enterError();
-        } else {
-            super.exitIdle();
         }
     }
 
     protected void exitRecvHeader() {
-        Spliceable spliceable;
-        if (headerBuf.getInt(0) == INT_SIZE) {
-            if (!isStopped) {
-                spliceable = Splicer.LAST_POSSIBLE_SPLICEABLE;
-                if (log.isInfoEnabled()) {
-                    log.info("got LAST_POSSIBLE_SPLICEABLE");
-                }
-                pushSpliceable(spliceable);
-                if (!strandTail.isClosed()) {
-                    strandTail.close();
-                }
-                isStopped = true;
-                if (compObserver != null) {
-                    compObserver.update(NormalState.STOPPED, notificationID);
-                }
-            }
+        if (inputBuf.getInt(bufPos) == INT_SIZE) {
+            notifyOnStop();
         }
     }
 
@@ -83,18 +67,45 @@ public class SpliceablePayloadReceiveChannel extends PayloadReceiveChannel {
 
         Spliceable spliceable;
 
-        buf.clear();
-        if (buf.getInt(0) > INT_SIZE) {
-            spliceable = spliceableFac.createSpliceable(buf);
+        payloadBuf.clear();
+        if (payloadBuf.getInt(0) > INT_SIZE) {
+            spliceable = spliceableFac.createSpliceable(payloadBuf);
             // track how may bytes have been received
-            bytesReceived += buf.getInt(0);
+            bytesReceived += payloadBuf.getInt(0);
             recordsReceived += 1;
             if (log.isDebugEnabled()) {
-                log.debug("created a spliceable of length: " + buf.getInt(0));
+                log.debug("created a spliceable of length: " + payloadBuf.getInt(0));
             }
 
             pushSpliceable(spliceable);
         }
+    }
+
+    protected void enterSplicerWait() {
+        // this is a place holder and is re implemented
+        // in SpliceablePayloadReceiveChannel.
+        // note that there is no exitSplicerWait() method.
+        // we are just waiting until we are allowed to execute
+        // the exitRecvBody() method.  See processTimer() code.
+        //transition(SIG_DONE);
+    }
+
+    protected boolean handleMorePayloads()
+    {
+        if (splicerAvailable()) {
+            transition(SIG_DONE);
+
+            if (bufPos + INT_SIZE < inputBuf.position()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    protected boolean splicerAvailable() {
+        // placeholder for code in SpliceablePayloadReceiveChannel
+        return true;
     }
 
     protected void notifyOnStop() {
@@ -112,49 +123,35 @@ public class SpliceablePayloadReceiveChannel extends PayloadReceiveChannel {
             }
             isStopped = true;
         }
+
+        super.notifyOnStop();
     }
 
     private void pushSpliceable(Spliceable spliceable) {
-        try {
-            if (spliceable == null) {
-                if (log.isErrorEnabled()) {
-                    log.error("Couldn't generate a payload from a buf: ");
-                    log.error("buf record: " + buf.getInt(0));
-                    log.error("buf limit: " + buf.limit());
-                    log.error("buf capacity: " + buf.capacity());
-                }
-                throw new RuntimeException("Couldn't create a Spliceable");
-
-            } else {
-                strandTail.push(spliceable);
+        if (spliceable == null) {
+            if (log.isErrorEnabled()) {
+                log.error("Couldn't generate a payload from a buf: ");
+                log.error("buf record: " + payloadBuf.getInt(0));
+                log.error("buf limit: " + payloadBuf.limit());
+                log.error("buf capacity: " + payloadBuf.capacity());
             }
+
+            throw new RuntimeException("Couldn't create a Spliceable");
+        }
+
+        try {
+            strandTail.push(spliceable);
         } catch (OrderingException oe) {
-            // TODO: Need to be reviewed. For now, log to error and printStackTrace
+            // TODO: Need to be reviewed.
             if (log.isErrorEnabled()) {
                 log.error("coudn't push a spliceable object: ", oe);
             }
-            oe.printStackTrace();
         } catch (ClosedStrandException cse) {
-            // TODO: Need to be reviewed. For now, log to error and printStackTrace
+            // TODO: Need to be reviewed.
             if (log.isErrorEnabled()) {
                 log.error("coudn't push a spliceable object: ", cse);
             }
-            cse.printStackTrace();
         }
-    }
-
-    protected void enterSplicerWait() {
-        // this is a place holder and is re implemented
-        // in SpliceablePayloadReceiveChannel.
-        // note that there is no exitSplicerWait() method.
-        // we are just waiting until we are allowed to execute
-        // the exitRecvBody() method.  See processTimer() code.
-        //transition(SIG_DONE);
-    }
-
-    protected boolean splicerAvailable() {
-        // placeholder for code in SpliceablePayloadReceiveChannel
-        return true;
     }
 
     public void setStrandTail(StrandTail strandTail) {
