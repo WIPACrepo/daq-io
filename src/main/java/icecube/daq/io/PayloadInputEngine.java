@@ -99,15 +99,15 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
     // isDisposing flag for selector code
     protected SynchronizedBoolean isDisposingFlag;
     // list of payload objects for startDisposing method call
-    protected SyncCollection payloadStartDisposingSyncList;
+    protected SyncCollection rcvChanStartDisposingList;
     // isRunning flag for selector code
     protected SynchronizedBoolean isRunningFlag;
     // list of payload objects for startEngine method call
-    protected SyncCollection payloadStartEngineSyncList;
+    protected SyncCollection rcvChanStartList;
     // simulated error flag;
     protected boolean simulatedError;
     // collection of individual payload engines
-    protected SyncCollection payloadEngineList =
+    protected SyncCollection rcvChanList =
         new SyncCollection(new ArrayList(), new Semaphore(1));
     // selector timeout
     protected long selectorTimeoutMsec = DEFAULT_SELECTOR_TIMEOUT_MSEC;
@@ -177,9 +177,9 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
         killFlag = new SynchronizedBoolean(false);
         isRunningFlag = new SynchronizedBoolean(false);
         isDisposingFlag = new SynchronizedBoolean(false);
-        payloadStartEngineSyncList = new SyncCollection(new ArrayList(),
+        rcvChanStartList = new SyncCollection(new ArrayList(),
                 new Semaphore(1));
-        payloadStartDisposingSyncList = new SyncCollection(new ArrayList(),
+        rcvChanStartDisposingList = new SyncCollection(new ArrayList(),
                 new Semaphore(1));
         inputAvailable = new Semaphore(0);
         // create new state info
@@ -267,12 +267,12 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
 
     protected void enterRunning() {
         stopFlag.set(false);
-        stopNotificationCounter = payloadEngineList.size();
-        Iterator payloadListIterator = payloadEngineList.iterator();
-        while (payloadListIterator.hasNext()) {
-            PayloadReceiveChannel payload =
-                (PayloadReceiveChannel) payloadListIterator.next();
-            payloadStartEngineSyncList.add(payload);
+        stopNotificationCounter = rcvChanList.size();
+        Iterator rcvChanIter = rcvChanList.iterator();
+        while (rcvChanIter.hasNext()) {
+            PayloadReceiveChannel rcvChan =
+                (PayloadReceiveChannel) rcvChanIter.next();
+            rcvChanStartList.add(rcvChan);
         }
         isRunningFlag.set(true);
     }
@@ -281,7 +281,7 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
     }
 
     protected void enterStopping() {
-        if (payloadEngineList.size() == 0) {
+        if (rcvChanList.size() == 0) {
             transition(SIG_IDLE);
         }
     }
@@ -290,17 +290,18 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
     }
 
     protected void enterDisposing() {
-        stopNotificationCounter = payloadEngineList.size();
+        stopNotificationCounter = rcvChanList.size();
         if (stopNotificationCounter == 0) {
             // if we have no inputs, then we're done
             transition(SIG_IDLE);
             // make sure we return from here
             return;
         } else {
-            Iterator payloadListIterator = payloadEngineList.iterator();
-            while (payloadListIterator.hasNext()) {
-                PayloadReceiveChannel payload = (PayloadReceiveChannel) payloadListIterator.next();
-                payloadStartDisposingSyncList.add(payload);
+            Iterator rcvChanIter = rcvChanList.iterator();
+            while (rcvChanIter.hasNext()) {
+                PayloadReceiveChannel rcvChan =
+                    (PayloadReceiveChannel) rcvChanIter.next();
+                rcvChanStartDisposingList.add(rcvChan);
             }
             isDisposingFlag.set(true);
         }
@@ -325,18 +326,18 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
 
     private void stopAndClearChannels()
     {
-        Iterator payloadListIterator = payloadEngineList.iterator();
-        while (payloadListIterator.hasNext()) {
-            PayloadReceiveChannel payload =
-                (PayloadReceiveChannel) payloadListIterator.next();
-            payload.stopEngine();
+        Iterator rcvChanIter = rcvChanList.iterator();
+        while (rcvChanIter.hasNext()) {
+            PayloadReceiveChannel rcvChan =
+                (PayloadReceiveChannel) rcvChanIter.next();
+            rcvChan.stopEngine();
             try {
-                payload.close();
+                rcvChan.close();
             } catch (IOException ioe) {
                 log.error("Couldn't close payload receive channel", ioe);
             }
         }
-        payloadEngineList.clear();
+        rcvChanList.clear();
         madeReverseConnections = false;
     }
 
@@ -418,110 +419,110 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
 
     public synchronized String[] getPresentChannelStates() {
         ArrayList stateList = new ArrayList();
-        Iterator payloadListIterator = payloadEngineList.iterator();
-        while (payloadListIterator.hasNext()) {
-            PayloadReceiveChannel msg =
-                (PayloadReceiveChannel) payloadListIterator.next();
-            stateList.add(msg.presentState());
+        Iterator rcvChanIter = rcvChanList.iterator();
+        while (rcvChanIter.hasNext()) {
+            PayloadReceiveChannel rcvChan =
+                (PayloadReceiveChannel) rcvChanIter.next();
+            stateList.add(rcvChan.presentState());
         }
         return (String[]) stateList.toArray(new String[0]);
     }
 
     public synchronized Long[] getBytesReceived() {
         ArrayList byteCount = new ArrayList();
-        Iterator payloadListIterator = payloadEngineList.iterator();
-        while (payloadListIterator.hasNext()) {
-            PayloadReceiveChannel msg =
-                (PayloadReceiveChannel) payloadListIterator.next();
-            byteCount.add(new Long(msg.bytesReceived));
+        Iterator rcvChanIter = rcvChanList.iterator();
+        while (rcvChanIter.hasNext()) {
+            PayloadReceiveChannel rcvChan =
+                (PayloadReceiveChannel) rcvChanIter.next();
+            byteCount.add(new Long(rcvChan.bytesReceived));
         }
         return (Long[]) byteCount.toArray(new Long[0]);
     }
 
     public synchronized Long[] getRecordsReceived() {
         ArrayList recordCount = new ArrayList();
-        Iterator payloadListIterator = payloadEngineList.iterator();
-        while (payloadListIterator.hasNext()) {
-            PayloadReceiveChannel msg =
-                (PayloadReceiveChannel) payloadListIterator.next();
-            recordCount.add(new Long(msg.recordsReceived));
+        Iterator rcvChanIter = rcvChanList.iterator();
+        while (rcvChanIter.hasNext()) {
+            PayloadReceiveChannel rcvChan =
+                (PayloadReceiveChannel) rcvChanIter.next();
+            recordCount.add(new Long(rcvChan.recordsReceived));
         }
         return (Long[]) recordCount.toArray(new Long[0]);
     }
 
     public synchronized Long[] getStopMessagesReceived() {
         ArrayList recordCount = new ArrayList();
-        Iterator payloadListIterator = payloadEngineList.iterator();
-        while (payloadListIterator.hasNext()) {
-            PayloadReceiveChannel msg =
-                (PayloadReceiveChannel) payloadListIterator.next();
-            recordCount.add(new Long(msg.stopMsgReceived));
+        Iterator rcvChanIter = rcvChanList.iterator();
+        while (rcvChanIter.hasNext()) {
+            PayloadReceiveChannel rcvChan =
+                (PayloadReceiveChannel) rcvChanIter.next();
+            recordCount.add(new Long(rcvChan.stopMsgReceived));
         }
         return (Long[]) recordCount.toArray(new Long[0]);
     }
 
     public synchronized Long[] getLimitToStopAllocation() {
         ArrayList byteLimit = new ArrayList();
-        Iterator payloadListIterator = payloadEngineList.iterator();
-        while (payloadListIterator.hasNext()) {
-            PayloadReceiveChannel msg =
-                (PayloadReceiveChannel) payloadListIterator.next();
-            byteLimit.add(new Long(msg.limitToStopAllocation));
+        Iterator rcvChanIter = rcvChanList.iterator();
+        while (rcvChanIter.hasNext()) {
+            PayloadReceiveChannel rcvChan =
+                (PayloadReceiveChannel) rcvChanIter.next();
+            byteLimit.add(new Long(rcvChan.limitToStopAllocation));
         }
         return (Long[]) byteLimit.toArray(new Long[0]);
     }
 
     public synchronized Long[] getLimitToRestartAllocation() {
         ArrayList byteLimit = new ArrayList();
-        Iterator payloadListIterator = payloadEngineList.iterator();
-        while (payloadListIterator.hasNext()) {
-            PayloadReceiveChannel msg =
-                (PayloadReceiveChannel) payloadListIterator.next();
-            byteLimit.add(new Long(msg.limitToRestartAllocation));
+        Iterator rcvChanIter = rcvChanList.iterator();
+        while (rcvChanIter.hasNext()) {
+            PayloadReceiveChannel rcvChan =
+                (PayloadReceiveChannel) rcvChanIter.next();
+            byteLimit.add(new Long(rcvChan.limitToRestartAllocation));
         }
         return (Long[]) byteLimit.toArray(new Long[0]);
     }
 
     public synchronized Long[] getPercentMaxStopAllocation() {
         ArrayList byteLimit = new ArrayList();
-        Iterator payloadListIterator = payloadEngineList.iterator();
-        while (payloadListIterator.hasNext()) {
-            PayloadReceiveChannel msg =
-                (PayloadReceiveChannel) payloadListIterator.next();
-            byteLimit.add(new Long(msg.percentOfMaxStopAllocation));
+        Iterator rcvChanIter = rcvChanList.iterator();
+        while (rcvChanIter.hasNext()) {
+            PayloadReceiveChannel rcvChan =
+                (PayloadReceiveChannel) rcvChanIter.next();
+            byteLimit.add(new Long(rcvChan.percentOfMaxStopAllocation));
         }
         return (Long[]) byteLimit.toArray(new Long[0]);
     }
 
     public synchronized Long[] getPercentMaxRestartAllocation() {
         ArrayList byteLimit = new ArrayList();
-        Iterator payloadListIterator = payloadEngineList.iterator();
-        while (payloadListIterator.hasNext()) {
-            PayloadReceiveChannel msg =
-                (PayloadReceiveChannel) payloadListIterator.next();
-            byteLimit.add(new Long(msg.percentOfMaxRestartAllocation));
+        Iterator rcvChanIter = rcvChanList.iterator();
+        while (rcvChanIter.hasNext()) {
+            PayloadReceiveChannel rcvChan =
+                (PayloadReceiveChannel) rcvChanIter.next();
+            byteLimit.add(new Long(rcvChan.percentOfMaxRestartAllocation));
         }
         return (Long[]) byteLimit.toArray(new Long[0]);
     }
 
     public synchronized Long[] getBufferCurrentAcquiredBytes() {
         ArrayList byteLimit = new ArrayList();
-        Iterator payloadListIterator = payloadEngineList.iterator();
-        while (payloadListIterator.hasNext()) {
-            PayloadReceiveChannel msg =
-                (PayloadReceiveChannel) payloadListIterator.next();
-            byteLimit.add(new Long(msg.getBufferCurrentAcquiredBytes()));
+        Iterator rcvChanIter = rcvChanList.iterator();
+        while (rcvChanIter.hasNext()) {
+            PayloadReceiveChannel rcvChan =
+                (PayloadReceiveChannel) rcvChanIter.next();
+            byteLimit.add(new Long(rcvChan.getBufferCurrentAcquiredBytes()));
         }
         return (Long[]) byteLimit.toArray(new Long[0]);
     }
 
     public synchronized Long[] getBufferCurrentAcquiredBuffers() {
         ArrayList byteLimit = new ArrayList();
-        Iterator payloadListIterator = payloadEngineList.iterator();
-        while (payloadListIterator.hasNext()) {
-            PayloadReceiveChannel msg =
-                (PayloadReceiveChannel) payloadListIterator.next();
-            byteLimit.add(new Long(msg.getBufferCurrentAcquiredBuffers()));
+        Iterator rcvChanIter = rcvChanList.iterator();
+        while (rcvChanIter.hasNext()) {
+            PayloadReceiveChannel rcvChan =
+                (PayloadReceiveChannel) rcvChanIter.next();
+            byteLimit.add(new Long(rcvChan.getBufferCurrentAcquiredBuffers()));
         }
 
         return (Long[]) byteLimit.toArray(new Long[0]);
@@ -529,11 +530,11 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
 
     public synchronized Boolean[] getAllocationStopped() {
         ArrayList allocationStatus = new ArrayList();
-        Iterator payloadListIterator = payloadEngineList.iterator();
-        while (payloadListIterator.hasNext()) {
-            PayloadReceiveChannel msg =
-                (PayloadReceiveChannel) payloadListIterator.next();
-            allocationStatus.add(new Boolean(msg.allocationStopped));
+        Iterator rcvChanIter = rcvChanList.iterator();
+        while (rcvChanIter.hasNext()) {
+            PayloadReceiveChannel rcvChan =
+                (PayloadReceiveChannel) rcvChanIter.next();
+            allocationStatus.add(new Boolean(rcvChan.allocationStopped));
         }
         return (Boolean[]) allocationStatus.toArray(new Boolean[0]);
     }
@@ -600,13 +601,13 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
                     payloadEngineNum;
         }
 
-        PayloadReceiveChannel payload =
+        PayloadReceiveChannel rcvChan =
             createReceiveChannel(recvName, channel, bufMgr);
-        payload.registerComponentObserver(this, recvName);
+        rcvChan.registerComponentObserver(this, recvName);
 
-        payloadEngineList.add(payload);
+        rcvChanList.add(rcvChan);
         stateMachineMUTEX.release();
-        return payload;
+        return rcvChan;
     }
 
     public void injectError() {
@@ -616,14 +617,14 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
     public void injectLowLevelError() {
         try {
             stateMachineMUTEX.acquire();
-            if (payloadEngineList.size() == 0) {
+            if (rcvChanList.size() == 0) {
                 injectError();
             } else {
-                Iterator payloadListIterator = payloadEngineList.iterator();
-                while (payloadListIterator.hasNext()) {
-                    PayloadReceiveChannel payload =
-                            (PayloadReceiveChannel) payloadListIterator.next();
-                    payload.injectError();
+                Iterator rcvChanIter = rcvChanList.iterator();
+                while (rcvChanIter.hasNext()) {
+                    PayloadReceiveChannel rcvChan =
+                            (PayloadReceiveChannel) rcvChanIter.next();
+                    rcvChan.injectError();
                 }
             }
         } catch (InterruptedException ie) {
@@ -719,27 +720,27 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
         for (; ;) {
             if (TRACE_THREAD) log.info("RunTop");
             // now, kick everyones timer entry
-            Iterator payloadListIterator = payloadEngineList.iterator();
-            while (payloadListIterator.hasNext()) {
-                PayloadReceiveChannel payload =
-                    (PayloadReceiveChannel) payloadListIterator.next();
-                payload.processTimer();
+            Iterator rcvChanIter = rcvChanList.iterator();
+            while (rcvChanIter.hasNext()) {
+                PayloadReceiveChannel rcvChan =
+                    (PayloadReceiveChannel) rcvChanIter.next();
+                rcvChan.processTimer();
             }
 
-            payloadListIterator = payloadStartEngineSyncList.iterator();
-            while (payloadListIterator.hasNext()) {
-                PayloadReceiveChannel payload =
-                    (PayloadReceiveChannel) payloadListIterator.next();
-                payload.startEngine();
-                payloadListIterator.remove();
+            rcvChanIter = rcvChanStartList.iterator();
+            while (rcvChanIter.hasNext()) {
+                PayloadReceiveChannel rcvChan =
+                    (PayloadReceiveChannel) rcvChanIter.next();
+                rcvChan.startEngine();
+                rcvChanIter.remove();
             }
 
-            payloadListIterator = payloadStartDisposingSyncList.iterator();
-            while (payloadListIterator.hasNext()) {
-                PayloadReceiveChannel payload =
-                    (PayloadReceiveChannel) payloadListIterator.next();
-                payload.startDisposing();
-                payloadListIterator.remove();
+            rcvChanIter = rcvChanStartDisposingList.iterator();
+            while (rcvChanIter.hasNext()) {
+                PayloadReceiveChannel rcvChan =
+                    (PayloadReceiveChannel) rcvChanIter.next();
+                rcvChan.startDisposing();
+                rcvChanIter.remove();
             }
 
             // if startServer() wants thread to pause...
@@ -807,15 +808,15 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
                     }
                     if (isRunningFlag.get() || isDisposingFlag.get()) {
                         // call the payload engine to process
-                        PayloadReceiveChannel payloadEngine =
+                        PayloadReceiveChannel rcvChan =
                             ((PayloadReceiveChannel) selKey.attachment());
                         selectorIterator.remove();
                         // assume that payloadEngine will deal with whatever has happened
-                        if (payloadEngine == null) {
+                        if (rcvChan == null) {
                             log.error("No payload engine found" +
                                       " for selected channel");
                         } else {
-                            payloadEngine.processSelect(selKey);
+                            rcvChan.processSelect(selKey);
                         }
 
                     } else {
