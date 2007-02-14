@@ -524,6 +524,7 @@ public class PayloadInputEngineTest
                 testBuf.position(0);
                 sinkChannel.write(testBuf);
                 transmitEng.flushOutQueue();
+                cacheMgr.returnBuffer(testBuf);
                 xmitCnt++;
             }
 
@@ -625,6 +626,8 @@ public class PayloadInputEngineTest
 
                 sinkChannel.write(testBuf);
                 transmitEng.flushOutQueue();
+                cacheMgr.returnBuffer(testBuf);
+
                 xmitCnt++;
             }
 
@@ -734,6 +737,7 @@ public class PayloadInputEngineTest
         engine.injectError();
         sinkChannel.write(testBuf);
         transmitEng.flushOutQueue();
+        cacheMgr.returnBuffer(testBuf);
         for (int i = 0; !engine.isError() && i < 10; i++) {
             Thread.sleep(100);
         }
@@ -825,6 +829,7 @@ public class PayloadInputEngineTest
 
         sinkChannel.write(testBuf);
         transmitEng.flushOutQueue();
+        cacheMgr.returnBuffer(testBuf);
         for (int i = 0; !engine.isError() && i < 10; i++) {
             Thread.sleep(100);
         }
@@ -909,6 +914,8 @@ public class PayloadInputEngineTest
             } else {
                 redShirt.close();
             }
+
+            cacheMgr.returnBuffer(testBuf);
 
             xmitCnt++;
             Thread.sleep(100);
@@ -1019,6 +1026,7 @@ public class PayloadInputEngineTest
             testBuf.flip();
 
             chans[i].write(testBuf);
+            cacheMgr.returnBuffer(testBuf);
         }
 
         Thread.sleep(100);
@@ -1102,6 +1110,7 @@ public class PayloadInputEngineTest
             testBuf.flip();
 
             chan.write(testBuf);
+            cacheMgr.returnBuffer(testBuf);
 
             // wait until we've got data on all channels
             boolean gotAll = false;
@@ -1139,6 +1148,7 @@ public class PayloadInputEngineTest
             testBuf.flip();
 
             chan.write(testBuf);
+            cacheMgr.returnBuffer(testBuf);
 
             int reps = 0;
             while (reps < 10 && !engine.isStopped()) {
