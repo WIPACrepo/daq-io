@@ -81,9 +81,9 @@ public class SpliceablePayloadInputEngine extends PayloadInputEngine {
         }
 
         if (splicer.getStrandCount() == 0) {
-            Iterator payloadListIterator = payloadEngineList.iterator();
-            while (payloadListIterator.hasNext()) {
-                SpliceablePayloadReceiveChannel payload = (SpliceablePayloadReceiveChannel) payloadListIterator.next();
+            Iterator rcvChanIter = rcvChanList.iterator();
+            while (rcvChanIter.hasNext()) {
+                SpliceablePayloadReceiveChannel payload = (SpliceablePayloadReceiveChannel) rcvChanIter.next();
                 payload.setStrandTail(splicer.beginStrand());
             }
         } else {
@@ -95,10 +95,10 @@ public class SpliceablePayloadInputEngine extends PayloadInputEngine {
 
     public synchronized Integer[] getStrandMax() {
         ArrayList strandMax = new ArrayList();
-        Iterator payloadListIterator = payloadEngineList.iterator();
-        while (payloadListIterator.hasNext()) {
+        Iterator rcvChanIter = rcvChanList.iterator();
+        while (rcvChanIter.hasNext()) {
             SpliceablePayloadReceiveChannel msg =
-                    (SpliceablePayloadReceiveChannel) payloadListIterator.next();
+                    (SpliceablePayloadReceiveChannel) rcvChanIter.next();
             strandMax.add(new Integer(msg.strandMax));
         }
         return (Integer[]) strandMax.toArray(new Integer[0]);
@@ -106,10 +106,10 @@ public class SpliceablePayloadInputEngine extends PayloadInputEngine {
 
     public synchronized void setAllStrandMax(int depth) {
         if (depth > 0) {
-            Iterator payloadListIterator = payloadEngineList.iterator();
-            while (payloadListIterator.hasNext()) {
+            Iterator rcvChanIter = rcvChanList.iterator();
+            while (rcvChanIter.hasNext()) {
                 SpliceablePayloadReceiveChannel msg =
-                        (SpliceablePayloadReceiveChannel) payloadListIterator.next();
+                        (SpliceablePayloadReceiveChannel) rcvChanIter.next();
                 msg.strandMax = depth;
             }
         }
@@ -119,10 +119,10 @@ public class SpliceablePayloadInputEngine extends PayloadInputEngine {
         // lets make the negative to indicate a null strand end
         Integer depth = new Integer(-1);
         ArrayList strandDepth = new ArrayList();
-        Iterator payloadListIterator = payloadEngineList.iterator();
-        while (payloadListIterator.hasNext()) {
+        Iterator rcvChanIter = rcvChanList.iterator();
+        while (rcvChanIter.hasNext()) {
             SpliceablePayloadReceiveChannel msg =
-                    (SpliceablePayloadReceiveChannel) payloadListIterator.next();
+                    (SpliceablePayloadReceiveChannel) rcvChanIter.next();
             if (msg.strandTail != null) {
                 depth = new Integer(msg.strandTail.size());
             }
@@ -133,10 +133,10 @@ public class SpliceablePayloadInputEngine extends PayloadInputEngine {
 
     public synchronized int getTotalStrandDepth() {
         int totalDepth = 0;
-        Iterator payloadListIterator = payloadEngineList.iterator();
-        while (payloadListIterator.hasNext()) {
+        Iterator rcvChanIter = rcvChanList.iterator();
+        while (rcvChanIter.hasNext()) {
             SpliceablePayloadReceiveChannel msg =
-                    (SpliceablePayloadReceiveChannel) payloadListIterator.next();
+                    (SpliceablePayloadReceiveChannel) rcvChanIter.next();
             if (msg.strandTail != null) {
                 int depth = msg.strandTail.size();
                 if (depth > 0) {
@@ -153,10 +153,10 @@ public class SpliceablePayloadInputEngine extends PayloadInputEngine {
 
     public synchronized Boolean[] getStrandFillingStopped() {
         ArrayList allocationStatus = new ArrayList();
-        Iterator payloadListIterator = payloadEngineList.iterator();
-        while (payloadListIterator.hasNext()) {
+        Iterator rcvChanIter = rcvChanList.iterator();
+        while (rcvChanIter.hasNext()) {
             SpliceablePayloadReceiveChannel msg =
-                    (SpliceablePayloadReceiveChannel) payloadListIterator.next();
+                    (SpliceablePayloadReceiveChannel) rcvChanIter.next();
             allocationStatus.add(new Boolean(msg.strandFillingStopped));
         }
         return (Boolean[]) allocationStatus.toArray(new Boolean[0]);
