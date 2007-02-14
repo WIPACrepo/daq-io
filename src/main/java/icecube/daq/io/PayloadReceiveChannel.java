@@ -20,9 +20,13 @@ import icecube.daq.common.NormalState;
 import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.common.ErrorState;
 
-import java.nio.channels.*;
-import java.nio.ByteBuffer;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.SelectableChannel;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -149,7 +153,8 @@ public class PayloadReceiveChannel {
                                  Selector sel,
                                  ReadableByteChannel channel,
                                  IByteBufferCache bufMgr,
-                                 Semaphore inputSem) {
+                                 Semaphore inputSem)
+    {
         id = myID;
         presState = STATE_IDLE;
         prevState = presState;
@@ -164,7 +169,8 @@ public class PayloadReceiveChannel {
         setCacheLimits();
     }
 
-    protected void setCacheLimits() {
+    protected void setCacheLimits()
+    {
         allocationStopped = false;
         if (((ByteBufferCache) bufferMgr).getIsCacheBounded()) {
             long maxAllocation =
@@ -181,18 +187,20 @@ public class PayloadReceiveChannel {
         }
     }
 
-    // instance member method (alphabetic)
-    protected void enterIdle() {
+    protected void enterIdle()
+    {
         receivedLastMsg = false;
     }
 
-    protected void exitIdle() {
+    protected void exitIdle()
+    {
         // compute some buffer manager limits...we do it here so
         // that we can pick up new values before starting the engine
         setCacheLimits();
     }
 
-    protected void enterGetBuffer() {
+    protected void enterGetBuffer()
+    {
         // received header, check for illegal length and allocate buffer
         neededBufBlen = headerBuf.getInt(0);
         if (TRACE_DATA && log.isErrorEnabled()) {
@@ -240,10 +248,13 @@ public class PayloadReceiveChannel {
         }
     }
 
-    protected void exitGetBuffer() {
+    protected void exitGetBuffer()
+    {
+        // do nothing
     }
 
-    protected void enterRecvHeader() {
+    protected void enterRecvHeader()
+    {
         isStopped = false;
         headerBuf.clear();
         try {
@@ -259,11 +270,13 @@ public class PayloadReceiveChannel {
         }
     }
 
-    protected void exitRecvHeader() {
-
+    protected void exitRecvHeader()
+    {
+        // do nothing
     }
 
-    protected void enterRecvBody() {
+    protected void enterRecvBody()
+    {
         buf.position(0);
         int length = buf.getInt();
         if (buf.capacity() < length) {
@@ -277,7 +290,8 @@ public class PayloadReceiveChannel {
         }
     }
 
-    protected void exitRecvBody() {
+    protected void exitRecvBody()
+    {
         if (buf.getInt(0) != INT_SIZE) {
             if (TRACE_DATA && log.isErrorEnabled()) {
                 log.error(id + ":RECV:" + icecube.daq.payload.DebugDumper.toString(buf));
@@ -302,7 +316,8 @@ public class PayloadReceiveChannel {
         }
     }
 
-    protected void enterRecvDone() {
+    protected void enterRecvDone()
+    {
         // note: headerBuf always contains the length of the msg.
         // if its a stop message, buf will not have been filled in,
         // so we need to check headerBuf, not buf
@@ -313,10 +328,13 @@ public class PayloadReceiveChannel {
         }
     }
 
-    protected void exitRecvDone() {
+    protected void exitRecvDone()
+    {
+        // do nothing
     }
 
-    protected void enterDisposing() {
+    protected void enterDisposing()
+    {
         startTimeMsec = System.currentTimeMillis();
         try {
             selectionKey = ((SelectableChannel) channel).register(selector,
@@ -329,20 +347,25 @@ public class PayloadReceiveChannel {
         }
     }
 
-    protected void exitDisposing() {
+    protected void exitDisposing()
+    {
         selectionKey.cancel();
     }
 
-    protected void enterError() {
+    protected void enterError()
+    {
         if (compObserver != null) {
             compObserver.update(ErrorState.UNKNOWN_ERROR, notificationID);
         }
     }
 
-    protected void exitError() {
+    protected void exitError()
+    {
+        // do nothing
     }
 
-    protected void enterSplicerWait() {
+    protected void enterSplicerWait()
+    {
         // this is a place holder and is re implemented
         // in SpliceablePayloadReceiveChannel.
         // note that there is no exitSplicerWait() method.
@@ -351,64 +374,73 @@ public class PayloadReceiveChannel {
         transition(SIG_DONE);
     }
 
-    protected boolean splicerAvailable() {
+    protected boolean splicerAvailable()
+    {
         // placeholder for code in SpliceablePayloadReceiveChannel
         return true;
     }
 
-    protected void notifyOnStop() {
+    protected void notifyOnStop()
+    {
         if (compObserver != null) {
             compObserver.update(NormalState.STOPPED, notificationID);
         }
     }
 
     // all the following methods are mutex locked and thread safe.
-    public void stopEngine() {
+    public void stopEngine()
+    {
         try {
             stateMachineMUTEX.acquire();
         } catch (InterruptedException ie) {
-            log.error(ie);
+            log.error("Couldn't stop engine", ie);
         }
         transition(SIG_FORCED_STOP);
         stateMachineMUTEX.release();
     }
 
-    public void close() throws IOException {
+    public void close()
+        throws IOException
+    {
         channel.close();
     }
 
-    public void startEngine() {
+    public void startEngine()
+    {
         try {
             stateMachineMUTEX.acquire();
         } catch (InterruptedException ie) {
-            log.error(ie);
+            log.error("Couldn't start engine", ie);
         }
         transition(SIG_START_HEADER);
         stateMachineMUTEX.release();
     }
 
-    protected void startDisposing() {
+    protected void startDisposing()
+    {
         try {
             stateMachineMUTEX.acquire();
         } catch (InterruptedException ie) {
-            log.error(ie);
+            log.error("Couldn't start disposing", ie);
         }
         transition(SIG_DISPOSE);
         stateMachineMUTEX.release();
     }
 
-    public void injectError() {
+    public void injectError()
+    {
         try {
             stateMachineMUTEX.acquire();
         } catch (InterruptedException e) {
-            log.error(e);
+            log.error("Couldn't inject error", e);
         }
         transition(SIG_ERROR);
         stateMachineMUTEX.release();
     }
 
     public void registerComponentObserver(DAQComponentObserver compObserver,
-                                          String notificationID) {
+                                          String notificationID)
+    {
         if (this.compObserver != null) {
             try {
                 throw new Error("StackTrace");
@@ -424,22 +456,26 @@ public class PayloadReceiveChannel {
         this.notificationID = notificationID;
     }
 
-    public long getBufferCurrentAcquiredBytes() {
+    public long getBufferCurrentAcquiredBytes()
+    {
         return ((ByteBufferCache) bufferMgr).
                 getCurrentAquiredBytes();
     }
 
-    public long getBufferCurrentAcquiredBuffers() {
+    public long getBufferCurrentAcquiredBuffers()
+    {
         return ((ByteBufferCache) bufferMgr).
                 getCurrentAquiredBuffers();
     }
 
-    public String presentState() {
+    public String presentState()
+    {
         // don't need to interlock this one.
         return STATE_NAME_MAP[presState];
     }
 
-    public void processTimer() {
+    public void processTimer()
+    {
         switch (presState) {
             case STATE_GETBUFFER:
                 {
@@ -513,7 +549,8 @@ public class PayloadReceiveChannel {
         }
     }
 
-    public void processSelect(SelectionKey selKey) {
+    public void processSelect(SelectionKey selKey)
+    {
         selectionKey = selKey;
         switch (presState) {
             case (STATE_RECVHEADER):
@@ -590,7 +627,8 @@ public class PayloadReceiveChannel {
         }
     }
 
-    protected void transition(int signal) {
+    protected void transition(int signal)
+    {
         if (log.isDebugEnabled() && TRACE_STATE) {
             log.debug("PayloadReceiveChannel " + id +
                     " state " + getStateName(presState) +
@@ -857,12 +895,14 @@ public class PayloadReceiveChannel {
         }
     }
 
-    protected void doTransition(int nextState) {
+    protected void doTransition(int nextState)
+    {
         prevState = presState;
         presState = nextState;
     }
 
-    private static final String getStateName(int state) {
+    private static final String getStateName(int state)
+    {
         final String name;
         switch (state) {
             case STATE_IDLE:
@@ -896,7 +936,8 @@ public class PayloadReceiveChannel {
         return name;
     }
 
-    private static final String getSignalName(int signal) {
+    private static final String getSignalName(int signal)
+    {
         final String name;
         switch (signal) {
             case SIG_IDLE:
@@ -939,7 +980,8 @@ public class PayloadReceiveChannel {
         return name;
     }
 
-    private void logIllegalTransition(int signal) {
+    private void logIllegalTransition(int signal)
+    {
 /*
         if (log.isInfoEnabled()) {
             final String errMsg =
@@ -960,14 +1002,16 @@ public class PayloadReceiveChannel {
 */
     }
 
-    public String toString() {
+    public String toString()
+    {
         return "PayloadReceiveChannel#" + num + "[" + channel + "]";
     }
 
     private static int nextNum = 0;
     private int num = nextNum++;
 
-    public int getNum() {
+    public int getNum()
+    {
         return num;
     }
 }
