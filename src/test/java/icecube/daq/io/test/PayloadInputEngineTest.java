@@ -12,14 +12,16 @@ package icecube.daq.io.test;
 
 import EDU.oswego.cs.dl.util.concurrent.LinkedQueue;
 
-import icecube.daq.common.*;
+import icecube.daq.common.DAQCmdInterface;
+import icecube.daq.common.DAQComponentObserver;
+import icecube.daq.common.ErrorState;
+import icecube.daq.common.NormalState;
 import icecube.daq.io.PayloadInputEngine;
 import icecube.daq.io.PayloadOutputEngine;
 import icecube.daq.io.PayloadTransmitChannel;
 import icecube.daq.io.PayloadReceiveChannel;
 import icecube.daq.payload.ByteBufferCache;
 import icecube.daq.payload.IByteBufferCache;
-//import icecube.daq.payload.TriggerUtilConstants;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -31,16 +33,16 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 
+import junit.framework.Test;
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
+import junit.textui.TestRunner;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
-
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
-import junit.textui.TestRunner;
 
 /**
  * This class defines the tests that any PayloadInputEngine object should pass.
@@ -57,10 +59,9 @@ public class PayloadInputEngineTest
     private static final int INPUT_OUTPUT_LOOP_CNT = 5;
     private static final int NUM_BUFFERS = 100;
     private static final int BUFFER_BLEN = 5000;
-    private static final String SINK_NOTIFICATION_ID = "SinkID";
-    private static final String SINK_ERROR_NOTIFICATION_ID = "SinkErrorID";
-    private static final String SOURCE_NOTIFICATION_ID = "SourceID";
-    private static final String SOURCE_ERROR_NOTIFICATION_ID = "SourceErrorID";
+
+    private static final String SRC_NOTE_ID = "SourceID";
+    private static final String ERR_NOTE_ID = "ErrorID";
 
     private static Level logLevel = Level.INFO;
 
@@ -461,7 +462,6 @@ public class PayloadInputEngineTest
     public void testOutputInput()
         throws Exception
     {
-
         // buffer caching manager
         IByteBufferCache cacheMgr =
             new ByteBufferCache(BUFFER_BLEN, BUFFER_BLEN*20,
@@ -495,8 +495,8 @@ public class PayloadInputEngineTest
 
         PayloadTransmitChannel transmitEng =
             testOutput.addDataChannel(sinkChannel, cacheMgr);
-        testOutput.registerStopNotificationCallback(SOURCE_NOTIFICATION_ID);
-        testOutput.registerErrorNotificationCallback(SOURCE_NOTIFICATION_ID);
+        testOutput.registerStopNotificationCallback(SRC_NOTE_ID);
+        testOutput.registerErrorNotificationCallback(ERR_NOTE_ID);
 
         assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
                    ", not Idle after creation", testOutput.isStopped());
@@ -510,21 +510,21 @@ public class PayloadInputEngineTest
 
         final int bufLen = 64;
 
-        int transmitCnt = 0;
+        int xmitCnt = 0;
         int recvCnt = 0;
         while (recvCnt < INPUT_OUTPUT_LOOP_CNT) {
-            if (transmitCnt < INPUT_OUTPUT_LOOP_CNT) {
+            if (xmitCnt < INPUT_OUTPUT_LOOP_CNT) {
                 final int acquireLen = bufLen;
                 testBuf = cacheMgr.acquireBuffer(acquireLen);
                 assertNotNull("Unable to acquire transmit buffer on " +
-                              transmitCnt + " try.", testBuf);
+                              xmitCnt + " try.", testBuf);
 
                 testBuf.putInt(0, bufLen);
                 testBuf.limit(bufLen);
                 testBuf.position(0);
                 sinkChannel.write(testBuf);
                 transmitEng.flushOutQueue();
-                transmitCnt++;
+                xmitCnt++;
             }
 
             if (receiveChannel.inputQueue.isEmpty()) {
@@ -540,7 +540,7 @@ public class PayloadInputEngineTest
                 cacheMgr.returnBuffer(engineBuf);
             }
 
-            if (transmitCnt == recvCnt + INPUT_OUTPUT_LOOP_CNT) {
+            if (xmitCnt == recvCnt + INPUT_OUTPUT_LOOP_CNT) {
                 fail("Nothing received after all buffers were transmitted");
             }
         }
@@ -593,8 +593,8 @@ public class PayloadInputEngineTest
 
         PayloadTransmitChannel transmitEng =
             testOutput.addDataChannel(sinkChannel, cacheMgr);
-        testOutput.registerStopNotificationCallback(SOURCE_NOTIFICATION_ID);
-        testOutput.registerErrorNotificationCallback(SOURCE_NOTIFICATION_ID);
+        testOutput.registerStopNotificationCallback(SRC_NOTE_ID);
+        testOutput.registerErrorNotificationCallback(ERR_NOTE_ID);
 
         testOutput.start();
 
@@ -610,13 +610,13 @@ public class PayloadInputEngineTest
 
         final int bufLen = 1024;
 
-        int transmitCnt = 0;
+        int xmitCnt = 0;
         int recvCnt = 0;
         while (recvCnt < INPUT_OUTPUT_LOOP_CNT) {
-            if (transmitCnt < INPUT_OUTPUT_LOOP_CNT) {
+            if (xmitCnt < INPUT_OUTPUT_LOOP_CNT) {
                 testBuf = cacheMgr.acquireBuffer(BUFFER_BLEN);
                 assertNotNull("Unable to acquire transmit buffer on " +
-                              transmitCnt + " try.", testBuf);
+                              xmitCnt + " try.", testBuf);
 
                 testBuf.putInt(0, bufLen);
                 testBuf.limit(bufLen);
@@ -625,7 +625,7 @@ public class PayloadInputEngineTest
 
                 sinkChannel.write(testBuf);
                 transmitEng.flushOutQueue();
-                transmitCnt++;
+                xmitCnt++;
             }
 
             if (engine.inputAvailable.permits() == 0) {
@@ -646,7 +646,7 @@ public class PayloadInputEngineTest
                 cacheMgr.returnBuffer(engineBuf);
             }
 
-            if (transmitCnt == recvCnt + INPUT_OUTPUT_LOOP_CNT) {
+            if (xmitCnt == recvCnt + INPUT_OUTPUT_LOOP_CNT) {
                 fail("Nothing received after all buffers were transmitted");
             }
         }
@@ -671,7 +671,6 @@ public class PayloadInputEngineTest
     public void testSimulatedError()
         throws Exception
     {
-
         // buffer caching manager
         IByteBufferCache cacheMgr =
             new ByteBufferCache(BUFFER_BLEN, BUFFER_BLEN*20,
@@ -706,8 +705,8 @@ public class PayloadInputEngineTest
 
         PayloadTransmitChannel transmitEng =
             testOutput.addDataChannel(sinkChannel, cacheMgr);
-        testOutput.registerStopNotificationCallback(SOURCE_NOTIFICATION_ID);
-        testOutput.registerErrorNotificationCallback(SOURCE_NOTIFICATION_ID);
+        testOutput.registerStopNotificationCallback(SRC_NOTE_ID);
+        testOutput.registerErrorNotificationCallback(ERR_NOTE_ID);
 
         testOutput.start();
 
@@ -797,8 +796,8 @@ public class PayloadInputEngineTest
 
         PayloadTransmitChannel transmitEng =
             testOutput.addDataChannel(sinkChannel, cacheMgr);
-        testOutput.registerStopNotificationCallback(SOURCE_NOTIFICATION_ID);
-        testOutput.registerErrorNotificationCallback(SOURCE_NOTIFICATION_ID);
+        testOutput.registerStopNotificationCallback(SRC_NOTE_ID);
+        testOutput.registerErrorNotificationCallback(ERR_NOTE_ID);
 
         assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
                    ", not Idle after creation", testOutput.isStopped());
@@ -890,13 +889,13 @@ public class PayloadInputEngineTest
 
         final int bufLen = 64;
 
-        int transmitCnt = 0;
+        int xmitCnt = 0;
         int recvCnt = 0;
-        while (transmitCnt < INPUT_OUTPUT_LOOP_CNT) {
+        while (xmitCnt < INPUT_OUTPUT_LOOP_CNT) {
             final int acquireLen = bufLen;
             testBuf = cacheMgr.acquireBuffer(acquireLen);
             assertNotNull("Unable to acquire transmit buffer on " +
-                          transmitCnt + " try.", testBuf);
+                          xmitCnt + " try.", testBuf);
 
             testBuf.putInt(0, bufLen);
             testBuf.limit(bufLen);
@@ -904,14 +903,14 @@ public class PayloadInputEngineTest
             testBuf.flip();
 
             chan.write(testBuf);
-            if (transmitCnt < 2) {
+            if (xmitCnt < 2) {
                 testBuf.position(0);
                 redShirt.write(testBuf);
             } else {
                 redShirt.close();
             }
 
-            transmitCnt++;
+            xmitCnt++;
             Thread.sleep(100);
         }
 
