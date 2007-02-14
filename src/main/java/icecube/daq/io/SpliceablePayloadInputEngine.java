@@ -30,7 +30,6 @@ public class SpliceablePayloadInputEngine extends PayloadInputEngine {
 
     private Splicer splicer;
     private SpliceableFactory spliceableFac;
-    public int bytesCommittedToSplicer;
     // default maximum size of strand queue
     protected static final int DEFAULT_STRAND_QUEUE_MAX = 40000;
 
@@ -52,15 +51,9 @@ public class SpliceablePayloadInputEngine extends PayloadInputEngine {
             throw new IllegalArgumentException("SpliceableFactory cannot be null");
         }
         this.spliceableFac = spliceableFac;
-        // zero counter
-        bytesCommittedToSplicer = 0;
-
     }
 
     public void startProcessing() {
-        // zero counter
-        bytesCommittedToSplicer = 0;
-
         while (splicer.getState() != Splicer.STOPPED) {
             if (log.isWarnEnabled()) {
                 log.warn("Splicer should have been in STOPPED state. Calling Splicer.forceStop()");
@@ -145,10 +138,6 @@ public class SpliceablePayloadInputEngine extends PayloadInputEngine {
             }
         }
         return totalDepth;
-    }
-
-    public synchronized int getBytesCommittedToSplicer() {
-        return bytesCommittedToSplicer;
     }
 
     public synchronized Boolean[] getStrandFillingStopped() {
