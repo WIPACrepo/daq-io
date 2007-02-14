@@ -210,12 +210,9 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
                 log.info(id + ":XMIT:wrote " + buf.getInt(0) + " bytes");
             }
         } catch (IOException e) {
+            log.error("enterTransMsg error", e);
             //need to do something here
             transition(SIG_ERROR);
-            if (debug) {
-                log.info(id + ":XMIT:WriteError");
-                throw new RuntimeException(e);
-            }
         }
     }
 
