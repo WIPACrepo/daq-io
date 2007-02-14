@@ -95,10 +95,6 @@ public class PayloadReceiveChannel {
     private int presState;
     // our last state
     private int prevState;
-    // count transitions
-    private int transitionCnt = 0;
-    // count illeagal transition requests
-    private int illegalTransitionCnt = 0;
     // data channel mbean
     private ReadableByteChannel channel = null;
     // local copy of selector
@@ -631,7 +627,6 @@ public class PayloadReceiveChannel {
                                 break;
                             }
                         default:
-                            illegalTransitionCnt++;
                             break;
                     }
                     break;
@@ -662,7 +657,6 @@ public class PayloadReceiveChannel {
                                 break;
                             }
                         default:
-                            illegalTransitionCnt++;
                             break;
                     }
                     break;
@@ -700,7 +694,6 @@ public class PayloadReceiveChannel {
                                 break;
                             }
                         default:
-                            illegalTransitionCnt++;
                             break;
                     }
                     break;
@@ -739,7 +732,6 @@ public class PayloadReceiveChannel {
                                 break;
                             }
                         default:
-                            illegalTransitionCnt++;
                             break;
                     }
                     break;
@@ -778,7 +770,6 @@ public class PayloadReceiveChannel {
                                 break;
                             }
                         default:
-                            illegalTransitionCnt++;
                             break;
                     }
                     break;
@@ -810,7 +801,6 @@ public class PayloadReceiveChannel {
                                 break;
                             }
                         default:
-                            illegalTransitionCnt++;
                             break;
                     }
                     break;
@@ -841,7 +831,6 @@ public class PayloadReceiveChannel {
                                 break;
                             }
                         default:
-                            illegalTransitionCnt++;
                             break;
                     }
                     break;
@@ -857,14 +846,12 @@ public class PayloadReceiveChannel {
                                 break;
                             }
                         default:
-                            illegalTransitionCnt++;
                             break;
                     }
                     break;
                 }
             default:
                 {
-                    illegalTransitionCnt++;
                     break;
                 }
         }
@@ -873,7 +860,6 @@ public class PayloadReceiveChannel {
     protected void doTransition(int nextState) {
         prevState = presState;
         presState = nextState;
-        transitionCnt++;
     }
 
     private static final String getStateName(int state) {
