@@ -694,6 +694,7 @@ public class PayloadInputEngineTest
             engine.addDataChannel(sourceChannel, cacheMgr);
 
         engine.start();
+        //assertFalse("Should not be healthy", engine.isHealthy());
 
         assertTrue("PayloadInputEngine in " + engine.getPresentState() +
                    ", not Idle after creation", engine.isStopped());
@@ -701,6 +702,7 @@ public class PayloadInputEngineTest
         engine.startProcessing();
         assertTrue("PayloadInputEngine in " + engine.getPresentState() +
                    ", not Running after startup", engine.isRunning());
+        assertTrue("Should be healthy", engine.isHealthy());
 
 
         testOutput = new PayloadOutputEngine("SimErrorOut", 0, "test");
@@ -748,6 +750,8 @@ public class PayloadInputEngineTest
 
         assertTrue("Error notification was not received.",
                    sinkErrorNotificationCalled);
+
+        assertTrue("Should be healthy", engine.isHealthy());
 
         testOutput.sendLastAndStop();
         transmitEng.flushOutQueue();
