@@ -556,6 +556,371 @@ public class PayloadInputEngineTest
         Thread.sleep(100);
         assertTrue("Failure on sendLastAndStop command.",
                    sinkStopNotificationCalled);
+        assertFalse("Should not be healthy", engine.isHealthy());
+    }
+
+    public void testMultiOutputInput()
+        throws Exception
+    {
+        // buffer caching manager
+        IByteBufferCache cacheMgr =
+            new ByteBufferCache(BUFFER_BLEN, BUFFER_BLEN*20,
+                                BUFFER_BLEN*40, "MultiOutputInput");
+
+        // create a pipe for use in testing
+        Pipe testPipe = Pipe.open();
+        Pipe.SinkChannel sinkChannel = testPipe.sink();
+        sinkChannel.configureBlocking(false);
+
+        Pipe.SourceChannel sourceChannel = testPipe.source();
+        sourceChannel.configureBlocking(false);
+
+        engine = new PayloadInputEngine("MultiOutputInput", 0, "test");
+        engine.registerComponentObserver(this);
+        engine.start();
+
+        assertTrue("PayloadInputEngine in " + engine.getPresentState() +
+                   ", not Idle after creation", engine.isStopped());
+
+        testOutput = new PayloadOutputEngine("MultiOutputInput", 0, "test");
+        testOutput.registerComponentObserver(this);
+        testOutput.start();
+
+        assertTrue("PayloadOutputEngine in " + testOutput.getPresentState() +
+                   ", not Idle after creation", testOutput.isStopped());
+
+        PayloadReceiveChannel receiveChannel =
+            engine.addDataChannel(sourceChannel, cacheMgr);
+        receiveChannel.setInputBufferSize(1024);
+
+        engine.startProcessing();
+        assertTrue("PayloadInputEngine in " + engine.getPresentState() +
+                   ", not Running after startup", engine.isRunning());
+
+        PayloadTransmitChannel transmitEng =
+            testOutput.addDataChannel(sinkChannel, cacheMgr);
+        testOutput.registerStopNotificationCallback(SRC_NOTE_ID);
+        testOutput.registerErrorNotificationCallback(ERR_NOTE_ID);
+
+        testOutput.startProcessing();
+        assertTrue("PayloadOutputEngine in " + testOutput.getPresentState() +
+                   ", not Running after startup", testOutput.isRunning());
+
+        // now move some buffers
+        ByteBuffer testBuf;
+
+        final int bufLen = 64;
+        final int groupSize = 3;
+
+        int id = 1;
+        int recvId = 0;
+
+        int xmitCnt = 0;
+        int recvCnt = 0;
+        while (recvCnt < INPUT_OUTPUT_LOOP_CNT * groupSize) {
+            if (xmitCnt < INPUT_OUTPUT_LOOP_CNT) {
+                final int acquireLen = bufLen * groupSize;
+                testBuf = cacheMgr.acquireBuffer(acquireLen);
+                assertNotNull("Unable to acquire transmit buffer on " +
+                              xmitCnt + " try.", testBuf);
+
+                for (int i = 0; i < groupSize; i++) {
+                    final int start = bufLen * i;
+                    testBuf.putInt(start, bufLen);
+                    testBuf.putInt(start + 4, id++);
+                }
+                testBuf.limit(acquireLen);
+                testBuf.position(0);
+                sinkChannel.write(testBuf);
+                transmitEng.flushOutQueue();
+                cacheMgr.returnBuffer(testBuf);
+                xmitCnt++;
+            }
+
+            for (int i = 0; i < groupSize; i++) {
+                if (receiveChannel.inputQueue.isEmpty()) {
+                    Thread.sleep(100);
+                } else {
+                    while (!receiveChannel.inputQueue.isEmpty()) {
+                        recvCnt++;
+                        ByteBuffer engineBuf =
+                            (ByteBuffer)receiveChannel.inputQueue.take();
+                        assertEquals("Bad payload length",
+                                     bufLen, engineBuf.getInt(0));
+                        assertEquals("Bad buffer position",
+                                     bufLen, engineBuf.position());
+
+                        int newId = engineBuf.getInt(4);
+                        assertEquals("Bad buffer ID", recvId + 1, newId);
+                        recvId = newId;
+
+                        // return the buffer for later use
+                        cacheMgr.returnBuffer(engineBuf);
+                    }
+                }
+            }
+
+            if (xmitCnt == recvCnt + INPUT_OUTPUT_LOOP_CNT) {
+                fail("Nothing received after all buffers were transmitted");
+            }
+        }
+
+        testOutput.sendLastAndStop();
+        transmitEng.flushOutQueue();
+
+        Thread.sleep(100);
+        assertTrue("Failure on sendLastAndStop command.",
+                   sourceStopNotificationCalled);
+
+        Thread.sleep(100);
+        assertTrue("Failure on sendLastAndStop command.",
+                   sinkStopNotificationCalled);
+
+        assertTrue("PayloadInputEngine in " + engine.getPresentState() +
+                   ", not Idle after stop", engine.isStopped());
+
+        assertTrue("PayloadOutputEngine in " + testOutput.getPresentState() +
+                   ", not Idle after stop", testOutput.isStopped());
+    }
+
+    public void testMultiSizeOutputInput()
+        throws Exception
+    {
+        // buffer caching manager
+        IByteBufferCache cacheMgr =
+            new ByteBufferCache(BUFFER_BLEN, BUFFER_BLEN*20,
+                                BUFFER_BLEN*40, "MultiSize");
+
+        engine = new PayloadInputEngine("MultiSize", 0, "test");
+        engine.registerComponentObserver(this);
+        engine.start();
+
+        assertTrue("PayloadInputEngine in " + engine.getPresentState() +
+                   ", not Idle after creation", engine.isStopped());
+
+        testOutput = new PayloadOutputEngine("MultiSize", 0, "test");
+        testOutput.registerComponentObserver(this);
+        testOutput.start();
+
+        assertTrue("PayloadOutputEngine in " + testOutput.getPresentState() +
+                   ", not Idle after creation", testOutput.isStopped());
+
+        for (int msgSize = 10; msgSize <= 13; msgSize++) {
+            for (int bufLen = 32; bufLen <= 40; bufLen++) {
+                // create a pipe for use in testing
+                Pipe testPipe = Pipe.open();
+                Pipe.SinkChannel sinkChannel = testPipe.sink();
+                sinkChannel.configureBlocking(false);
+
+                Pipe.SourceChannel sourceChannel = testPipe.source();
+                sourceChannel.configureBlocking(false);
+
+                PayloadReceiveChannel receiveChannel =
+                    engine.addDataChannel(sourceChannel, cacheMgr);
+                receiveChannel.setInputBufferSize(bufLen);
+
+                engine.startProcessing();
+                assertTrue("PayloadInputEngine in " + engine.getPresentState() +
+                           ", not Running after startup", engine.isRunning());
+
+                PayloadTransmitChannel transmitEng =
+                    testOutput.addDataChannel(sinkChannel, cacheMgr);
+                testOutput.registerStopNotificationCallback(SRC_NOTE_ID);
+                testOutput.registerErrorNotificationCallback(ERR_NOTE_ID);
+
+                testOutput.startProcessing();
+                assertTrue("PayloadOutputEngine in " +
+                           testOutput.getPresentState() +
+                           ", not Running after startup",
+                           testOutput.isRunning());
+
+                assertEquals("There are acquired byte buffers before start",
+                             0, cacheMgr.getCurrentAquiredBuffers());
+
+                // now move some buffers
+                ByteBuffer testBuf;
+
+                final int groupSize = 3;
+
+                int id = 1;
+                int recvId = 0;
+
+                int xmitCnt = 0;
+                int recvCnt = 0;
+                while (recvCnt < INPUT_OUTPUT_LOOP_CNT * groupSize) {
+                    if (xmitCnt < INPUT_OUTPUT_LOOP_CNT) {
+                        final int acquireLen = msgSize * groupSize;
+                        testBuf = cacheMgr.acquireBuffer(acquireLen);
+                        assertNotNull("Unable to acquire transmit buffer on " +
+                                      xmitCnt + " try.", testBuf);
+
+                        for (int i = 0; i < groupSize; i++) {
+                            final int start = msgSize * i;
+                            testBuf.putInt(start, msgSize);
+                            testBuf.putInt(start + 4, id++);
+                        }
+                        testBuf.limit(acquireLen);
+                        testBuf.position(0);
+                        sinkChannel.write(testBuf);
+                        transmitEng.flushOutQueue();
+                        cacheMgr.returnBuffer(testBuf);
+                        xmitCnt++;
+                    }
+
+                    if (receiveChannel.inputQueue.isEmpty()) {
+                        if (xmitCnt >= INPUT_OUTPUT_LOOP_CNT) {
+                            Thread.sleep(100);
+                            xmitCnt++;
+                        }
+                    } else {
+                        while (!receiveChannel.inputQueue.isEmpty()) {
+                            recvCnt++;
+                            ByteBuffer engineBuf =
+                                (ByteBuffer)receiveChannel.inputQueue.take();
+                            assertEquals("Bad payload length",
+                                         msgSize, engineBuf.getInt(0));
+                            assertEquals("Bad buffer position",
+                                         msgSize, engineBuf.position());
+
+                            int newId = engineBuf.getInt(4);
+                            assertEquals("Bad buffer ID", recvId + 1, newId);
+                            recvId = newId;
+
+                            // return the buffer for later use
+                            cacheMgr.returnBuffer(engineBuf);
+                        }
+                    }
+
+                    if (xmitCnt == recvCnt + INPUT_OUTPUT_LOOP_CNT * 2) {
+                        fail("Only received " +recvCnt +
+                             " after all buffers were transmitted");
+                    }
+                }
+
+                testOutput.sendLastAndStop();
+                transmitEng.flushOutQueue();
+
+
+                for (int i = 0; i < 5 && !testOutput.isStopped(); i++) {
+                    Thread.sleep(100);
+                }
+                if (!testOutput.isStopped()) {
+                    testOutput.forcedStopProcessing();
+                    for (int i = 0; i < 5 && !testOutput.isStopped(); i++) {
+                        Thread.sleep(100);
+                    }
+                }
+                assertTrue("PayloadOutputEngine in " +
+                           testOutput.getPresentState() +
+                           ", not Idle after stop", testOutput.isStopped());
+                assertTrue("Failure on sendLastAndStop command.",
+                           sinkStopNotificationCalled);
+
+                for (int i = 0; i < 5 && !engine.isStopped(); i++) {
+                    Thread.sleep(100);
+                }
+                assertTrue("PayloadInputEngine in " + engine.getPresentState() +
+                           ", not Idle after stop", engine.isStopped());
+                assertTrue("Failure on sendLastAndStop command.",
+                           sourceStopNotificationCalled);
+
+                assertEquals("There are still unreturned byte buffers",
+                             0, cacheMgr.getCurrentAquiredBuffers());
+            }
+        }
+    }
+
+    public void testDisposing()
+        throws Exception
+    {
+        // buffer caching manager
+        IByteBufferCache cacheMgr =
+            new ByteBufferCache(BUFFER_BLEN, BUFFER_BLEN*20,
+                                BUFFER_BLEN*40, "OutputInput");
+
+        // create a pipe for use in testing
+        Pipe testPipe = Pipe.open();
+        Pipe.SinkChannel sinkChannel = testPipe.sink();
+        sinkChannel.configureBlocking(false);
+
+        Pipe.SourceChannel sourceChannel = testPipe.source();
+        sourceChannel.configureBlocking(false);
+
+        engine = new PayloadInputEngine("OutputInput", 0, "test");
+        engine.registerComponentObserver(this);
+        engine.start();
+
+        PayloadReceiveChannel receiveChannel =
+            engine.addDataChannel(sourceChannel, cacheMgr);
+
+        assertTrue("PayloadInputEngine in " + engine.getPresentState() +
+                   ", not Idle after creation", engine.isStopped());
+
+        engine.startProcessing();
+        assertTrue("PayloadInputEngine in " + engine.getPresentState() +
+                   ", not Running after startup", engine.isRunning());
+
+        testOutput = new PayloadOutputEngine("OutputInput", 0, "test");
+        testOutput.registerComponentObserver(this);
+        testOutput.start();
+
+        PayloadTransmitChannel transmitEng =
+            testOutput.addDataChannel(sinkChannel, cacheMgr);
+        testOutput.registerStopNotificationCallback(SRC_NOTE_ID);
+        testOutput.registerErrorNotificationCallback(ERR_NOTE_ID);
+
+        assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
+                   ", not Idle after creation", testOutput.isStopped());
+
+        testOutput.startProcessing();
+        assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
+                   ", not Running after startup", testOutput.isRunning());
+
+        // now move some buffers
+        ByteBuffer testBuf;
+
+        final int bufLen = 64;
+
+        for (int i = 0; i < 5; i++) {
+            final int acquireLen = bufLen;
+            testBuf = cacheMgr.acquireBuffer(acquireLen);
+            assertNotNull("Unable to acquire transmit buffer on try #" + i,
+                          testBuf);
+
+            testBuf.putInt(0, bufLen);
+            testBuf.limit(bufLen);
+            testBuf.position(0);
+            sinkChannel.write(testBuf);
+            transmitEng.flushOutQueue();
+            cacheMgr.returnBuffer(testBuf);
+
+            if (i == 1) {
+                engine.startDisposing();
+            }
+
+            if (receiveChannel.inputQueue.isEmpty()) {
+                Thread.sleep(100);
+            } else {
+                ByteBuffer engineBuf =
+                    (ByteBuffer)receiveChannel.inputQueue.take();
+                assertEquals("Bad payload length", bufLen, engineBuf.getInt(0));
+                assertEquals("Bad buffer position",
+                             bufLen, engineBuf.position());
+                // return the buffer for later use
+                cacheMgr.returnBuffer(engineBuf);
+            }
+        }
+
+        testOutput.sendLastAndStop();
+        transmitEng.flushOutQueue();
+
+        Thread.sleep(100);
+        assertTrue("Failure on sendLastAndStop command.",
+                   sourceStopNotificationCalled);
+
+        Thread.sleep(100);
+        assertTrue("Failure on sendLastAndStop command.",
+                   sinkStopNotificationCalled);
     }
 
     public void testOutputInputWithSemaphore()
