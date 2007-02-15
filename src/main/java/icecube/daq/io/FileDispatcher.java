@@ -72,6 +72,10 @@ public class FileDispatcher implements Dispatcher {
 
         this.baseFileName = baseFileName;
         LOG.info("baseFileName is set to: " + baseFileName);
+        if ( baseFileName.equalsIgnoreCase("tcal") ||
+                   baseFileName.equalsIgnoreCase("sn")){
+            maxFileSize = 200000000;
+        }
 
         this.bufferCache = bufferCache;
 
