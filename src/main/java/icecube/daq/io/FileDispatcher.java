@@ -8,13 +8,13 @@ import icecube.icebucket.util.DiskUsage;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileNotFoundException;
-import java.io.FilenameFilter;
 import java.io.IOException;
 
 import java.nio.ByteBuffer;
 
 import java.nio.channels.WritableByteChannel;
 import java.util.*;
+import java.text.SimpleDateFormat;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -42,7 +42,6 @@ public class FileDispatcher implements Dispatcher {
     private File tempFile;
     private String dispatchDestStorage;
     private int fileIndex;
-    private FilenameFilter filter;
     private long startingEventNum;
     private int diskSize;          // measured in MB
     private int diskAvailable;     // measured in MB
@@ -81,11 +80,6 @@ public class FileDispatcher implements Dispatcher {
 
         tempFile = getTempFile(dispatchDestStorage, baseFileName);
 
-        filter = new FilenameFilter() {
-            public boolean accept(File dir, String name) {
-                return name.endsWith(".dat");
-            }
-        };
     }
 
     /**
@@ -437,49 +431,16 @@ public class FileDispatcher implements Dispatcher {
     }
 
     private File getDestFile(){
-
-        File destDispatchStorage = new File(dispatchDestStorage);
-
-        String[] fileNames = destDispatchStorage.list(filter);
-        String runNumberStr = String.valueOf(runNumber);
-        StringBuffer sbBaseFileName = new StringBuffer(baseFileName);
-        StringBuffer sbRunNum = new StringBuffer(runNumberStr);
-        List oldDispatchFiles = new ArrayList();
-        for (int i = 0; i < fileNames.length; i++){
-            if (fileNames[i].contains(sbBaseFileName) && fileNames[i].contains(sbRunNum)){
-                oldDispatchFiles.add(fileNames[i]);
-            }
-        }
-
-        int tmpIndex = 0;
-        if (oldDispatchFiles.size() > 0){
-            List indices = new ArrayList();
-            for (int i = 0; i < oldDispatchFiles.size(); i++){
-                String name = (String)oldDispatchFiles.get(i);
-                StringTokenizer st = new StringTokenizer(name, "_");
-                int y = 0;
-                while(st.hasMoreTokens()){
-                    String tempName = st.nextToken();
-                    if (y == 2){
-                        indices.add(new Integer(tempName));
-                        break;
-                    }
-                    ++y;
-                }
-            }
-            Collections.sort(indices);
-            Integer last = (Integer)indices.get(indices.size() -1);
-            tmpIndex = last.intValue() + 1;
-        } else {
-            tmpIndex = fileIndex;
-            ++fileIndex;
-        }
-
-
-        String fileName = baseFileName + "_" + runNumber + "_" + tmpIndex + "_" +
-                startingEventNum + "_" + totalDispatchedEvents;
-
+        // TODO: Add the time in the next version
+        //long millisec = System.currentTimeMillis();
+        //Date date = new Date(millisec);
+        //SimpleDateFormat dateFormat = new SimpleDateFormat("yyMMddHHmmssZ");
+        //String fileName = baseFileName + "_" + runNumber + "_" + fileIndex + "_" + startingEventNum + "_" +
+        //                  + totalDispatchedEvents + "_" + dateFormat.format(date);
+        String fileName = baseFileName + "_" + runNumber + "_" + fileIndex + "_" + startingEventNum + "_" +
+                          + totalDispatchedEvents;
         File file = new File(dispatchDestStorage, fileName + ".dat");
+        ++fileIndex;
 
         return file;
     }
