@@ -775,7 +775,7 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
 
 	    //timer.stop(EngineTimer.TOPLOOP);
 
-	    timer.start();
+	    //timer.start();
 
             // process selects
             int numSelected;
@@ -787,7 +787,7 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
             }
             if (TRACE_THREAD) log.info("RunSel#" + numSelected);
 
-	    timer.stop(EngineTimer.CHECK);
+	    //timer.stop(EngineTimer.SELECT);
 
 	    //timer.start();
 
