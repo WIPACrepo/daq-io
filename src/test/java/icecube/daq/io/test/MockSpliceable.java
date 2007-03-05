@@ -30,4 +30,9 @@ public class MockSpliceable
 
         return id - ((MockSpliceable) obj).id;
     }
+
+    public ByteBuffer getByteBuffer()
+    {
+        return bBuf;
+    }
 }
