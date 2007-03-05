@@ -12,7 +12,7 @@ import java.util.List;
 public class MockStrandTail
     implements StrandTail
 {
-    private ArrayList entries = new ArrayList();
+    private ArrayList<Spliceable> entries = new ArrayList<Spliceable>();
     private boolean closed;
 
     public MockStrandTail()
@@ -42,7 +42,7 @@ public class MockStrandTail
      */
     public Spliceable head()
     {
-        return (Spliceable) entries.get(0);
+        return entries.get(0);
     }
 
     /**
