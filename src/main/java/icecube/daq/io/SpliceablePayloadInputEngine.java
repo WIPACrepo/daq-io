@@ -140,6 +140,10 @@ public class SpliceablePayloadInputEngine extends PayloadInputEngine {
         return totalDepth;
     }
 
+    public synchronized String getInputEngineTiming() {
+	return "OK";
+    }
+
     public synchronized Boolean[] getStrandFillingStopped() {
         ArrayList allocationStatus = new ArrayList();
         Iterator rcvChanIter = rcvChanList.iterator();

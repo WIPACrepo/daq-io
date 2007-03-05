@@ -141,6 +141,9 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
     // <tt>true</tt> if reverse connections have been made
     private boolean madeReverseConnections;
 
+    // Timer/code profiler
+    private EngineTimer timer = new EngineTimer();
+
     private boolean debug = false;
 
     /**
@@ -203,6 +206,8 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
     // Needs to be called immediately after constructor.
     public void start() {
         inputEngine.start();
+	timer.start();
+	timer.stop(EngineTimer.CHECK);
     }
 
     public void startServer(IByteBufferCache serverCache) throws IOException {
@@ -516,6 +521,10 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
         return (Long[]) byteLimit.toArray(new Long[0]);
     }
 
+    public synchronized String getTimer() {
+	return timer.toString();
+    }
+
     public synchronized Long[] getBufferCurrentAcquiredBuffers() {
         ArrayList byteLimit = new ArrayList();
         Iterator rcvChanIter = rcvChanList.iterator();
@@ -720,6 +729,8 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
         for (; ;) {
             if (TRACE_THREAD) log.info("RunTop");
             // now, kick everyones timer entry
+
+	    //timer.start();
             Iterator rcvChanIter = rcvChanList.iterator();
             while (rcvChanIter.hasNext()) {
                 PayloadReceiveChannel rcvChan =
@@ -762,6 +773,10 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
                 }
             }
 
+	    //timer.stop(EngineTimer.TOPLOOP);
+
+	    timer.start();
+
             // process selects
             int numSelected;
             try {
@@ -771,6 +786,11 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
                 numSelected = 0;
             }
             if (TRACE_THREAD) log.info("RunSel#" + numSelected);
+
+	    timer.stop(EngineTimer.CHECK);
+
+	    //timer.start();
+
             if (numSelected != 0) {
                 // get iterator for select keys
                 Iterator selectorIterator =
@@ -829,6 +849,10 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
             if (TRACE_THREAD) {
                 log.info("RunState=" + getPresentState());
             }
+
+	    //timer.stop(EngineTimer.HANDLE);
+
+	    //timer.start();
             // now we get a lock
             try {
                 stateMachineMUTEX.acquire();
@@ -871,8 +895,10 @@ public class PayloadInputEngine implements DAQComponentInputProcessor, DAQCompon
                 // exit the thread
                 break;
             }
-        }
-    }
+	    //timer.stop(EngineTimer.DOSTATES);
+
+        } /* Main loop */
+    }     /* Run method */
 
     // instance member method (alphabetic)
     protected void transition(int signal) {
