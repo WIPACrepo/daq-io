@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.channels.SelectableChannel;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class MockSplicer
@@ -203,6 +204,11 @@ try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
     public int getStrandCount()
     {
         return strandList.size();
+    }
+
+    public Iterator iterator()
+    {
+        return strandList.iterator();
     }
 
     /**
