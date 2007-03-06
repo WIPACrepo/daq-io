@@ -302,6 +302,106 @@ public class PayloadInputEngineTest
         System.err.println("========================================");
     }
 
+    private static final int harvestBuffers(PayloadReceiveChannel rcvChan,
+                                            int bufLen)
+    {
+        return harvestBuffers(rcvChan, bufLen, false, 0);
+    }
+
+    private static final int harvestBuffers(PayloadReceiveChannel rcvChan,
+                                            int bufLen,  boolean checkId,
+                                            int prevId)
+    {
+        if (rcvChan.inputQueue.isEmpty()) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ie) {
+                // ignore interrupts
+            }
+
+            return 0;
+        }
+
+        int numHarvested = 0;
+        while (!rcvChan.inputQueue.isEmpty()) {
+            ByteBuffer buf;
+            try {
+                buf = (ByteBuffer)rcvChan.inputQueue.take();
+            } catch (InterruptedException ie) {
+                continue;
+            }
+
+            assertEquals("Bad payload length", bufLen, buf.getInt(0));
+            assertEquals("Bad buffer position",
+                         bufLen, buf.position());
+
+            if (checkId) {
+                int newId = buf.getInt(4);
+                assertEquals("Bad buffer ID", prevId + 1, newId);
+                prevId = newId;
+            }
+
+            rcvChan.returnBuffer(buf);
+            numHarvested++;
+        }
+
+        return numHarvested;
+    }
+
+    private static final int harvestEngine(PayloadInputEngine engine,
+                                           PayloadReceiveChannel rcvChan,
+                                           int bufLen)
+    {
+        return harvestEngine(engine, rcvChan, bufLen, false, 0);
+    }
+
+    private static final int harvestEngine(PayloadInputEngine engine,
+                                           PayloadReceiveChannel rcvChan,
+                                           int bufLen,  boolean checkId,
+                                           int prevId)
+    {
+        if (engine.inputAvailable.permits() == 0) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ie) {
+                // ignore interrupts
+            }
+
+            return 0;
+        }
+
+        int numHarvested = 0;
+        while (engine.inputAvailable.permits() > 0) {
+            try {
+                engine.inputAvailable.acquire();
+            } catch (InterruptedException ie) {
+                continue;
+            }
+
+            ByteBuffer buf;
+            try {
+                buf = (ByteBuffer)rcvChan.inputQueue.take();
+            } catch (InterruptedException ie) {
+                continue;
+            }
+
+            assertEquals("Bad payload length", bufLen, buf.getInt(0));
+            assertEquals("Bad buffer position",
+                         bufLen, buf.position());
+
+            if (checkId) {
+                int newId = buf.getInt(4);
+                assertEquals("Bad buffer ID", prevId + 1, newId);
+                prevId = newId;
+            }
+
+            rcvChan.returnBuffer(buf);
+            numHarvested++;
+        }
+
+        return numHarvested;
+    }
+
     /**
      * Sets up the fixture, for example, open a network connection. This method
      * is called before a test is executed.
@@ -528,18 +628,7 @@ public class PayloadInputEngineTest
                 xmitCnt++;
             }
 
-            if (receiveChannel.inputQueue.isEmpty()) {
-                Thread.sleep(100);
-            } else {
-                recvCnt++;
-                ByteBuffer engineBuf =
-                    (ByteBuffer)receiveChannel.inputQueue.take();
-                assertEquals("Bad payload length", bufLen, engineBuf.getInt(0));
-                assertEquals("Bad buffer position",
-                             bufLen, engineBuf.position());
-                // return the buffer for later use
-                cacheMgr.returnBuffer(engineBuf);
-            }
+            recvCnt += harvestBuffers(receiveChannel, bufLen);
 
             if (xmitCnt == recvCnt + INPUT_OUTPUT_LOOP_CNT) {
                 fail("Nothing received after all buffers were transmitted");
@@ -638,25 +727,11 @@ public class PayloadInputEngineTest
             }
 
             for (int i = 0; i < groupSize; i++) {
-                if (receiveChannel.inputQueue.isEmpty()) {
-                    Thread.sleep(100);
-                } else {
-                    while (!receiveChannel.inputQueue.isEmpty()) {
-                        recvCnt++;
-                        ByteBuffer engineBuf =
-                            (ByteBuffer)receiveChannel.inputQueue.take();
-                        assertEquals("Bad payload length",
-                                     bufLen, engineBuf.getInt(0));
-                        assertEquals("Bad buffer position",
-                                     bufLen, engineBuf.position());
-
-                        int newId = engineBuf.getInt(4);
-                        assertEquals("Bad buffer ID", recvId + 1, newId);
-                        recvId = newId;
-
-                        // return the buffer for later use
-                        cacheMgr.returnBuffer(engineBuf);
-                    }
+                int numBufs =
+                    harvestBuffers(receiveChannel, bufLen, true, recvId);
+                if (numBufs > 0) {
+                    recvId += numBufs;
+                    recvCnt += numBufs;
                 }
             }
 
@@ -767,32 +842,20 @@ public class PayloadInputEngineTest
                         xmitCnt++;
                     }
 
-                    if (receiveChannel.inputQueue.isEmpty()) {
+                    int numBufs = harvestBuffers(receiveChannel, msgSize,
+                                                 true, recvId);
+                    if (numBufs == 0) {
                         if (xmitCnt >= INPUT_OUTPUT_LOOP_CNT) {
-                            Thread.sleep(100);
                             xmitCnt++;
                         }
                     } else {
-                        while (!receiveChannel.inputQueue.isEmpty()) {
-                            recvCnt++;
-                            ByteBuffer engineBuf =
-                                (ByteBuffer)receiveChannel.inputQueue.take();
-                            assertEquals("Bad payload length",
-                                         msgSize, engineBuf.getInt(0));
-                            assertEquals("Bad buffer position",
-                                         msgSize, engineBuf.position());
-
-                            int newId = engineBuf.getInt(4);
-                            assertEquals("Bad buffer ID", recvId + 1, newId);
-                            recvId = newId;
-
-                            // return the buffer for later use
-                            cacheMgr.returnBuffer(engineBuf);
-                        }
+                        recvId += numBufs;
+                        recvCnt += numBufs;
                     }
 
                     if (xmitCnt == recvCnt + INPUT_OUTPUT_LOOP_CNT * 2) {
-                        fail("Only received " +recvCnt +
+                        fail("Only received " +recvCnt + " of " +
+                             (INPUT_OUTPUT_LOOP_CNT * groupSize) +
                              " after all buffers were transmitted");
                     }
                 }
@@ -898,17 +961,7 @@ public class PayloadInputEngineTest
                 engine.startDisposing();
             }
 
-            if (receiveChannel.inputQueue.isEmpty()) {
-                Thread.sleep(100);
-            } else {
-                ByteBuffer engineBuf =
-                    (ByteBuffer)receiveChannel.inputQueue.take();
-                assertEquals("Bad payload length", bufLen, engineBuf.getInt(0));
-                assertEquals("Bad buffer position",
-                             bufLen, engineBuf.position());
-                // return the buffer for later use
-                cacheMgr.returnBuffer(engineBuf);
-            }
+            harvestBuffers(receiveChannel, bufLen);
         }
 
         testOutput.sendLastAndStop();
@@ -996,23 +1049,7 @@ public class PayloadInputEngineTest
                 xmitCnt++;
             }
 
-            if (engine.inputAvailable.permits() == 0) {
-                Thread.sleep(100);
-            } else {
-                engine.inputAvailable.acquire();
-
-                recvCnt++;
-
-                ByteBuffer engineBuf =
-                    (ByteBuffer)receiveChannel.inputQueue.take();
-                assertEquals("Bad payload length",
-                             bufLen, engineBuf.getInt(0));
-                assertEquals("Bad buffer position",
-                             bufLen, engineBuf.position());
-
-                // return the buffer for later use
-                cacheMgr.returnBuffer(engineBuf);
-            }
+            recvCnt += harvestEngine(engine, receiveChannel, bufLen);
 
             if (xmitCnt == recvCnt + INPUT_OUTPUT_LOOP_CNT) {
                 fail("Nothing received after all buffers were transmitted");
