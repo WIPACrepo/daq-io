@@ -19,8 +19,6 @@ import java.nio.channels.ReadableByteChannel;
  */
 public interface DAQComponentInputProcessor extends DAQComponentIOProcess {
 
-    public PayloadReceiveChannel addDataChannel(ReadableByteChannel channel, IByteBufferCache bufMgr);
-
     public int getServerPort();
 
     public boolean isDisposing();
