@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
 import java.util.Iterator;
 
 import org.apache.log4j.BasicConfigurator;
@@ -49,70 +50,6 @@ class DevNullInputEngine extends PayloadInputEngine
             }
         }
     }
-}
-
-public class PieStressor 
-{
-
-    private DevNullInputEngine  engine;
-    private ByteBufferCache     cache;
-    private boolean             printChannelStates;
-    
-    private PieStressor()
-    {
-        cache  = new ByteBufferCache(256, 50000000L, 50000000L);
-        engine = new DevNullInputEngine(cache);
-        printChannelStates = false;
-    }
-    
-    private void runTest() throws Exception
-    {
-        System.out.println("running test");
-        engine.start();
-        engine.startServer(cache);
-        int port = engine.getServerPort();
-        System.out.println("port is " + port);
-        for (int i = 0; i < 20; i++)
-        {
-            Paygen pagan = new Paygen(port);
-            Thread.sleep(100);
-            pagan.start();
-        }
-        Thread.sleep(1000);
-        engine.startProcessing();
-        for (int i = 0; i < 1000; i++)
-        {
-            Thread.sleep(1000);
-            Long[] brec = engine.getBytesReceived();
-            for (int j = 0; j < brec.length; j++)
-            {
-                System.out.format("%10d ", brec[j]);
-            }
-            System.out.println();
-            if (printChannelStates)
-            {
-                String[] states = engine.getPresentChannelStates();
-                for (int j = 0; j < states.length; j++)
-                {
-                   System.out.format("%10s ", states[j]);
-                }
-                System.out.println();
-            }
-            // empty the byte buffers
-            engine.recycleBuffers();
-        }
-        System.out.println("stopping engine.");
-        engine.destroyProcessor();
-    }
-    
-    public static void main(String[] args) throws Exception
-    {
-        BasicConfigurator.configure();
-        Logger.getRootLogger().setLevel(Level.INFO);
-        PieStressor test = new PieStressor();
-        test.runTest();
-    }
-    
 }
 
 class Paygen extends Thread
@@ -173,11 +110,103 @@ class Paygen extends Thread
         }
         catch (InterruptedException intx)
         {
+            logger.error("Generator error", intx);
             return;
         }
         catch (IOException iox)
         {
+            logger.error("Generator error", iox);
             return;
         }
+    }
+}
+
+public class PieStressor 
+{
+    private static final int NUM_INPUTS = 20;
+    private static final int NUM_REPS = 1000;
+
+    private ByteBufferCache     cache;
+    private boolean             printChannelStates;
+    
+    private PieStressor()
+    {
+        cache  = new ByteBufferCache(256, 50000000L, 50000000L);
+        printChannelStates = false;
+    }
+    
+    private static final void report(String title, long[] prevRdr, Long[] brec)
+    {
+        System.out.print(title + ": ");
+        for (int j = 0; j < brec.length; j++)
+        {
+            long val = brec[j].longValue();
+            System.out.format("%5d ", val - prevRdr[j]);
+            prevRdr[j] = val;
+        }
+        System.out.println();
+    }
+
+    private void runTest() throws Exception
+    {
+        System.out.println("running test");
+        DevNullInputEngine engine = new DevNullInputEngine(cache);
+        engine.start();
+        engine.startServer(cache);
+
+        ArrayList<Paygen> genList = new ArrayList<Paygen>();
+
+        for (int i = 0; i < NUM_INPUTS; i++)
+        {
+            Paygen pagan;
+
+            pagan = new Paygen(engine.getServerPort());
+            pagan.setName("engGen#" + i);
+            genList.add(pagan);
+        }
+
+        Thread.sleep(1000);
+        engine.startProcessing();
+
+        for (Paygen pg : genList) {
+            pg.start();
+        }
+
+        long[] prevRcvd = new long[NUM_INPUTS];
+        for (int i = 0; i < NUM_INPUTS; i++) {
+            prevRcvd[i] = 0;
+        }
+
+        for (int i = 0; i < NUM_REPS; i++)
+        {
+            Thread.sleep(1000);
+
+            report("RecRcvd", prevRcvd, engine.getRecordsReceived());
+
+            if (printChannelStates)
+            {
+                String[] states = engine.getPresentChannelStates();
+                for (int j = 0; j < states.length; j++)
+                {
+                   System.out.format("%10s ", states[j]);
+                }
+                System.out.println();
+            }
+
+            // empty the byte buffers
+            engine.recycleBuffers();
+        }
+
+        System.out.println("stopping engine.");
+        engine.destroyProcessor();
+    }
+    
+    public static void main(String[] args) throws Exception
+    {
+        BasicConfigurator.configure();
+        BasicConfigurator.configure(new MockAppender(Level.WARN));
+
+        PieStressor test = new PieStressor();
+        test.runTest();
     }
 }
