@@ -1,5 +1,9 @@
 package icecube.daq.io.test;
 
+import icecube.daq.payload.IByteBufferCache;
+
+import icecube.daq.payload.splicer.Payload;
+
 import icecube.daq.splicer.ClosedStrandException;
 import icecube.daq.splicer.OrderingException;
 import icecube.daq.splicer.Spliceable;
@@ -119,9 +123,37 @@ ABLE</code>
     public StrandTail push(Spliceable spl)
         throws OrderingException, ClosedStrandException
     {
-        entries.add(spl);
+        synchronized (entries) {
+            entries.add(spl);
+        }
 
         return this;
+    }
+
+    /**
+     * Return all entries to the buffer cache manager and clear the entry list.
+     *
+     * @param bufMgr byte buffer cache manager
+     *
+     * @return number of buffers returned
+     */
+    public int returnBuffers(IByteBufferCache bufMgr)
+    {
+        int numReturned = 0;
+        synchronized (entries) {
+            for (Spliceable spl : entries) {
+                if (spl instanceof MockSpliceable) {
+                    bufMgr.returnBuffer(((MockSpliceable) spl).getByteBuffer());
+                } else if (spl instanceof Payload) {
+                    bufMgr.returnBuffer(((Payload) spl).getPayloadBacking());
+                }
+                numReturned++;
+            }
+
+            entries.clear();
+        }
+
+        return numReturned;
     }
 
     /**
