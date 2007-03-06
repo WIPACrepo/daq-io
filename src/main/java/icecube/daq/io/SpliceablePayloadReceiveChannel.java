@@ -78,6 +78,8 @@ public class SpliceablePayloadReceiveChannel extends PayloadReceiveChannel {
             }
 
             pushSpliceable(spliceable);
+            
+            this.bufferMgr.returnBuffer(payloadBuf);
         }
     }
 

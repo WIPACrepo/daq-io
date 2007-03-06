@@ -112,7 +112,7 @@ public class PayloadReceiveChannel {
     // counters for timer implemetation
     private long startTimeMsec;
     // buffer cache manager that is source of receive buffers
-    private IByteBufferCache bufferMgr;
+    protected IByteBufferCache bufferMgr;
     // receive buffer in use
     protected ByteBuffer inputBuf;
     protected int bufPos;
@@ -474,7 +474,9 @@ public class PayloadReceiveChannel {
                     inputBuf.position() < bufPos + inputBuf.getInt(bufPos))
                 {
                     try {
-                        channel.read(inputBuf);
+                        int n = channel.read(inputBuf);
+                        if (log.isDebugEnabled())
+                            log.debug("STATE_RECVHEADER: Read " + n + " bytes - buffer position");
                     } catch (IOException ioe) {
                         //need to do something here
                         transition(SIG_ERROR);
@@ -506,6 +508,7 @@ public class PayloadReceiveChannel {
                         exitRecvHeader();
                         getBuffer();
                         if (handleMorePayloads()) {
+                            log.debug("handling more payloads - bufPos = " + bufPos);
                             continue;
                         }
                         break;
