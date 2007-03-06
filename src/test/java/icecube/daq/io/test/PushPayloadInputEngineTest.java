@@ -365,7 +365,6 @@ public class PushPayloadInputEngineTest
         int recvId = 0;
 
         int xmitCnt = 0;
-        int recvCnt = 0;
         while (engine.getReceiveCount() <
                (INPUT_OUTPUT_LOOP_CNT * groupSize))
         {
