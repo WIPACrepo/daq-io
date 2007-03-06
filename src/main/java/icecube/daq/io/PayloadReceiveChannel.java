@@ -215,6 +215,16 @@ public class PayloadReceiveChannel {
         inputBuf = ByteBuffer.allocate(size);
     }
 
+    /**
+     * Return byte buffer to the buffer cache manager.
+     *
+     * @param buf byte buffer being returned
+     */
+    public void returnBuffer(ByteBuffer buf)
+    {
+        bufferMgr.returnBuffer(buf);
+    }
+
     protected void exitIdle()
     {
         // compute some buffer manager limits...we do it here so
