@@ -1,12 +1,17 @@
 package icecube.daq.io.test;
 
+import icecube.daq.io.InputChannel;
+import icecube.daq.io.InputChannelParent;
 import icecube.daq.io.PayloadInputEngine;
+import icecube.daq.io.PayloadReader;
 import icecube.daq.io.PayloadReceiveChannel;
 import icecube.daq.payload.ByteBufferCache;
+import icecube.daq.payload.IByteBufferCache;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectableChannel;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -52,6 +57,42 @@ class DevNullInputEngine extends PayloadInputEngine
     }
 }
 
+class MockInputChannel
+    extends InputChannel
+{
+    private IByteBufferCache bufMgr;
+
+    MockInputChannel(InputChannelParent parent, SelectableChannel channel,
+                     IByteBufferCache bufMgr, int bufSize)
+        throws IOException
+    {
+        super(parent, channel, bufMgr, bufSize);
+
+        this.bufMgr = bufMgr;
+    }
+
+    public void pushPayload(ByteBuffer buf)
+    {
+        bufMgr.returnBuffer(buf);
+    }
+}
+
+class MockReader
+    extends PayloadReader
+{
+    MockReader(String name)
+    {
+        super(name);
+    }
+
+    public InputChannel createChannel(SelectableChannel channel,
+                                      IByteBufferCache bufMgr, int bufSize)
+        throws IOException
+    {
+        return new MockInputChannel(this, channel, bufMgr, bufSize);
+    }
+}
+
 class Paygen extends Thread
 {
     private SocketChannel       socketChannel;
@@ -88,7 +129,7 @@ class Paygen extends Thread
                 double mu = rate * dt;
                 int nevt = poissonDeviate.nextInt(mu);
                 int nreq = nevt * (payloadSize + 16);
-                logger.debug("Generated " + nevt + " events.");
+                //logger.debug("Generated " + nevt + " events.");
                 buf.clear();
                 if (nreq > buf.capacity()) buf = ByteBuffer.allocate(nreq);
                 for (int k = 0; k < nevt; k++)
@@ -147,12 +188,27 @@ public class PieStressor
         System.out.println();
     }
 
-    private void runTest() throws Exception
+    private void runTest(boolean tryEngine, boolean tryReader) throws Exception
     {
         System.out.println("running test");
-        DevNullInputEngine engine = new DevNullInputEngine(cache);
-        engine.start();
-        engine.startServer(cache);
+
+        DevNullInputEngine engine;
+        if (!tryEngine) {
+            engine = null;
+        } else {
+            engine = new DevNullInputEngine(cache);
+            engine.start();
+            engine.startServer(cache);
+        }
+
+        MockReader reader;
+        if (!tryReader) {
+            reader = null;
+        } else {
+            reader = new MockReader("MockRdr");
+            reader.start();
+            reader.startServer(cache);
+        }
 
         ArrayList<Paygen> genList = new ArrayList<Paygen>();
 
@@ -160,30 +216,42 @@ public class PieStressor
         {
             Paygen pagan;
 
-            pagan = new Paygen(engine.getServerPort());
-            pagan.setName("engGen#" + i);
-            genList.add(pagan);
+            if (tryEngine) {
+                pagan = new Paygen(engine.getServerPort());
+                pagan.setName("engGen#" + i);
+                genList.add(pagan);
+            }
+
+            if (tryReader) {
+                pagan = new Paygen(reader.getServerPort());
+                pagan.setName("rdrGen#" + i);
+                genList.add(pagan);
+            }
         }
 
         Thread.sleep(1000);
-        engine.startProcessing();
+        if (tryEngine) engine.startProcessing();
+        if (tryReader) reader.startProcessing();
 
         for (Paygen pg : genList) {
             pg.start();
         }
 
-        long[] prevRcvd = new long[NUM_INPUTS];
+        long[] prevEng = new long[NUM_INPUTS];
+        long[] prevRdr = new long[NUM_INPUTS];
         for (int i = 0; i < NUM_INPUTS; i++) {
-            prevRcvd[i] = 0;
+            prevEng[i] = 0;
+            prevRdr[i] = 0;
         }
 
         for (int i = 0; i < NUM_REPS; i++)
         {
             Thread.sleep(1000);
 
-            report("RecRcvd", prevRcvd, engine.getRecordsReceived());
+            if (tryEngine) report("Eng", prevEng, engine.getRecordsReceived());
+            if (tryReader) report("Rdr", prevRdr, reader.getRecordsReceived());
 
-            if (printChannelStates)
+            if (printChannelStates && tryEngine)
             {
                 String[] states = engine.getPresentChannelStates();
                 for (int j = 0; j < states.length; j++)
@@ -194,11 +262,12 @@ public class PieStressor
             }
 
             // empty the byte buffers
-            engine.recycleBuffers();
+            if (tryEngine) engine.recycleBuffers();
         }
 
         System.out.println("stopping engine.");
-        engine.destroyProcessor();
+        if (tryEngine) engine.destroyProcessor();
+        if (tryReader) reader.destroyProcessor();
     }
     
     public static void main(String[] args) throws Exception
@@ -206,7 +275,37 @@ public class PieStressor
         BasicConfigurator.configure();
         BasicConfigurator.configure(new MockAppender(Level.WARN));
 
+        boolean tryEngine = true;
+        boolean tryReader = false;
+
+        if (args.length > 0 && args[0].length() > 0) {
+            tryEngine = false;
+            tryReader = false;
+
+            switch (args[0].charAt(0)) {
+            case 'b':
+            case 'B':
+                tryEngine = true;
+                tryReader = true;
+                break;
+            case 'e':
+            case 'E':
+            case 'i':
+            case 'I':
+                tryEngine = true;
+                break;
+            case 'r':
+            case 'R':
+                tryReader = true;
+                break;
+            default:
+                System.err.println("Unknown argument '" + args[0] + "'");
+                System.exit(1);
+                break;
+            }
+        }
+
         PieStressor test = new PieStressor();
-        test.runTest();
+        test.runTest(tryEngine, tryReader);
     }
 }
