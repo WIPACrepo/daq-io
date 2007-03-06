@@ -112,7 +112,7 @@ public class PayloadReceiveChannel {
     // counters for timer implemetation
     private long startTimeMsec;
     // buffer cache manager that is source of receive buffers
-    protected IByteBufferCache bufferMgr;
+    private IByteBufferCache bufferMgr;
     // receive buffer in use
     protected ByteBuffer inputBuf;
     protected int bufPos;
