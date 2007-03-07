@@ -367,7 +367,7 @@ public class PushPayloadReaderTest
             }
 
             loopCnt++;
-            if (loopCnt == tstRdr.getReceiveCount() + INPUT_OUTPUT_LOOP_CNT) {
+            if (loopCnt == numToSend * 2) {
                 fail("Received " + tstRdr.getReceiveCount() +
                      " payloads after " + xmitCnt +
                      " buffers were transmitted");
