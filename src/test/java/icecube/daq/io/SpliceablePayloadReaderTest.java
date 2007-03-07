@@ -1,27 +1,41 @@
-package icecube.daq.io.test;
+package icecube.daq.io;
 
 import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.common.DAQComponentObserver;
 import icecube.daq.common.ErrorState;
 import icecube.daq.common.NormalState;
-import icecube.daq.io.PayloadReader;
-import icecube.daq.io.SpliceablePayloadReader;
+
+import icecube.daq.io.test.MockAppender;
+import icecube.daq.io.test.MockSpliceableFactory;
+import icecube.daq.io.test.MockSplicer;
+import icecube.daq.io.test.MockStrandTail;
+
 import icecube.daq.payload.ByteBufferCache;
 import icecube.daq.payload.IByteBufferCache;
 
+import icecube.daq.splicer.Splicer;
+
 import java.io.IOException;
+
+import java.net.InetSocketAddress;
+
 import java.nio.ByteBuffer;
+
 import java.nio.channels.Pipe;
+import java.nio.channels.Selector;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.nio.channels.WritableByteChannel;
+
 import java.util.Iterator;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
+
 import junit.textui.TestRunner;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 
@@ -29,25 +43,20 @@ public class SpliceablePayloadReaderTest
     extends TestCase
     implements DAQComponentObserver
 {
-    private Log LOG = LogFactory.getLog(SpliceablePayloadReaderTest.class);
-
-    private static final int INPUT_OUTPUT_LOOP_CNT = 5;
     private static final int BUFFER_LEN = 5000;
+    private static final int INPUT_OUTPUT_LOOP_CNT = 5;
 
     private static Level logLevel = Level.INFO;
 
     private static ByteBuffer stopMsg;
 
-    /**
-     * The object being tested.
-     */
-    private SpliceablePayloadReader tstRdr;
-
     private boolean sinkStopNotificationCalled;
     private boolean sinkErrorNotificationCalled;
 
+    private SpliceablePayloadReader tstRdr;
+
     /**
-     * Constructs an instance of this test.
+     * Construct an instance of this test.
      *
      * @param name the name of the test.
      */
@@ -86,6 +95,8 @@ public class SpliceablePayloadReaderTest
     {
         super.setUp();
 
+        tstRdr = null;
+
         sinkStopNotificationCalled = false;
         sinkErrorNotificationCalled = false;
 
@@ -113,6 +124,9 @@ public class SpliceablePayloadReaderTest
         super.tearDown();
     }
 
+    /**
+     * Test starting and stopping engine.
+     */
     public void testStartStop()
         throws Exception
     {
@@ -132,7 +146,6 @@ public class SpliceablePayloadReaderTest
                    ", not Running after StartSig", tstRdr.isRunning());
 
         tstRdr.forcedStopProcessing();
-
         waitUntilStopped(tstRdr);
         assertTrue("PayloadReader in " + tstRdr.getPresentState() +
                    ", not Idle after StopSig", tstRdr.isStopped());
@@ -144,13 +157,11 @@ public class SpliceablePayloadReaderTest
                    ", not Running after StartSig", tstRdr.isRunning());
 
         tstRdr.forcedStopProcessing();
-
         waitUntilStopped(tstRdr);
         assertTrue("PayloadReader in " + tstRdr.getPresentState() +
                    ", not Idle after StopSig", tstRdr.isStopped());
 
         tstRdr.destroyProcessor();
-
         waitUntilDestroyed(tstRdr);
         assertTrue("PayloadReader did not die after kill request",
                    tstRdr.isDestroyed());
@@ -190,14 +201,14 @@ public class SpliceablePayloadReaderTest
         assertTrue("PayloadReader in " + tstRdr.getPresentState() +
                    ", not Idle after creation", tstRdr.isStopped());
 
-        tstRdr.addDataChannel(sourceChannel, bufMgr);
+        tstRdr.addDataChannel(sourceChannel, bufMgr, 1024);
 
         Thread.sleep(100);
 
         tstRdr.startProcessing();
         waitUntilRunning(tstRdr);
         assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Running after startup", tstRdr.isRunning());
+                   ", not Running after StartSig", tstRdr.isRunning());
 
         // now move some buffers
         ByteBuffer testBuf;
@@ -205,7 +216,6 @@ public class SpliceablePayloadReaderTest
         final int bufLen = 64;
 
         int xmitCnt = 0;
-        int recvCnt = 0;
         int loopCnt = 0;
         while (tstRdr.getTotalStrandDepth() < INPUT_OUTPUT_LOOP_CNT) {
             if (xmitCnt < INPUT_OUTPUT_LOOP_CNT) {
@@ -221,16 +231,15 @@ public class SpliceablePayloadReaderTest
 
                 bufMgr.returnBuffer(testBuf);
                 xmitCnt++;
+            } else {
+                try {
+                    Thread.sleep(100);
+                } catch (Exception ex) {
+                    // ignore interrupts
+                }
             }
 
             loopCnt++;
-            if (loopCnt > INPUT_OUTPUT_LOOP_CNT * 2) {
-                break;
-            }
-
-            if (xmitCnt != tstRdr.getTotalStrandDepth()) {
-                Thread.sleep(100);
-            }
             if (loopCnt > INPUT_OUTPUT_LOOP_CNT * 2) {
                 fail("Received " + tstRdr.getTotalStrandDepth() +
                      " payloads after " + xmitCnt +
@@ -309,20 +318,25 @@ public class SpliceablePayloadReaderTest
                 testBuf.limit(acquireLen);
                 testBuf.position(0);
                 sinkChannel.write(testBuf);
+
                 bufMgr.returnBuffer(testBuf);
                 xmitCnt += groupSize;
+            } else {
+                try {
+                    Thread.sleep(100);
+                } catch (Exception ex) {
+                    // ignore interrupts
+                }
             }
 
             int numBufs = harvestStrands(splicer, bufMgr);
-            if (numBufs == 0) {
-                Thread.sleep(100);
-            } else {
+            if (numBufs > 0) {
                 recvId += numBufs;
                 recvCnt += numBufs;
             }
 
             loopCnt++;
-            if (loopCnt == recvCnt + INPUT_OUTPUT_LOOP_CNT) {
+            if (loopCnt > numToSend * 2) {
                 fail("Received " + recvCnt + " payloads after " + xmitCnt +
                      " buffers were transmitted");
             }

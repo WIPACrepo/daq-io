@@ -1,31 +1,36 @@
 package icecube.daq.io.test;
 
-import EDU.oswego.cs.dl.util.concurrent.LinkedQueue;
-
 import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.common.DAQComponentObserver;
 import icecube.daq.common.ErrorState;
 import icecube.daq.common.NormalState;
+
 import icecube.daq.io.PushPayloadInputEngine;
 import icecube.daq.io.PayloadOutputEngine;
 import icecube.daq.io.PayloadTransmitChannel;
 import icecube.daq.io.PayloadReceiveChannel;
+
 import icecube.daq.payload.ByteBufferCache;
 import icecube.daq.payload.IByteBufferCache;
 
 import java.io.IOException;
+
 import java.net.InetSocketAddress;
+
 import java.nio.ByteBuffer;
+
 import java.nio.channels.Pipe;
 import java.nio.channels.Selector;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+
 import java.util.Iterator;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
+
 import junit.textui.TestRunner;
 
 import org.apache.log4j.BasicConfigurator;
@@ -68,8 +73,8 @@ public class PushPayloadInputEngineTest
     extends TestCase
     implements DAQComponentObserver
 {
+    private static final int BUFFER_LEN = 5000;
     private static final int INPUT_OUTPUT_LOOP_CNT = 5;
-    private static final int BUFFER_BLEN = 5000;
 
     private static final String SRC_NOTE_ID = "SourceID";
     private static final String ERR_NOTE_ID = "ErrorID";
@@ -78,17 +83,12 @@ public class PushPayloadInputEngineTest
 
     private boolean sinkStopNotificationCalled;
     private boolean sinkErrorNotificationCalled;
-    private boolean sourceStopNotificationCalled;
-    private boolean sourceErrorNotificationCalled;
 
-    /**
-     * The object being tested.
-     */
     private MockPushEngine engine;
     private PayloadOutputEngine testOutput;
 
     /**
-     * Constructs an instance of this test.
+     * Construct an instance of this test.
      *
      * @param name the name of the test.
      */
@@ -102,10 +102,10 @@ public class PushPayloadInputEngineTest
     {
         super.setUp();
 
+        engine = null;
+
         sinkStopNotificationCalled = false;
         sinkErrorNotificationCalled = false;
-        sourceStopNotificationCalled = false;
-        sourceErrorNotificationCalled = false;
 
         BasicConfigurator.resetConfiguration();
         BasicConfigurator.configure(new MockAppender(logLevel));
@@ -121,12 +121,25 @@ public class PushPayloadInputEngineTest
         return new TestSuite(PushPayloadInputEngineTest.class);
     }
 
+    protected void tearDown()
+        throws Exception
+    {
+        if (engine != null) {
+            engine.destroyProcessor();
+        }
+
+        super.tearDown();
+    }
+
+    /**
+     * Test starting and stopping engine.
+     */
     public void testStartStop()
         throws Exception
     {
         IByteBufferCache cacheMgr =
-            new ByteBufferCache(BUFFER_BLEN, BUFFER_BLEN*20,
-                                BUFFER_BLEN*40, "OutputInput");
+            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
+                                BUFFER_LEN*40, "OutputInput");
 
         engine =
             new MockPushEngine("StartStop", 0, "test", "StStop", cacheMgr);
@@ -188,8 +201,8 @@ public class PushPayloadInputEngineTest
         throws Exception
     {
         IByteBufferCache cacheMgr =
-            new ByteBufferCache(BUFFER_BLEN, BUFFER_BLEN*20,
-                                BUFFER_BLEN*40, "OutputInput");
+            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
+                                BUFFER_LEN*40, "OutputInput");
 
         engine =
             new MockPushEngine("StartDisp", 0, "test", "StDisp", cacheMgr);
@@ -221,8 +234,8 @@ public class PushPayloadInputEngineTest
     {
         // buffer caching manager
         IByteBufferCache cacheMgr =
-            new ByteBufferCache(BUFFER_BLEN, BUFFER_BLEN*20,
-                                BUFFER_BLEN*40, "OutputInput");
+            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
+                                BUFFER_LEN*40, "OutputInput");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -247,13 +260,10 @@ public class PushPayloadInputEngineTest
         assertTrue("Should be healthy", engine.isHealthy());
 
         testOutput = new PayloadOutputEngine("OutputInput", 0, "test");
-        testOutput.registerComponentObserver(this);
         testOutput.start();
 
         PayloadTransmitChannel transmitEng =
             testOutput.addDataChannel(sinkChannel, cacheMgr);
-        testOutput.registerStopNotificationCallback(SRC_NOTE_ID);
-        testOutput.registerErrorNotificationCallback(ERR_NOTE_ID);
 
         assertTrue("PayloadOutputEngine in " + testOutput.getPresentState() +
                    ", not Idle after creation", testOutput.isStopped());
@@ -302,10 +312,6 @@ public class PushPayloadInputEngineTest
 
         Thread.sleep(100);
         assertTrue("Failure on sendLastAndStop command.",
-                   sourceStopNotificationCalled);
-
-        Thread.sleep(100);
-        assertTrue("Failure on sendLastAndStop command.",
                    sinkStopNotificationCalled);
     }
 
@@ -314,8 +320,8 @@ public class PushPayloadInputEngineTest
     {
         // buffer caching manager
         IByteBufferCache cacheMgr =
-            new ByteBufferCache(BUFFER_BLEN, BUFFER_BLEN*20,
-                                BUFFER_BLEN*40, "MultiOutputInput");
+            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
+                                BUFFER_LEN*40, "MultiOutputInput");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -334,7 +340,6 @@ public class PushPayloadInputEngineTest
                    ", not Idle after creation", engine.isStopped());
 
         testOutput = new PayloadOutputEngine("MultiOutputInput", 0, "test");
-        testOutput.registerComponentObserver(this);
         testOutput.start();
 
         assertTrue("PayloadOutputEngine in " + testOutput.getPresentState() +
@@ -348,8 +353,6 @@ public class PushPayloadInputEngineTest
 
         PayloadTransmitChannel transmitEng =
             testOutput.addDataChannel(sinkChannel, cacheMgr);
-        testOutput.registerStopNotificationCallback(SRC_NOTE_ID);
-        testOutput.registerErrorNotificationCallback(ERR_NOTE_ID);
 
         testOutput.startProcessing();
         assertTrue("PayloadOutputEngine in " + testOutput.getPresentState() +
@@ -404,10 +407,6 @@ public class PushPayloadInputEngineTest
 
         Thread.sleep(100);
         assertTrue("Failure on sendLastAndStop command.",
-                   sourceStopNotificationCalled);
-
-        Thread.sleep(100);
-        assertTrue("Failure on sendLastAndStop command.",
                    sinkStopNotificationCalled);
     }
 
@@ -418,8 +417,8 @@ public class PushPayloadInputEngineTest
             if (state == NormalState.STOPPED){
                 if (notificationID.equals(DAQCmdInterface.SINK)){
                     sinkStopNotificationCalled = true;
-                } else if (notificationID.equals(DAQCmdInterface.SOURCE)){
-                    sourceStopNotificationCalled = true;
+                } else {
+                    throw new Error("Unexpected notification update");
                 }
             }
         } else if (object instanceof ErrorState){
@@ -427,8 +426,8 @@ public class PushPayloadInputEngineTest
             if (state == ErrorState.UNKNOWN_ERROR){
                 if (notificationID.equals(DAQCmdInterface.SINK)){
                     sinkErrorNotificationCalled = true;
-                } else if (notificationID.equals(DAQCmdInterface.SOURCE)){
-                    sourceErrorNotificationCalled = true;
+                } else {
+                    throw new Error("Unexpected notification update");
                 }
             }
         }

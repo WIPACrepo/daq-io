@@ -36,18 +36,13 @@ public class SpliceablePayloadInputEngineTest
     extends TestCase
     implements DAQComponentObserver
 {
+    private static final int BUFFER_LEN = 5000;
     private static final int INPUT_OUTPUT_LOOP_CNT = 5;
-    private static final int BUFFER_BLEN = 5000;
-
-    private static final String SRC_NOTE_ID = "SourceID";
-    private static final String ERR_NOTE_ID = "ErrorID";
 
     private static Level logLevel = Level.INFO;
 
     private boolean sinkStopNotificationCalled;
     private boolean sinkErrorNotificationCalled;
-    private boolean sourceStopNotificationCalled;
-    private boolean sourceErrorNotificationCalled;
 
     /**
      * The object being tested.
@@ -72,8 +67,6 @@ public class SpliceablePayloadInputEngineTest
 
         sinkStopNotificationCalled = false;
         sinkErrorNotificationCalled = false;
-        sourceStopNotificationCalled = false;
-        sourceErrorNotificationCalled = false;
 
         BasicConfigurator.resetConfiguration();
         BasicConfigurator.configure(new MockAppender(logLevel));
@@ -187,8 +180,8 @@ public class SpliceablePayloadInputEngineTest
     {
         // buffer caching manager
         IByteBufferCache cacheMgr =
-            new ByteBufferCache(BUFFER_BLEN, BUFFER_BLEN*20,
-                                BUFFER_BLEN*40, "OutputInput");
+            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
+                                BUFFER_LEN*40, "OutputInput");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -218,13 +211,10 @@ public class SpliceablePayloadInputEngineTest
         assertTrue("Should be healthy", engine.isHealthy());
 
         testOutput = new PayloadOutputEngine("OutputInput", 0, "test");
-        testOutput.registerComponentObserver(this);
         testOutput.start();
 
         PayloadTransmitChannel transmitEng =
             testOutput.addDataChannel(sinkChannel, cacheMgr);
-        testOutput.registerStopNotificationCallback(SRC_NOTE_ID);
-        testOutput.registerErrorNotificationCallback(ERR_NOTE_ID);
 
         assertTrue("PayloadOutputEngine in " + testOutput.getPresentState() +
                    ", not Idle after creation", testOutput.isStopped());
@@ -273,10 +263,6 @@ public class SpliceablePayloadInputEngineTest
 
         Thread.sleep(100);
         assertTrue("Failure on sendLastAndStop command.",
-                   sourceStopNotificationCalled);
-
-        Thread.sleep(100);
-        assertTrue("Failure on sendLastAndStop command.",
                    sinkStopNotificationCalled);
     }
 
@@ -285,8 +271,8 @@ public class SpliceablePayloadInputEngineTest
     {
         // buffer caching manager
         IByteBufferCache cacheMgr =
-            new ByteBufferCache(BUFFER_BLEN, BUFFER_BLEN*20,
-                                BUFFER_BLEN*40, "MultiOutputInput");
+            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
+                                BUFFER_LEN*40, "MultiOutputInput");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -308,7 +294,6 @@ public class SpliceablePayloadInputEngineTest
                    ", not Idle after creation", engine.isStopped());
 
         testOutput = new PayloadOutputEngine("MultiOutputInput", 0, "test");
-        testOutput.registerComponentObserver(this);
         testOutput.start();
 
         assertTrue("PayloadOutputEngine in " + testOutput.getPresentState() +
@@ -322,8 +307,6 @@ public class SpliceablePayloadInputEngineTest
 
         PayloadTransmitChannel transmitEng =
             testOutput.addDataChannel(sinkChannel, cacheMgr);
-        testOutput.registerStopNotificationCallback(SRC_NOTE_ID);
-        testOutput.registerErrorNotificationCallback(ERR_NOTE_ID);
 
         testOutput.startProcessing();
         assertTrue("PayloadOutputEngine in " + testOutput.getPresentState() +
@@ -377,10 +360,6 @@ public class SpliceablePayloadInputEngineTest
 
         Thread.sleep(100);
         assertTrue("Failure on sendLastAndStop command.",
-                   sourceStopNotificationCalled);
-
-        Thread.sleep(100);
-        assertTrue("Failure on sendLastAndStop command.",
                    sinkStopNotificationCalled);
     }
 
@@ -389,8 +368,8 @@ public class SpliceablePayloadInputEngineTest
     {
         // buffer caching manager
         IByteBufferCache cacheMgr =
-            new ByteBufferCache(BUFFER_BLEN, BUFFER_BLEN*20,
-                                BUFFER_BLEN*40, "StrandMax");
+            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
+                                BUFFER_LEN*40, "StrandMax");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -428,8 +407,8 @@ public class SpliceablePayloadInputEngineTest
             if (state == NormalState.STOPPED){
                 if (notificationID.equals(DAQCmdInterface.SINK)){
                     sinkStopNotificationCalled = true;
-                } else if (notificationID.equals(DAQCmdInterface.SOURCE)){
-                    sourceStopNotificationCalled = true;
+                } else {
+                    throw new Error("Unexpected notification update");
                 }
             }
         } else if (object instanceof ErrorState){
@@ -437,8 +416,8 @@ public class SpliceablePayloadInputEngineTest
             if (state == ErrorState.UNKNOWN_ERROR){
                 if (notificationID.equals(DAQCmdInterface.SINK)){
                     sinkErrorNotificationCalled = true;
-                } else if (notificationID.equals(DAQCmdInterface.SOURCE)){
-                    sourceErrorNotificationCalled = true;
+                } else {
+                    throw new Error("Unexpected notification update");
                 }
             }
         }
