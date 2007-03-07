@@ -16,39 +16,44 @@ import java.util.ArrayList;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-class PushInputChannel
-    extends InputChannel
-{
-    private PushPayloadReader reader;
-
-    PushInputChannel(InputChannelParent parent, SelectableChannel channel,
-                     IByteBufferCache bufMgr, int bufSize)
-        throws IOException
-    {
-        super(parent, channel, bufMgr, bufSize);
-
-        reader = (PushPayloadReader) parent;
-    }
-
-    void notifyOnStop()
-    {
-        reader.channelStopped(this);
-        super.notifyOnStop();
-    }
-
-    public void pushPayload(ByteBuffer payBuf)
-        throws IOException
-    {
-        reader.pushBuffer(payBuf);
-    }
-}
-
 public abstract class PushPayloadReader
     extends PayloadReader
 {
+    class PushInputChannel
+        extends InputChannel
+    {
+        private PushPayloadReader reader;
+
+        PushInputChannel(InputChannelParent parent, SelectableChannel channel,
+                         IByteBufferCache bufMgr, int bufSize)
+            throws IOException
+        {
+            super(parent, channel, bufMgr, bufSize);
+
+            reader = (PushPayloadReader) parent;
+        }
+
+        void notifyOnStop()
+        {
+            reader.channelStopped(this);
+            super.notifyOnStop();
+        }
+
+        public void pushPayload(ByteBuffer payBuf)
+            throws IOException
+        {
+            dequeuedMessages++;
+            reader.pushBuffer(payBuf);
+        }
+    }
+
     private static final Log LOG = LogFactory.getLog(PushPayloadReader.class);
 
     private ArrayList<InputChannel> chanList = new ArrayList<InputChannel>();
+
+    private long dequeuedMessages;
+    private long stopMessagesPropagated;
+    private long totStops;
 
     // default maximum size of strand queue
     public PushPayloadReader(String name)
@@ -61,6 +66,11 @@ public abstract class PushPayloadReader
                                       IByteBufferCache bufMgr, int bufSize)
         throws IOException
     {
+        if (chanList.size() == 0) {
+            dequeuedMessages = 0;
+            stopMessagesPropagated = 0;
+        }
+
         InputChannel chan =
             new PushInputChannel(this, channel, bufMgr, bufSize);
         chanList.add(chan);
@@ -72,7 +82,40 @@ public abstract class PushPayloadReader
         chanList.remove(chan);
         if (chanList.size() == 0) {
             sendStop();
+            stopMessagesPropagated++;
+            totStops++;
         }
+    }
+
+    /**
+     * Get the number of messages received during this run.
+     *
+     * @return number of messages received
+     */
+    public long getDequeuedMessages()
+    {
+        return dequeuedMessages;
+    }
+
+    /**
+     * Get the number of stop messages passed on to other objects
+     * during this run.
+     *
+     * @return total number of stop messages
+     */
+    public long getStopMessagesPropagated()
+    {
+        return stopMessagesPropagated;
+    }
+
+    /**
+     * Get the total number of stop messages received.
+     *
+     * @return total number of stop messages
+     */
+    public long getTotalStopsReceived()
+    {
+        return totStops;
     }
 
     public abstract void pushBuffer(ByteBuffer bb)
