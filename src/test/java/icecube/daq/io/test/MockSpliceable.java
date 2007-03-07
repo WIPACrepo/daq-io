@@ -18,18 +18,17 @@ public class MockSpliceable
         this.bBuf = bBuf;
     }
 
-    @Override
-    public int compareSpliceable(Spliceable spl)
+    public int compareTo(Object obj)
     {
-        if (spl == null) {
+        if (obj == null) {
             return -1;
         }
 
-        if (!(spl instanceof MockSpliceable)) {
-            return getClass().getName().compareTo(spl.getClass().getName());
+        if (!(obj instanceof MockSpliceable)) {
+            return getClass().getName().compareTo(obj.getClass().getName());
         }
 
-        return id - ((MockSpliceable) spl).id;
+        return id - ((MockSpliceable) obj).id;
     }
 
     public ByteBuffer getByteBuffer()

@@ -1,113 +1,209 @@
 package icecube.daq.io;
 
-import icecube.daq.io.test.LoggingCase;
-import icecube.daq.io.test.MockBufferCache;
+import icecube.daq.common.DAQCmdInterface;
+
+import icecube.daq.io.test.MockAppender;
+
+import icecube.daq.payload.ByteBufferCache;
 import icecube.daq.payload.IByteBufferCache;
-import icecube.daq.payload.IPayload;
 import icecube.daq.payload.IUTCTime;
-import icecube.daq.payload.PayloadFormatException;
+import icecube.daq.payload.PayloadDestination;
+
+import icecube.daq.payload.splicer.Payload;
+import icecube.daq.payload.splicer.PayloadFactory;
+
+import icecube.util.Poolable;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
+
 import java.nio.ByteBuffer;
-import java.nio.channels.WritableByteChannel;
+
+import java.util.zip.DataFormatException;
 
 import junit.framework.Test;
+import junit.framework.TestCase;
 import junit.framework.TestSuite;
+
 import junit.textui.TestRunner;
 
+import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.Level;
+
 class AdjustablePayload
-    implements IPayload
+    extends Payload
 {
     private int len;
-    private int value;
 
-    public AdjustablePayload(int len)
+    AdjustablePayload(int len)
     {
         this.len = len;
     }
 
-    @Override
+    public int compareTo(Object x0)
+    {
+        throw new Error("Unimplemented");
+    }
+
     public Object deepCopy()
     {
         throw new Error("Unimplemented");
     }
 
-    @Override
+    public void dispose()
+    {
+        throw new Error("Unimplemented");
+    }
+
     public ByteBuffer getPayloadBacking()
     {
         throw new Error("Unimplemented");
     }
 
-    @Override
+    public int getPayloadInterfaceType()
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public int getPayloadLength()
+    {
+        return len;
+    }
+
+    public int getPayloadOffset()
+    {
+        throw new Error("Unimplemented");
+    }
+
     public IUTCTime getPayloadTimeUTC()
     {
         throw new Error("Unimplemented");
     }
 
-    @Override
     public int getPayloadType()
     {
         throw new Error("Unimplemented");
     }
 
-    @Override
-    public long getUTCTime()
-    {
-        return 0L;
-    }
-
-    int getValue()
-    {
-        return value;
-    }
-
-    @Override
-    public int length()
-    {
-        return len;
-    }
-
-    @Override
-    public void loadPayload()
-        throws IOException, PayloadFormatException
+    public Poolable getPoolable()
     {
         throw new Error("Unimplemented");
     }
 
-    @Override
+    public boolean hasBeenDisposed()
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public void hasBeenDisposed(boolean b0)
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public boolean hasBeenRecycled()
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public void hasBeenRecycled(boolean b0)
+    {
+        throw new Error("Unimplemented");
+    }
+
+    public void initialize(int i0, ByteBuffer x1, PayloadFactory x2)
+        throws IOException, DataFormatException
+    {
+        throw new IOException("Unimplemented");
+    }
+
+    protected void loadEnvelope()
+        throws IOException, DataFormatException
+    {
+        throw new IOException("Unimplemented");
+    }
+
+    public void loadPayload()
+        throws IOException, DataFormatException
+    {
+        throw new IOException("Unimplemented");
+    }
+
+    public void loadSpliceablePayload()
+        throws IOException, DataFormatException
+    {
+        throw new IOException("Unimplemented");
+    }
+
+    public int readSpliceableLength(int i0, ByteBuffer x1)
+        throws IOException, DataFormatException
+    {
+        throw new IOException("Unimplemented");
+    }
+
     public void recycle()
     {
         throw new Error("Unimplemented");
     }
 
-    @Override
-    public void setCache(IByteBufferCache cache)
+    public void setPayloadBuffer(int i0, ByteBuffer x1)
+        throws IOException, DataFormatException
+    {
+        throw new IOException("Unimplemented");
+    }
+
+    public void setPayloadTimeUTC(IUTCTime x0)
     {
         throw new Error("Unimplemented");
     }
 
-    void setValue(int val)
+    public void shiftOffset(int i0)
     {
-        value = val;
+        throw new Error("Unimplemented");
     }
 
-    @Override
-    public int writePayload(boolean b0, int offset, ByteBuffer buf)
+    public int writePayload(PayloadDestination x0)
         throws IOException
     {
-        if (buf.capacity() - offset >= 4) {
-            buf.putInt(offset, value);
+        throw new IOException("Unimplemented");
+    }
+
+    public int writePayload(boolean b0, PayloadDestination x1)
+        throws IOException
+    {
+        throw new IOException("Unimplemented");
+    }
+
+    public int writePayload(boolean writeLoaded, int offset, ByteBuffer buf)
+        throws IOException
+    {
+        buf.position(offset);
+        buf.putInt(len);
+
+        for (int i = 4; i < len - 3; i += 4) {
+            buf.putInt(i / 4);
         }
+
+        byte val = 0;
+        while (buf.position() < offset + len) {
+            buf.put(val++);
+        }
+
+        buf.flip();
+
         return len;
+    }
+
+    public int writePayload(int i0, ByteBuffer x1)
+        throws IOException
+    {
+        throw new IOException("Unimplemented");
     }
 }
 
 public class FileDispatcherTest
-    extends LoggingCase
+    extends TestCase
 {
-    private File testDirectory;
+    private static Level logLevel = Level.INFO;
 
     /**
      * Constructs an instance of this test.
@@ -168,28 +264,6 @@ public class FileDispatcherTest
         return true;
     }
 
-    public static File createTempDirectory()
-        throws IOException
-    {
-        final File temp;
-
-        temp = File.createTempFile("fdtest", "dir");
-
-        if (!(temp.delete()))
-        {
-            throw new IOException("Could not delete temp file: " +
-                                  temp.getAbsolutePath());
-        }
-
-        if (!(temp.mkdir()))
-        {
-            throw new IOException("Could not create temp directory: " +
-                                  temp.getAbsolutePath());
-        }
-
-        return temp;
-    }
-
     private static boolean deleteDirectory(File dir)
     {
         if (!clearDirectory(dir)) {
@@ -199,31 +273,26 @@ public class FileDispatcherTest
         return dir.delete();
     }
 
-    @Override
     protected void setUp()
         throws Exception
     {
         super.setUp();
 
-        File tempFile = new File(FileDispatcher.TEMP_PREFIX + "physics");
+        BasicConfigurator.resetConfiguration();
+        BasicConfigurator.configure(new MockAppender(logLevel));
+
+        File tempFile = FileDispatcher.getTempFile(".", "physics");
         if (tempFile.exists()) {
             tempFile.delete();
         }
     }
 
-    @Override
     protected void tearDown()
         throws Exception
     {
-        File tempFile = new File(FileDispatcher.TEMP_PREFIX + "physics");
+        File tempFile = FileDispatcher.getTempFile(".", "physics");
         if (tempFile.exists()) {
             tempFile.delete();
-        }
-
-        if (testDirectory != null) {
-            if (!deleteDirectory(testDirectory)) {
-                System.err.println("Couldn't tear down test directory");
-            }
         }
 
         super.tearDown();
@@ -250,11 +319,29 @@ public class FileDispatcherTest
         }
     }
 
+    public void testBadBase()
+    {
+        FileDispatcher fd;
+        try {
+            fd = new FileDispatcher("foo");
+            fail("Should not succeed for bogus base file name");
+        } catch (IllegalArgumentException iae) {
+            // expect this to fail
+        }
+    }
+
     public void testNullDest()
     {
+        try {
+            new FileDispatcher(null, "physics");
+            fail("Should not be able to specify null destination directory");
+        } catch (IllegalArgumentException iae) {
+            // expect this to fail
+        }
+
         FileDispatcher fd = new FileDispatcher(".", "physics");
         assertEquals("Unexpected destination directory",
-                     ".", fd.getDispatchDestStorage().getPath());
+                     ".", fd.getDispatchDestinationDirectory());
 
         try {
             fd.setDispatchDestStorage(null);
@@ -270,45 +357,13 @@ public class FileDispatcherTest
 
         FileDispatcher fd = new FileDispatcher(badDir, "physics");
         assertEquals("Unexpected destination directory",
-                     ".", fd.getDispatchDestStorage().getPath());
-
-        assertLogMessage(badDir + " does not exist or is not writable!" +
-                         "  Using current directory.");
-        assertNoLogMessages();
+                     ".", fd.getDispatchDestinationDirectory());
 
         try {
             fd.setDispatchDestStorage(badDir);
             fail("Should not be able to set bogus destination directory");
         } catch (IllegalArgumentException iae) {
             // expect failure
-        }
-    }
-
-    public void testBadBase()
-    {
-        try {
-            testDirectory = createTempDirectory();
-        } catch (IOException ioe) {
-            fail("Cannot create temporary directory");
-        }
-
-        final String baseName = "foo";
-
-        FileDispatcher fd = new FileDispatcher(baseName);
-        assertNoLogMessages();
-
-        try {
-            fd.dataBoundary(FileDispatcher.START_PREFIX + "12345");
-        } catch (DispatchException de) {
-            fail("Unexpected exception: " + de);
-        }
-        assertLogMessage("Dispatching to unusual base name " + baseName);
-
-        final File destDir = new File(FileDispatcher.DISPATCH_DEST_STORAGE);
-        if (!destDir.isDirectory() || !destDir.canWrite()) {
-            assertLogMessage(FileDispatcher.DISPATCH_DEST_STORAGE +
-                             " does not exist or is not writable!" +
-                             "  Using current directory.");
         }
     }
 
@@ -327,15 +382,15 @@ public class FileDispatcherTest
         try {
             FileDispatcher fd = new FileDispatcher(goodDir, "physics");
             assertEquals("Unexpected destination directory",
-                         goodDir, fd.getDispatchDestStorage().getPath());
+                         goodDir, fd.getDispatchDestinationDirectory());
 
             FileDispatcher fd2 = new FileDispatcher(".", "physics");
             assertEquals("Unexpected destination directory",
-                         ".", fd2.getDispatchDestStorage().getPath());
+                         ".", fd2.getDispatchDestinationDirectory());
 
             fd2.setDispatchDestStorage(goodDir);
             assertEquals("Unexpected destination directory",
-                         goodDir, fd2.getDispatchDestStorage().getPath());
+                         goodDir, fd2.getDispatchDestinationDirectory());
         } finally {
             if (!preexist) {
                 deleteDirectory(subdirFile);
@@ -346,18 +401,10 @@ public class FileDispatcherTest
     public void testDispatchEvent()
         throws DispatchException
     {
-        try {
-            testDirectory = createTempDirectory();
-        } catch (IOException ioe) {
-            fail("Cannot create temporary directory");
-        }
+        IByteBufferCache bufCache =
+            new ByteBufferCache(1000, 20000, 40000, "testDispatchEvent");
 
-        IByteBufferCache bufCache = new MockBufferCache("DispEvt");
-
-        FileDispatcher fd = new FileDispatcher(testDirectory.getAbsolutePath(),
-                                               "physics", bufCache);
-        assertNoLogMessages();
-
+        FileDispatcher fd = new FileDispatcher("physics", bufCache);
         assertNotNull("ByteBuffer was null", fd.getByteBufferCache());
 
         assertEquals("Total dispatched events is not zero",
@@ -385,19 +432,60 @@ public class FileDispatcherTest
     public void testReadOnlyDir()
         throws DispatchException
     {
-        try {
-            testDirectory = createTempDirectory();
-        } catch (IOException ioe) {
-            fail("Cannot create temporary directory");
-        }
-        testDirectory.setReadOnly();
+        final String destDirName = "readOnlyDir";
 
-        FileDispatcher fd =
-            new FileDispatcher(testDirectory.getAbsolutePath(), "physics");
-        assertEquals("Unexpected destination directory",
-                     ".", fd.getDispatchDestStorage().getPath());
-        assertLogMessage(testDirectory + " does not exist or is not" +
-                         " writable!  Using current directory.");
+        File destDir = new File(destDirName);
+
+        final boolean preexist = destDir.isDirectory();
+
+        if (preexist) {
+            fail("Read-only subdirectory exists");
+        }
+
+        destDir.mkdir();
+        destDir.setReadOnly();
+
+        try {
+            FileDispatcher fd =
+                new FileDispatcher(destDirName, "physics");
+            assertEquals("Unexpected destination directory",
+                         ".", fd.getDispatchDestinationDirectory());
+        } finally {
+            deleteDirectory(destDir);
+        }
+    }
+
+    public void testUnimplemented()
+        throws DispatchException
+    {
+        FileDispatcher fd = new FileDispatcher("physics");
+
+        ByteBuffer bb = ByteBuffer.allocate(12);
+        int[] indices = new int[] { 0, 4, 8 };
+
+        final String unimplemented = "Unimplemented";
+
+        try {
+            fd.dispatchEvents(bb, indices);
+            fail("Expected dispatchEvents(ByteBuffer, int[])" +
+                 " to be unimplemented!");
+        } catch (UnsupportedOperationException uoe) {
+            if (!unimplemented.equals(uoe.getMessage())) {
+                fail("Expected dispatchEvents(ByteBuffer, int[])" +
+                     " to be unimplemented!");
+            }
+        }
+
+        try {
+            fd.dispatchEvents(bb, indices, 123);
+            fail("Expected dispatchEvents(ByteBuffer, int[])" +
+                 " to be unimplemented!");
+        } catch (UnsupportedOperationException uoe) {
+            if (!unimplemented.equals(uoe.getMessage())) {
+                fail("Expected dispatchEvents(ByteBuffer, int[])" +
+                     " to be unimplemented!");
+            }
+        }
     }
 
     public void testMaxFileSize()
@@ -411,7 +499,6 @@ public class FileDispatcherTest
         } catch (IllegalArgumentException iae) {
             // expect this to fail
         }
-        assertNoLogMessages();
 
         try {
             fd.setMaxFileSize(0);
@@ -419,7 +506,6 @@ public class FileDispatcherTest
         } catch (IllegalArgumentException iae) {
             // expect this to fail
         }
-        assertNoLogMessages();
 
         fd.setMaxFileSize(100);
     }
@@ -439,17 +525,7 @@ public class FileDispatcherTest
     public void testDataBoundary()
         throws DispatchException
     {
-        try {
-            testDirectory = createTempDirectory();
-        } catch (IOException ioe) {
-            fail("Cannot create temporary directory");
-        }
-
-        IByteBufferCache bufCache = new MockBufferCache("DispEvt");
-
-        FileDispatcher fd = new FileDispatcher(testDirectory.getAbsolutePath(),
-                                               "physics", bufCache);
-        assertNoLogMessages();
+        FileDispatcher fd = new FileDispatcher("physics");
 
         try {
             fd.dataBoundary(null);
@@ -466,7 +542,7 @@ public class FileDispatcherTest
         }
 
         try {
-            fd.dataBoundary(Dispatcher.STOP_PREFIX);
+            fd.dataBoundary(DAQCmdInterface.DAQ_ONLINE_RUNSTOP_FLAG);
             fail("Should not be able to stop unstarted run");
         } catch (DispatchException de) {
             // expect this to fail
@@ -474,41 +550,17 @@ public class FileDispatcherTest
 
         assertEquals("Bad initial run number", 0, fd.getRunNumber());
 
-        try {
-            fd.dataBoundary(Dispatcher.START_PREFIX + "ABC");
-        } catch (DispatchException de) {
-            // expect this to fail
-        }
+        fd.dataBoundary(DAQCmdInterface.DAQ_ONLINE_RUNSTART_FLAG + "123");
+        assertEquals("Incorrect run number", 123, fd.getRunNumber());
 
-        final int firstNum = 123;
-        fd.dataBoundary(Dispatcher.START_PREFIX + firstNum);
-        assertEquals("Incorrect run number", firstNum, fd.getRunNumber());
+        fd.dataBoundary(DAQCmdInterface.DAQ_ONLINE_RUNSTART_FLAG + "456");
+        assertEquals("Incorrect run number", 456, fd.getRunNumber());
 
-        final int runNum = 456;
-        fd.dataBoundary(Dispatcher.START_PREFIX + runNum);
-        assertEquals("Incorrect run number", runNum, fd.getRunNumber());
-
-        assertLogMessage("Run " + runNum +
-                         " started without stopping run " + firstNum);
-
-        fd.dispatchEvent(new AdjustablePayload(8));
-
-        fd.dataBoundary(Dispatcher.CLOSE_PREFIX);
-
-        fd.dispatchEvent(new AdjustablePayload(8));
-
-        fd.dataBoundary(Dispatcher.SUBRUN_START_PREFIX);
-
-        fd.dispatchEvent(new AdjustablePayload(8));
-
-        fd.dataBoundary(Dispatcher.SWITCH_PREFIX + "789");
-
-        fd.dispatchEvent(new AdjustablePayload(8));
-
-        fd.dataBoundary(Dispatcher.STOP_PREFIX);
+        fd.dataBoundary(DAQCmdInterface.DAQ_ONLINE_RUNSTOP_FLAG);
+        fd.dataBoundary(DAQCmdInterface.DAQ_ONLINE_RUNSTOP_FLAG);
 
         try {
-            fd.dataBoundary(Dispatcher.STOP_PREFIX);
+            fd.dataBoundary(DAQCmdInterface.DAQ_ONLINE_RUNSTOP_FLAG);
             fail("Shouldn't be able to stop more times than we started");
         } catch (DispatchException de) {
             // expect this to fail
@@ -518,70 +570,76 @@ public class FileDispatcherTest
     public void testFull()
         throws DispatchException
     {
-        try {
-            testDirectory = createTempDirectory();
-        } catch (IOException ioe) {
-            fail("Cannot create temporary directory");
+        final String destDirName = "renameDir";
+
+        File destDir = new File(destDirName);
+
+        final boolean preexist = destDir.isDirectory();
+
+        if (!preexist) {
+            destDir.mkdir();
         }
 
-        IByteBufferCache bufCache = new MockBufferCache("Full");
+        try {
+            IByteBufferCache bufCache =
+                new ByteBufferCache(1000, 20000, 40000, "testFull");
 
-        FileDispatcher fd = new FileDispatcher(testDirectory.getAbsolutePath(),
-                                               "physics", bufCache);
-        assertNotNull("ByteBuffer was null", fd.getByteBufferCache());
+            FileDispatcher fd =
+                new FileDispatcher(destDirName, "physics", bufCache);
+            assertNotNull("ByteBuffer was null", fd.getByteBufferCache());
 
-        final int maxFileSize = 100;
-        fd.setMaxFileSize(maxFileSize);
+            final int maxFileSize = 100;
+            fd.setMaxFileSize(maxFileSize);
 
-        File tempFile = fd.getTempFile(testDirectory, "physics");
+            File tempFile = fd.getTempFile(destDirName, "physics");
 
-        for (int i = 10; i < 15; i++) {
-            fd.dataBoundary(Dispatcher.START_PREFIX + i);
-            assertEquals("Incorrect run number", i, fd.getRunNumber());
+            for (int i = 10; i < 15; i++) {
+                fd.dataBoundary(DAQCmdInterface.DAQ_ONLINE_RUNSTART_FLAG + i);
+                assertEquals("Incorrect run number", i, fd.getRunNumber());
 
-            IPayload payload = new AdjustablePayload(i);
+                Payload payload = new AdjustablePayload(i);
 
-            assertEquals("Number of dispatched events is not zero",
-                         0, fd.getNumDispatchedEvents());
-            assertEquals("Unexpected total number of dispatched events",
-                         (i - 10) * 20, fd.getTotalDispatchedEvents());
+                assertEquals("Total dispatched events is not zero",
+                             0, fd.getTotalDispatchedEvents());
 
-            assertFalse("Temp file should not exist", tempFile.exists());
+                assertFalse("Temp file should not exist", tempFile.exists());
 
-            int dataFiles = 0;
-            int fileLen = 0;
-            for (int j = 0; j < 20; j++) {
-                fd.dispatchEvent(payload);
-                fileLen += i;
+                int dataFiles = 0;
+                int fileLen = 0;
+                for (int j = 0; j < 20; j++) {
+                    fd.dispatchEvent(payload);
+                    fileLen += i;
 
-                assertEquals("Number of dispatched events was not incremented",
-                             j + 1, fd.getNumDispatchedEvents());
-                assertEquals("Number of dispatched events was not incremented",
-                             (i - 10) * 20 + j + 1,
-                             fd.getTotalDispatchedEvents());
+                    assertEquals("Total dispatched events was not incremented",
+                                 j + 1, fd.getTotalDispatchedEvents());
 
-                if (fileLen <= maxFileSize) {
-                    assertTrue("Temp file should exist",
-                               tempFile.exists());
-                } else {
-                    dataFiles++;
-                    fileLen = 0;
-                    assertFalse("Temp file should not exist",
-                                tempFile.exists());
+                    if (fileLen <= maxFileSize) {
+                        assertTrue("Temp file should exist",
+                                   tempFile.exists());
+                    } else {
+                        dataFiles++;
+                        fileLen = 0;
+                        assertFalse("Temp file should not exist",
+                                    tempFile.exists());
+                    }
                 }
+
+                final boolean expTempFile = (fileLen > 0);
+
+                checkDataDir(destDir, dataFiles, tempFile, expTempFile);
+
+                fd.dataBoundary(DAQCmdInterface.DAQ_ONLINE_RUNSTOP_FLAG);
+
+                if (expTempFile) {
+                    checkDataDir(destDir, dataFiles + 1, tempFile, false);
+                }
+
+                clearDirectory(destDir);
             }
-
-            final boolean expTempFile = (fileLen > 0);
-
-            checkDataDir(testDirectory, dataFiles, tempFile, expTempFile);
-
-            fd.dataBoundary(Dispatcher.STOP_PREFIX);
-
-            if (expTempFile) {
-                checkDataDir(testDirectory, dataFiles + 1, tempFile, false);
+        } finally {
+            if (!preexist) {
+                deleteDirectory(destDir);
             }
-
-            clearDirectory(testDirectory);
         }
     }
 

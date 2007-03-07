@@ -1,7 +1,7 @@
 /*
  * class: DAQComponentOutputProcess
  *
- * Version $Id: DAQComponentOutputProcess.java 17130 2018-10-05 17:06:53Z dglo $
+ * Version $Id: DAQComponentOutputProcess.java,v 1.3 2005/04/06 01:37:42 mcp Exp $
  *
  * Date: March 24 2005
  *
@@ -11,55 +11,30 @@
 package icecube.daq.io;
 
 import icecube.daq.payload.IByteBufferCache;
+import icecube.daq.common.DAQComponentObserver;
 
 import java.io.IOException;
+
 import java.nio.channels.WritableByteChannel;
 
 /**
  * This represents the engine for the transmit channels.
  *
- * @version $Id: DAQComponentOutputProcess.java 17130 2018-10-05 17:06:53Z dglo $
+ * @version $Id: DAQComponentOutputProcess.java,v 1.3 2005/04/06 01:37:42 mcp Exp $
  * @author mcp
  */
-public interface DAQComponentOutputProcess
-    extends DAQComponentIOProcess, DAQOutputChannelManager
-{
+public interface DAQComponentOutputProcess extends DAQComponentIOProcess {
 
-    /**
-     * Enumerate available channel options.
-     */
-    public enum ChannelRequirements
-    {
-        BLOCKING,
-        NON_BLOCKING
-    }
+    public PayloadTransmitChannel addDataChannel(WritableByteChannel channel, IByteBufferCache bufMgr);
 
-    /**
-     * Advertises the required configuration of the channel
-     * provided to the connect() and addDataChannel() methods.
-     * By default, a non-blocking channel will be requested.
-     */
-    default public ChannelRequirements getChannelRequirement()
-    {
-        return ChannelRequirements.NON_BLOCKING;
-    }
-
-    QueuedOutputChannel addDataChannel(WritableByteChannel channel,
-                                       IByteBufferCache bufMgr, String name);
-
-    QueuedOutputChannel connect(IByteBufferCache bufMgr,
-                                WritableByteChannel chan, int srcId)
+    public PayloadTransmitChannel connect(IByteBufferCache bufMgr, WritableByteChannel chan, int srcId)
         throws IOException;
 
-    void disconnect()
+    public void disconnect()
         throws IOException;
 
-    long getRecordsSent();
+    public boolean isConnected();
 
-    long getTotalRecordsSent();
-
-    boolean isConnected();
-
-    void sendLastAndStop();
-
+    public void sendLastAndStop();
+    
 }

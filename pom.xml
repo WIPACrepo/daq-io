@@ -1,4 +1,7 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project
+    xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
   <parent>
     <artifactId>pDAQ</artifactId>
@@ -9,29 +12,28 @@
   <modelVersion>4.0.0</modelVersion>
   <artifactId>daq-io</artifactId>
   <packaging>jar</packaging>
-  <name>DAQ readers and writers</name>
-  <description>The I/O sub-system of the Surface Data Acquisition system for the IceCube Project.</description>
+  <name>daq-io</name>
 
   <scm>
-    <connection>scm:svn:http://code.icecube.wisc.edu/daq/projects/${project.name}/trunk</connection>
-    <developerConnection>scm:svn:http://code.icecube.wisc.edu/daq/projects/${project.name}/trunk</developerConnection>
-    <tag>HEAD</tag>
-    <url>http://code.icecube.wisc.edu/daq/projects/${project.name}</url>
+    <connection>scm:svn:http://code.icecube.wisc.edu/daq/meta-projects/daq-io/trunk</connection>
   </scm>
 
-  <!-- Dependencies for this project.  These should not contain
-  versions.  The versions needed should be specified in the top-level
-  pom's dependencyManagement -->
   <dependencies>
-    <dependency>
-      <groupId>edu.wisc.icecube</groupId>
-      <artifactId>daq-common</artifactId>
-    </dependency>
-
     <dependency>
       <groupId>edu.wisc.icecube</groupId>
       <artifactId>payload</artifactId>
     </dependency>
+
+    <dependency>
+      <groupId>oswego-concurrent</groupId>
+      <artifactId>concurrent</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>colt</groupId>
+      <artifactId>colt</artifactId>
+    </dependency>
+
   </dependencies>
 
 </project>
