@@ -48,7 +48,6 @@ public abstract class InputChannel
 
     // select statistics
     private int numSelects;
-    private int numSelectErrors;
     private int minSelectBytes = Integer.MAX_VALUE;
     private int maxSelectBytes = Integer.MIN_VALUE;
     private long totSelectBytes;
@@ -94,7 +93,7 @@ public abstract class InputChannel
         }
 
         if (inputBuf.limit() != inputBuf.capacity()) {
-System.err.println("******** Reset limit to capcity");
+            LOG.error("******** Reset limit to capacity");
             inputBuf.limit(inputBuf.capacity());
         }
     }
@@ -184,11 +183,6 @@ if(DEBUG_FILL)System.err.println("FillEnd "+inputBuf+" bufPos "+bufPos+" payBuf 
         return maxSelectBytes;
     }
 
-    int getNumberOfSelectErrors()
-    {
-        return numSelectErrors;
-    }
-
     int getNumberOfSelects()
     {
         return numSelects;
@@ -243,9 +237,7 @@ final boolean DEBUG_SELECT = false;
 if(DEBUG_SELECT)System.err.println("SelTop "+inputBuf);
         int numBytes = ((ReadableByteChannel) channel).read(inputBuf);
         if (numBytes < 0) {
-            LOG.error("Yikes, got end-of-stream while reading channel");
-            numSelectErrors++;
-            return;
+            throw new ClosedChannelException();
         }
 
         // gather statistics

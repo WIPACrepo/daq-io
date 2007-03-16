@@ -299,14 +299,6 @@ if(DEBUG_NEW)System.err.println("ANend");
         return (Long[]) list.toArray(new Long[0]);
     }
 
-    public synchronized int[] getNumberOfSelectErrors() {
-        int[] array = new int[chanList.size()];
-        for (int i = 0; i < array.length; i++) {
-            array[i] = chanList.get(i).getNumberOfSelectErrors();
-        }
-        return array;
-    }
-
     public synchronized int[] getNumberOfSelects() {
         int[] array = new int[chanList.size()];
         for (int i = 0; i < array.length; i++) {
@@ -550,6 +542,13 @@ if(DEBUG_RUN)System.err.println("Rcancel "+state);
                         try {
 if(DEBUG_RUN)System.err.println("Rproc chanData "+chanData);
                             chanData.processSelect(selKey);
+                        } catch (ClosedChannelException cce) {
+                            // channel went away
+                            selKey.cancel();
+                            chanList.remove(chanData);
+                            LOG.error("Closed " + name +
+                                      " socket channel, " + chanList.size() +
+                                      " channels remain");
                         } catch (IOException ioe) {
                             LOG.error("Could not process select", ioe);
                         }
