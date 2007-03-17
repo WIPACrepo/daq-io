@@ -58,11 +58,11 @@ public abstract class PayloadReader
         }
     }
 
+    /** default input buffer size */
+    static final int DEFAULT_BUFFER_SIZE = 2048;
+
     /** logging object */
     private static final Log LOG = LogFactory.getLog(PayloadReader.class);
-
-    /** default input buffer size */
-    private static final int DEFAULT_BUFFER_SIZE = 2048;
 
     /** selector timeout (in msec.) */
     private static final int SELECTOR_TIMEOUT = 1000;
@@ -74,6 +74,9 @@ public abstract class PayloadReader
 
     /** reader name */
     private String name;
+    /** input buffer size */
+    private int bufferSize;
+
     /** worker thread */
     private Thread thread;
     /** input socket selector */
@@ -110,7 +113,13 @@ public abstract class PayloadReader
 
     public PayloadReader(String name)
     {
+        this(name, DEFAULT_BUFFER_SIZE);
+    }
+
+    public PayloadReader(String name, int bufferSize)
+    {
         this.name = name;
+        this.bufferSize = bufferSize;
 
         state = RunState.CREATED;
         newState = state;
@@ -120,7 +129,7 @@ public abstract class PayloadReader
                                        IByteBufferCache bufMgr)
         throws IOException
     {
-        return addDataChannel(channel, bufMgr, DEFAULT_BUFFER_SIZE);
+        return addDataChannel(channel, bufMgr, bufferSize);
     }
 
     public InputChannel addDataChannel(SelectableChannel channel,
@@ -193,7 +202,7 @@ if(DEBUG_NEW)System.err.println("ANend");
     {
         // disable blocking or receive engine will die
         chan.configureBlocking(false);
-        return addDataChannel(chan, bufCache, DEFAULT_BUFFER_SIZE);
+        return addDataChannel(chan, bufCache, bufferSize);
     }
 
     public void channelStopped()

@@ -30,8 +30,14 @@ public class SpliceablePayloadReader
                                    SpliceableFactory factory)
         throws IOException
     {
+        this(name, DEFAULT_BUFFER_SIZE, splicer, factory);
+    }
 
-        super(name);
+    public SpliceablePayloadReader(String name, int bufferSize,
+                                   Splicer splicer, SpliceableFactory factory)
+        throws IOException
+    {
+        super(name, bufferSize);
 
         if (splicer == null) {
             throw new IllegalArgumentException("Splicer cannot be null");
