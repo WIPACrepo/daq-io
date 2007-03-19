@@ -28,7 +28,7 @@ public abstract class InputChannel
 
     private static final long DEFAULT_PERCENT_STOP_ALLOCATION = 70;
     private static final long DEFAULT_PERCENT_RESTART_ALLOCATION = 50;
-    private static final long DEFAULT_MAX_BYTES_ALLOCATION_LIMIT = 20000000;
+    private static final long DEFAULT_MAX_BYTES_ALLOCATION_LIMIT = 200000000;
 
     private InputChannelParent parent;
     private SelectableChannel channel;
