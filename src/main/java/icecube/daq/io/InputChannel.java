@@ -13,6 +13,8 @@ import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 
+import javax.swing.text.html.HTMLDocument.HTMLReader.IsindexAction;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -150,12 +152,18 @@ if(DEBUG_FILL)System.err.println("FillEnd "+inputBuf+" bufPos "+bufPos+" payBuf 
 
     long getBufferCurrentAcquiredBuffers()
     {
-        return ((ByteBufferCache) bufMgr).getCurrentAquiredBuffers();
+        if (bufMgr instanceof ByteBufferCache)
+            return ((ByteBufferCache) bufMgr).getCurrentAquiredBuffers();
+        else
+            return 0L;
     }
 
     long getBufferCurrentAcquiredBytes()
     {
-        return ((ByteBufferCache) bufMgr).getCurrentAquiredBytes();
+        if (bufMgr instanceof ByteBufferCache)
+            return ((ByteBufferCache) bufMgr).getCurrentAquiredBytes();
+        else
+            return 0L;
     }
 
     long getBytesReceived()
@@ -368,7 +376,7 @@ if(DEBUG_SELECT)LOG.error("  Flip "+payBuf);
     private void setAllocationLimits()
     {
         allocationStopped = false;
-        if (((ByteBufferCache) bufMgr).getIsCacheBounded()) {
+        if (bufMgr instanceof ByteBufferCache && ((ByteBufferCache) bufMgr).getIsCacheBounded()) {
             long maxAllocation =
                     ((ByteBufferCache) bufMgr).getMaxAquiredBytes();
             limitToStopAllocation = (maxAllocation *
