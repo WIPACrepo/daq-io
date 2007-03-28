@@ -6,14 +6,9 @@ import icecube.daq.common.ErrorState;
 import icecube.daq.common.NormalState;
 
 import icecube.daq.io.test.MockAppender;
-import icecube.daq.io.test.MockSpliceableFactory;
-import icecube.daq.io.test.MockSplicer;
-import icecube.daq.io.test.MockStrandTail;
 
 import icecube.daq.payload.ByteBufferCache;
 import icecube.daq.payload.IByteBufferCache;
-
-import icecube.daq.splicer.Splicer;
 
 import java.io.IOException;
 
@@ -39,7 +34,40 @@ import junit.textui.TestRunner;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 
-public class SpliceablePayloadReaderTest
+class MockPushReader
+    extends PushPayloadReader
+{
+    private IByteBufferCache bufMgr;
+    private int recvCnt;
+    private boolean gotStop;
+
+    MockPushReader(String name, IByteBufferCache bufMgr)
+        throws IOException
+    {
+        super(name);
+
+        this.bufMgr = bufMgr;
+    }
+
+    int getReceiveCount()
+    {
+        return recvCnt;
+    }
+
+    public void pushBuffer(ByteBuffer bb)
+        throws IOException
+    {
+        bufMgr.returnBuffer(bb);
+        recvCnt++;
+    }
+
+    public void sendStop()
+    {
+        gotStop = true;
+    }
+}
+
+public class PushPayloadReaderTest
     extends TestCase
     implements DAQComponentObserver
 {
@@ -53,28 +81,16 @@ public class SpliceablePayloadReaderTest
     private boolean sinkStopNotificationCalled;
     private boolean sinkErrorNotificationCalled;
 
-    private SpliceablePayloadReader tstRdr;
+    private MockPushReader tstRdr;
 
     /**
      * Construct an instance of this test.
      *
      * @param name the name of the test.
      */
-    public SpliceablePayloadReaderTest(String name)
+    public PushPayloadReaderTest(String name)
     {
         super(name);
-    }
-
-    private static final int harvestStrands(MockSplicer splicer,
-                                            IByteBufferCache bufMgr)
-    {
-        int numReturned = 0;
-        for (Iterator tIter = splicer.iterator(); tIter.hasNext(); ) {
-            numReturned +=
-                ((MockStrandTail) tIter.next()).returnBuffers(bufMgr);
-        }
-
-        return numReturned;
     }
 
     private static final void sendStopMsg(WritableByteChannel sinkChannel)
@@ -111,7 +127,7 @@ public class SpliceablePayloadReaderTest
      */
     public static Test suite()
     {
-        return new TestSuite(SpliceablePayloadReaderTest.class);
+        return new TestSuite(PushPayloadReaderTest.class);
     }
 
     protected void tearDown()
@@ -130,10 +146,11 @@ public class SpliceablePayloadReaderTest
     public void testStartStop()
         throws Exception
     {
-        MockSplicer splicer = new MockSplicer();
-        MockSpliceableFactory factory = new MockSpliceableFactory();
+        IByteBufferCache bufMgr =
+            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
+                                BUFFER_LEN*40, "OutputInput");
 
-        tstRdr = new SpliceablePayloadReader("StartStop", splicer, factory);
+        tstRdr = new MockPushReader("StartStop", bufMgr);
 
         tstRdr.start();
         waitUntilStopped(tstRdr);
@@ -174,6 +191,32 @@ public class SpliceablePayloadReaderTest
         }
     }
 
+    public void testStartDispose()
+        throws Exception
+    {
+        IByteBufferCache bufMgr =
+            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
+                                BUFFER_LEN*40, "OutputInput");
+
+        tstRdr = new MockPushReader("StartDisp", bufMgr);
+
+        tstRdr.start();
+        waitUntilStopped(tstRdr);
+        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
+                   ", not Idle after creation", tstRdr.isStopped());
+
+        tstRdr.startProcessing();
+        waitUntilRunning(tstRdr);
+        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
+                   ", not Running after StartSig", tstRdr.isRunning());
+
+        tstRdr.startDisposing();
+        waitUntilRunning(tstRdr);
+        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
+                   ", not Running after StartDisposing",
+                   tstRdr.isRunning());
+    }
+
     public void testOutputInput()
         throws Exception
     {
@@ -190,10 +233,7 @@ public class SpliceablePayloadReaderTest
         Pipe.SourceChannel sourceChannel = testPipe.source();
         sourceChannel.configureBlocking(false);
 
-        MockSplicer splicer = new MockSplicer();
-        MockSpliceableFactory factory = new MockSpliceableFactory();
-
-        tstRdr = new SpliceablePayloadReader("OutputInput", splicer, factory);
+        tstRdr = new MockPushReader("OutIn", bufMgr);
         tstRdr.registerComponentObserver(this);
 
         tstRdr.start();
@@ -217,7 +257,7 @@ public class SpliceablePayloadReaderTest
 
         int xmitCnt = 0;
         int loopCnt = 0;
-        while (tstRdr.getTotalStrandDepth() < INPUT_OUTPUT_LOOP_CNT) {
+        while (tstRdr.getReceiveCount() < INPUT_OUTPUT_LOOP_CNT) {
             if (xmitCnt < INPUT_OUTPUT_LOOP_CNT) {
                 final int acquireLen = bufLen;
                 testBuf = bufMgr.acquireBuffer(acquireLen);
@@ -241,7 +281,7 @@ public class SpliceablePayloadReaderTest
 
             loopCnt++;
             if (loopCnt > INPUT_OUTPUT_LOOP_CNT * 2) {
-                fail("Received " + tstRdr.getTotalStrandDepth() +
+                fail("Received " + tstRdr.getReceiveCount() +
                      " payloads after " + xmitCnt +
                      " buffers were transmitted");
             }
@@ -270,10 +310,7 @@ public class SpliceablePayloadReaderTest
         Pipe.SourceChannel sourceChannel = testPipe.source();
         sourceChannel.configureBlocking(false);
 
-        MockSplicer splicer = new MockSplicer();
-        MockSpliceableFactory factory = new MockSpliceableFactory();
-
-        tstRdr = new SpliceablePayloadReader("OutputInput", splicer, factory);
+        tstRdr = new MockPushReader("MultiOutIn", bufMgr);
         tstRdr.registerComponentObserver(this);
 
         tstRdr.start();
@@ -297,13 +334,13 @@ public class SpliceablePayloadReaderTest
         final int groupSize = 3;
 
         final int numToSend = INPUT_OUTPUT_LOOP_CNT * groupSize;
+
         int id = 1;
         int recvId = 0;
 
         int xmitCnt = 0;
-        int recvCnt = 0;
         int loopCnt = 0;
-        while (recvCnt < numToSend) {
+        while (tstRdr.getReceiveCount() < numToSend) {
             if (xmitCnt < numToSend) {
                 final int acquireLen = bufLen * groupSize;
                 testBuf = bufMgr.acquireBuffer(acquireLen);
@@ -329,15 +366,10 @@ public class SpliceablePayloadReaderTest
                 }
             }
 
-            int numBufs = harvestStrands(splicer, bufMgr);
-            if (numBufs > 0) {
-                recvId += numBufs;
-                recvCnt += numBufs;
-            }
-
             loopCnt++;
-            if (loopCnt > numToSend * 2) {
-                fail("Received " + recvCnt + " payloads after " + xmitCnt +
+            if (loopCnt == numToSend * 2) {
+                fail("Received " + tstRdr.getReceiveCount() +
+                     " payloads after " + xmitCnt +
                      " buffers were transmitted");
             }
         }

@@ -38,9 +38,6 @@ import junit.framework.TestCase;
 import junit.framework.TestSuite;
 import junit.textui.TestRunner;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 
@@ -54,10 +51,7 @@ public class PayloadInputEngineTest
     extends TestCase
     implements DAQComponentObserver
 {
-    private Log LOG = LogFactory.getLog(PayloadInputEngineTest.class);
-
     private static final int INPUT_OUTPUT_LOOP_CNT = 5;
-    private static final int NUM_BUFFERS = 100;
     private static final int BUFFER_BLEN = 5000;
 
     private static final String SRC_NOTE_ID = "SourceID";
@@ -69,8 +63,6 @@ public class PayloadInputEngineTest
     private boolean sinkErrorNotificationCalled;
     private boolean sourceStopNotificationCalled;
     private boolean sourceErrorNotificationCalled;
-
-    private Object lock = new Object();
 
     /**
      * The object being tested.
@@ -664,7 +656,7 @@ public class PayloadInputEngineTest
         Pipe.SourceChannel sourceChannel = testPipe.source();
         sourceChannel.configureBlocking(false);
 
-        engine = new PayloadInputEngine("MultiOutputInput", 0, "test");
+        engine = new PayloadInputEngine("MultiOutIn", 0, "test");
         engine.registerComponentObserver(this);
         engine.start();
 
@@ -735,8 +727,8 @@ public class PayloadInputEngineTest
                 }
             }
 
-            if (xmitCnt == recvCnt + INPUT_OUTPUT_LOOP_CNT) {
-                fail("Nothing received after all buffers were transmitted");
+            if (xmitCnt * groupSize  != recvCnt) {
+                Thread.sleep(100);
             }
         }
 

@@ -58,11 +58,11 @@ public abstract class PayloadReader
         }
     }
 
+    /** default input buffer size */
+    static final int DEFAULT_BUFFER_SIZE = 2048;
+
     /** logging object */
     private static final Log LOG = LogFactory.getLog(PayloadReader.class);
-
-    /** default input buffer size */
-    private static final int DEFAULT_BUFFER_SIZE = 2048;
 
     /** selector timeout (in msec.) */
     private static final int SELECTOR_TIMEOUT = 1000;
@@ -74,6 +74,9 @@ public abstract class PayloadReader
 
     /** reader name */
     private String name;
+    /** input buffer size */
+    private int bufferSize;
+
     /** worker thread */
     private Thread thread;
     /** input socket selector */
@@ -110,7 +113,13 @@ public abstract class PayloadReader
 
     public PayloadReader(String name)
     {
+        this(name, DEFAULT_BUFFER_SIZE);
+    }
+
+    public PayloadReader(String name, int bufferSize)
+    {
         this.name = name;
+        this.bufferSize = bufferSize;
 
         state = RunState.CREATED;
         newState = state;
@@ -120,7 +129,7 @@ public abstract class PayloadReader
                                        IByteBufferCache bufMgr)
         throws IOException
     {
-        return addDataChannel(channel, bufMgr, DEFAULT_BUFFER_SIZE);
+        return addDataChannel(channel, bufMgr, bufferSize);
     }
 
     public InputChannel addDataChannel(SelectableChannel channel,
@@ -193,7 +202,7 @@ if(DEBUG_NEW)System.err.println("ANend");
     {
         // disable blocking or receive engine will die
         chan.configureBlocking(false);
-        return addDataChannel(chan, bufCache, DEFAULT_BUFFER_SIZE);
+        return addDataChannel(chan, bufCache, bufferSize);
     }
 
     public void channelStopped()
@@ -231,6 +240,15 @@ if(DEBUG_NEW)System.err.println("ANend");
             allocationStatus.add(bVal);
         }
         return (Boolean[]) allocationStatus.toArray(new Boolean[0]);
+    }
+
+    public synchronized long[] getAverageBytesSelected() {
+        long[] array = new long[chanList.size()];
+        for (int i = 0; i < array.length; i++) {
+            InputChannel cd = chanList.get(i);
+            array[i] = cd.getTotalBytesSelected() / cd.getNumberOfSelects();
+        }
+        return array;
     }
 
     public synchronized Long[] getBufferCurrentAcquiredBuffers() {
@@ -274,6 +292,30 @@ if(DEBUG_NEW)System.err.println("ANend");
         return (Long[]) byteLimit.toArray(new Long[0]);
     }
 
+    public synchronized Long[] getMaximumBytesSelected() {
+        ArrayList list = new ArrayList();
+        for (InputChannel cd : chanList) {
+            list.add(new Long(cd.getMaximumBytesSelected()));
+        }
+        return (Long[]) list.toArray(new Long[0]);
+    }
+
+    public synchronized Long[] getMinimumBytesSelected() {
+        ArrayList list = new ArrayList();
+        for (InputChannel cd : chanList) {
+            list.add(new Long(cd.getMinimumBytesSelected()));
+        }
+        return (Long[]) list.toArray(new Long[0]);
+    }
+
+    public synchronized int[] getNumberOfSelects() {
+        int[] array = new int[chanList.size()];
+        for (int i = 0; i < array.length; i++) {
+            array[i] = chanList.get(i).getNumberOfSelects();
+        }
+        return array;
+    }
+
     public synchronized Long[] getPercentMaxStopAllocation() {
         ArrayList byteLimit = new ArrayList();
         for (InputChannel cd : chanList) {
@@ -313,6 +355,14 @@ if(DEBUG_NEW)System.err.println("ANend");
             recordCount.add(new Long(cd.getStopMessagesReceived()));
         }
         return (Long[]) recordCount.toArray(new Long[0]);
+    }
+
+    public synchronized long[] getTotalBytesSelected() {
+        long[] array = new long[chanList.size()];
+        for (int i = 0; i < array.length; i++) {
+            array[i] = chanList.get(i).getTotalBytesSelected();
+        }
+        return array;
     }
 
     public boolean isDestroyed()
@@ -501,6 +551,13 @@ if(DEBUG_RUN)System.err.println("Rcancel "+state);
                         try {
 if(DEBUG_RUN)System.err.println("Rproc chanData "+chanData);
                             chanData.processSelect(selKey);
+                        } catch (ClosedChannelException cce) {
+                            // channel went away
+                            selKey.cancel();
+                            chanList.remove(chanData);
+                            LOG.error("Closed " + name +
+                                      " socket channel, " + chanList.size() +
+                                      " channels remain");
                         } catch (IOException ioe) {
                             LOG.error("Could not process select", ioe);
                         }

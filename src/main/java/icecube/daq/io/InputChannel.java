@@ -13,6 +13,8 @@ import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 
+import javax.swing.text.html.HTMLDocument.HTMLReader.IsindexAction;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -26,7 +28,7 @@ public abstract class InputChannel
 
     private static final long DEFAULT_PERCENT_STOP_ALLOCATION = 70;
     private static final long DEFAULT_PERCENT_RESTART_ALLOCATION = 50;
-    private static final long DEFAULT_MAX_BYTES_ALLOCATION_LIMIT = 20000000;
+    private static final long DEFAULT_MAX_BYTES_ALLOCATION_LIMIT = 200000000;
 
     private InputChannelParent parent;
     private SelectableChannel channel;
@@ -45,6 +47,12 @@ public abstract class InputChannel
     private long bytesReceived;
     private long recordsReceived;
     private long stopsReceived;
+
+    // select statistics
+    private int numSelects;
+    private int minSelectBytes = Integer.MAX_VALUE;
+    private int maxSelectBytes = Integer.MIN_VALUE;
+    private long totSelectBytes;
 
     private long percentOfMaxStopAllocation =
         DEFAULT_PERCENT_STOP_ALLOCATION;
@@ -87,7 +95,7 @@ public abstract class InputChannel
         }
 
         if (inputBuf.limit() != inputBuf.capacity()) {
-System.err.println("******** Reset limit to capcity");
+            LOG.error("******** Reset limit to capacity");
             inputBuf.limit(inputBuf.capacity());
         }
     }
@@ -144,12 +152,18 @@ if(DEBUG_FILL)System.err.println("FillEnd "+inputBuf+" bufPos "+bufPos+" payBuf 
 
     long getBufferCurrentAcquiredBuffers()
     {
-        return ((ByteBufferCache) bufMgr).getCurrentAquiredBuffers();
+        if (bufMgr instanceof ByteBufferCache)
+            return ((ByteBufferCache) bufMgr).getCurrentAquiredBuffers();
+        else
+            return 0L;
     }
 
     long getBufferCurrentAcquiredBytes()
     {
-        return ((ByteBufferCache) bufMgr).getCurrentAquiredBytes();
+        if (bufMgr instanceof ByteBufferCache)
+            return ((ByteBufferCache) bufMgr).getCurrentAquiredBytes();
+        else
+            return 0L;
     }
 
     long getBytesReceived()
@@ -165,6 +179,21 @@ if(DEBUG_FILL)System.err.println("FillEnd "+inputBuf+" bufPos "+bufPos+" payBuf 
     long getLimitToRestartAllocation()
     {
         return limitToRestartAllocation;
+    }
+
+    int getMinimumBytesSelected()
+    {
+        return minSelectBytes;
+    }
+
+    int getMaximumBytesSelected()
+    {
+        return maxSelectBytes;
+    }
+
+    int getNumberOfSelects()
+    {
+        return numSelects;
     }
 
     long getPercentOfMaxStopAllocation()
@@ -185,6 +214,11 @@ if(DEBUG_FILL)System.err.println("FillEnd "+inputBuf+" bufPos "+bufPos+" payBuf 
     long getStopMessagesReceived()
     {
         return stopsReceived;
+    }
+
+    long getTotalBytesSelected()
+    {
+        return totSelectBytes;
     }
 
     boolean isAllocationStopped()
@@ -209,7 +243,21 @@ if(DEBUG_FILL)System.err.println("FillEnd "+inputBuf+" bufPos "+bufPos+" payBuf 
     {
 final boolean DEBUG_SELECT = false;
 if(DEBUG_SELECT)System.err.println("SelTop "+inputBuf);
-        ((ReadableByteChannel) channel).read(inputBuf);
+        int numBytes = ((ReadableByteChannel) channel).read(inputBuf);
+        if (numBytes < 0) {
+            throw new ClosedChannelException();
+        }
+
+        // gather statistics
+        numSelects++;
+        totSelectBytes += numBytes;
+        if (numBytes < minSelectBytes) {
+            minSelectBytes = numBytes;
+        }
+        if (numBytes > maxSelectBytes) {
+            maxSelectBytes = numBytes;
+        }
+
 if(DEBUG_SELECT)System.err.println("SelGot "+inputBuf);
 
         if (stopped) {
@@ -328,7 +376,7 @@ if(DEBUG_SELECT)LOG.error("  Flip "+payBuf);
     private void setAllocationLimits()
     {
         allocationStopped = false;
-        if (((ByteBufferCache) bufMgr).getIsCacheBounded()) {
+        if (bufMgr instanceof ByteBufferCache && ((ByteBufferCache) bufMgr).getIsCacheBounded()) {
             long maxAllocation =
                     ((ByteBufferCache) bufMgr).getMaxAquiredBytes();
             limitToStopAllocation = (maxAllocation *

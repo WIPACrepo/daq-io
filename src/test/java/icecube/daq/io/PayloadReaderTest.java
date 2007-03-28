@@ -31,13 +31,10 @@ import java.util.List;
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
+
 import junit.textui.TestRunner;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import org.apache.log4j.BasicConfigurator;
-
 import org.apache.log4j.Level;
 
 class SimpleReader
@@ -98,13 +95,8 @@ public class PayloadReaderTest
     extends TestCase
     implements DAQComponentObserver
 {
-    private static final Log LOG = LogFactory.getLog(PayloadReaderTest.class);
-
     private static final int BUFFER_LEN = 5000;
     private static final int INPUT_OUTPUT_LOOP_CNT = 5;
-
-    private static final String SRC_NOTE_ID = "SourceID";
-    private static final String ERR_NOTE_ID = "ErrorID";
 
     private static Level logLevel = Level.INFO;
 
@@ -115,6 +107,11 @@ public class PayloadReaderTest
 
     private SimpleReader tstRdr;
 
+    /**
+     * Constructs an instance of this test.
+     *
+     * @param name the name of the test.
+     */
     public PayloadReaderTest(String name)
     {
         super(name);
@@ -327,6 +324,11 @@ public class PayloadReaderTest
         BasicConfigurator.configure(new MockAppender(logLevel));
     }
 
+    /**
+     * Create test suite for this class.
+     *
+     * @return the suite of tests declared in this class.
+     */
     public static Test suite()
     {
         return new TestSuite(PayloadReaderTest.class);
@@ -423,7 +425,6 @@ public class PayloadReaderTest
                    ", not Running after StartSig", tstRdr.isRunning());
 
         tstRdr.forcedStopProcessing();
-
         waitUntilStopped(tstRdr);
         assertTrue("PayloadReader in " + tstRdr.getPresentState() +
                    ", not Idle after StopSig", tstRdr.isStopped());
@@ -435,13 +436,11 @@ public class PayloadReaderTest
                    ", not Running after StartSig", tstRdr.isRunning());
 
         tstRdr.forcedStopProcessing();
-
         waitUntilStopped(tstRdr);
         assertTrue("PayloadReader in " + tstRdr.getPresentState() +
                    ", not Idle after StopSig", tstRdr.isStopped());
 
         tstRdr.destroyProcessor();
-
         waitUntilDestroyed(tstRdr);
         assertTrue("PayloadReader did not die after kill request",
                    tstRdr.isDestroyed());
@@ -563,6 +562,7 @@ public class PayloadReaderTest
         final int groupSize = 3;
 
         final int numToSend = INPUT_OUTPUT_LOOP_CNT * groupSize;
+
         int id = 1;
         int recvId = 0;
 
@@ -586,6 +586,12 @@ public class PayloadReaderTest
                 sinkChannel.write(testBuf);
                 bufMgr.returnBuffer(testBuf);
                 xmitCnt += groupSize;
+            } else {
+                try {
+                    Thread.sleep(100);
+                } catch (Exception ex) {
+                    // ignore interrupts
+                }
             }
 
             int numBufs = harvestBuffers(tstRdr, bufLen, bufMgr, true, recvId);
@@ -686,6 +692,12 @@ public class PayloadReaderTest
                         sinkChannel.write(testBuf);
                         bufMgr.returnBuffer(testBuf);
                         xmitCnt += groupSize;
+                    } else {
+                        try {
+                            Thread.sleep(100);
+                        } catch (Exception ex) {
+                            // ignore interrupts
+                        }
                     }
 
                     int numBufs = harvestBuffers(tstRdr, msgSize, bufMgr,
@@ -778,154 +790,6 @@ public class PayloadReaderTest
         assertTrue("Failure on sendStopMsg command.",
                    sinkStopNotificationCalled);
     }
-
-/*
-    public void XXXtestOutputInputWithSemaphore()
-        throws Exception
-    {
-        // buffer caching manager
-        IByteBufferCache bufMgr =
-            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
-                                BUFFER_LEN*40, "OutInSem");
-
-        // create a pipe for use in testing
-        Pipe testPipe = Pipe.open();
-        Pipe.SinkChannel sinkChannel = testPipe.sink();
-        sinkChannel.configureBlocking(false);
-
-        Pipe.SourceChannel sourceChannel = testPipe.source();
-        sourceChannel.configureBlocking(false);
-
-        tstRdr = new SimpleReader("OutInSemaphore");
-        tstRdr.registerComponentObserver(this);
-
-        tstRdr.start();
-        waitUntilStopped(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after creation", tstRdr.isStopped());
-
-
-        InputChannel inChan =
-            tstRdr.addDataChannel(sourceChannel, bufMgr);
-
-        tstRdr.startProcessing();
-        waitUntilRunning(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Running after startup", tstRdr.isRunning());
-
-        // now move some buffers
-        ByteBuffer testBuf;
-
-        final int bufLen = 1024;
-
-        int xmitCnt = 0;
-        int recvCnt = 0;
-        int loopCnt = 0;
-        while (recvCnt < INPUT_OUTPUT_LOOP_CNT) {
-            if (xmitCnt < INPUT_OUTPUT_LOOP_CNT) {
-                testBuf = bufMgr.acquireBuffer(BUFFER_LEN);
-                assertNotNull("Unable to acquire transmit buffer on " +
-                              xmitCnt + " try.", testBuf);
-
-                testBuf.putInt(0, bufLen);
-                testBuf.limit(bufLen);
-                testBuf.position(bufLen);
-                testBuf.flip();
-
-                sinkChannel.write(testBuf);
-                bufMgr.returnBuffer(testBuf);
-
-                xmitCnt++;
-            }
-
-            recvCnt += harvestEngine(tstRdr, inChan, bufLen);
-
-            loopCnt++;
-            if (loopCnt == recvCnt + INPUT_OUTPUT_LOOP_CNT) {
-                fail("Received " + recvCnt + " payloads after " + xmitCnt +
-                     " buffers were transmitted");
-            }
-        }
-
-        sendStopMsg(sinkChannel);
-
-        Thread.sleep(100);
-
-        assertTrue("Failure on sendStopMsg command.",
-                   sinkStopNotificationCalled);
-
-        assertEquals("Failure on sendStopMsg command.",
-                     0, tstRdr.inputAvailable.permits());
-    }
-*/
-
-/*
-    public void XXXtestSimulatedError()
-        throws Exception
-    {
-        // buffer caching manager
-        IByteBufferCache bufMgr =
-            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
-                                BUFFER_LEN*40, "SimError");
-
-        // create a pipe for use in testing
-        Pipe testPipe = Pipe.open();
-        Pipe.SinkChannel sinkChannel = testPipe.sink();
-        sinkChannel.configureBlocking(false);
-
-        Pipe.SourceChannel sourceChannel = testPipe.source();
-        sourceChannel.configureBlocking(false);
-
-        tstRdr = new SimpleReader("SimError");
-        tstRdr.registerComponentObserver(this);
-
-        tstRdr.addDataChannel(sourceChannel, bufMgr);
-
-        tstRdr.start();
-        waitUntilStopped(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after creation", tstRdr.isStopped());
-
-        tstRdr.startProcessing();
-        waitUntilRunning(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Running after startup", tstRdr.isRunning());
-
-        // now move some buffers
-        ByteBuffer testBuf;
-
-        final int bufLen = 64;
-
-        final int acquireLen = bufLen;
-        testBuf = bufMgr.acquireBuffer(acquireLen);
-        assertNotNull("Unable to acquire transmit buffer", testBuf);
-
-        testBuf.putInt(0, bufLen);
-        testBuf.limit(bufLen);
-        testBuf.position(bufLen);
-        testBuf.flip();
-
-        tstRdr.injectError();
-        sinkChannel.write(testBuf);
-        bufMgr.returnBuffer(testBuf);
-        for (int i = 0; !tstRdr.isError() && i < 10; i++) {
-            Thread.sleep(100);
-        }
-
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Error after ErrorSig", tstRdr.isError());
-        Thread.sleep(100);
-
-        assertTrue("Error notification was not received.",
-                   sinkErrorNotificationCalled);
-
-        sendStopMsg(sinkChannel);
-
-        Thread.sleep(100);
-        assertFalse("Sink stop notification was received.",
-                    sinkStopNotificationCalled);
-    }
-*/
 
     public void testGetters()
         throws Exception
@@ -1386,6 +1250,11 @@ public class PayloadReaderTest
         }
     }
 
+    /**
+     * Main routine which runs text test in standalone mode.
+     *
+     * @param args the arguments with which to execute this method.
+     */
     public static void main(String[] args)
     {
         TestRunner.run(suite());

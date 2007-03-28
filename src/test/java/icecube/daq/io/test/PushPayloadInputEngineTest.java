@@ -1,61 +1,98 @@
 package icecube.daq.io.test;
 
-import EDU.oswego.cs.dl.util.concurrent.LinkedQueue;
-
 import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.common.DAQComponentObserver;
 import icecube.daq.common.ErrorState;
 import icecube.daq.common.NormalState;
-import icecube.daq.io.SpliceablePayloadInputEngine;
+
+import icecube.daq.io.PushPayloadInputEngine;
 import icecube.daq.io.PayloadOutputEngine;
 import icecube.daq.io.PayloadTransmitChannel;
 import icecube.daq.io.PayloadReceiveChannel;
+
 import icecube.daq.payload.ByteBufferCache;
 import icecube.daq.payload.IByteBufferCache;
-import icecube.daq.splicer.Splicer;
 
 import java.io.IOException;
+
 import java.net.InetSocketAddress;
+
 import java.nio.ByteBuffer;
+
 import java.nio.channels.Pipe;
 import java.nio.channels.Selector;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+
 import java.util.Iterator;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
+
 import junit.textui.TestRunner;
 
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 
-public class SpliceablePayloadInputEngineTest
+class MockPushEngine
+    extends PushPayloadInputEngine
+{
+    private IByteBufferCache bufMgr;
+    private int recvCnt;
+    private boolean gotStop;
+
+    MockPushEngine(String name, int id, String fcn, String prefix,
+                   IByteBufferCache bufMgr)
+    {
+        super(name, id, fcn, prefix, bufMgr);
+
+        this.bufMgr = bufMgr;
+    }
+
+    int getReceiveCount()
+    {
+        return recvCnt;
+    }
+
+    public void pushBuffer(ByteBuffer bb)
+        throws IOException
+    {
+        bufMgr.returnBuffer(bb);
+        recvCnt++;
+    }
+
+    public void sendStop()
+    {
+        gotStop = true;
+    }
+}
+
+public class PushPayloadInputEngineTest
     extends TestCase
     implements DAQComponentObserver
 {
     private static final int BUFFER_LEN = 5000;
     private static final int INPUT_OUTPUT_LOOP_CNT = 5;
 
+    private static final String SRC_NOTE_ID = "SourceID";
+    private static final String ERR_NOTE_ID = "ErrorID";
+
     private static Level logLevel = Level.INFO;
 
     private boolean sinkStopNotificationCalled;
     private boolean sinkErrorNotificationCalled;
 
-    /**
-     * The object being tested.
-     */
-    private SpliceablePayloadInputEngine engine;
+    private MockPushEngine engine;
     private PayloadOutputEngine testOutput;
 
     /**
-     * Constructs an instance of this test.
+     * Construct an instance of this test.
      *
      * @param name the name of the test.
      */
-    public SpliceablePayloadInputEngineTest(String name)
+    public PushPayloadInputEngineTest(String name)
     {
         super(name);
     }
@@ -64,6 +101,8 @@ public class SpliceablePayloadInputEngineTest
         throws Exception
     {
         super.setUp();
+
+        engine = null;
 
         sinkStopNotificationCalled = false;
         sinkErrorNotificationCalled = false;
@@ -79,17 +118,31 @@ public class SpliceablePayloadInputEngineTest
      */
     public static Test suite()
     {
-        return new TestSuite(SpliceablePayloadInputEngineTest.class);
+        return new TestSuite(PushPayloadInputEngineTest.class);
     }
 
+    protected void tearDown()
+        throws Exception
+    {
+        if (engine != null) {
+            engine.destroyProcessor();
+        }
+
+        super.tearDown();
+    }
+
+    /**
+     * Test starting and stopping engine.
+     */
     public void testStartStop()
         throws Exception
     {
-        MockSplicer splicer = new MockSplicer();
-        MockSpliceableFactory factory = new MockSpliceableFactory();
+        IByteBufferCache cacheMgr =
+            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
+                                BUFFER_LEN*40, "OutputInput");
 
-        engine = new SpliceablePayloadInputEngine("StartStop", 0, "test",
-                                                  splicer, factory);
+        engine =
+            new MockPushEngine("StartStop", 0, "test", "StStop", cacheMgr);
         engine.start();
 
         assertTrue("PayloadInputEngine in " + engine.getPresentState() +
@@ -147,11 +200,12 @@ public class SpliceablePayloadInputEngineTest
     public void testStartDispose()
         throws Exception
     {
-        MockSplicer splicer = new MockSplicer();
-        MockSpliceableFactory factory = new MockSpliceableFactory();
+        IByteBufferCache cacheMgr =
+            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
+                                BUFFER_LEN*40, "OutputInput");
 
-        engine = new SpliceablePayloadInputEngine("StartDisp", 0, "test",
-                                                  splicer, factory);
+        engine =
+            new MockPushEngine("StartDisp", 0, "test", "StDisp", cacheMgr);
         engine.start();
 
         assertTrue("PayloadInputEngine in " + engine.getPresentState() +
@@ -191,14 +245,9 @@ public class SpliceablePayloadInputEngineTest
         Pipe.SourceChannel sourceChannel = testPipe.source();
         sourceChannel.configureBlocking(false);
 
-        MockSplicer splicer = new MockSplicer();
-        MockSpliceableFactory factory = new MockSpliceableFactory();
-
-        engine = new SpliceablePayloadInputEngine("OutputInput", 0, "test",
-                                                  splicer, factory);
+        engine = new MockPushEngine("OutIn", 0, "test", "OutIn", cacheMgr);
         engine.registerComponentObserver(this);
         engine.start();
-        assertTrue("Should not be healthy", engine.isHealthy());
 
         engine.addDataChannel(sourceChannel, cacheMgr);
 
@@ -229,7 +278,7 @@ public class SpliceablePayloadInputEngineTest
         final int bufLen = 64;
 
         int xmitCnt = 0;
-        while (engine.getTotalStrandDepth() < INPUT_OUTPUT_LOOP_CNT) {
+        while (engine.getReceiveCount() < INPUT_OUTPUT_LOOP_CNT) {
             if (xmitCnt < INPUT_OUTPUT_LOOP_CNT) {
                 final int acquireLen = bufLen;
                 testBuf = cacheMgr.acquireBuffer(acquireLen);
@@ -248,13 +297,13 @@ public class SpliceablePayloadInputEngineTest
                 break;
             }
 
-            if (xmitCnt != engine.getTotalStrandDepth()) {
+            if (xmitCnt != engine.getReceiveCount()) {
                 Thread.sleep(100);
             }
         }
 
         assertEquals("Bad number of payloads received",
-                     xmitCnt, engine.getTotalStrandDepth());
+                     xmitCnt, engine.getReceiveCount());
 
         assertTrue("Should be healthy", engine.isHealthy());
 
@@ -282,11 +331,8 @@ public class SpliceablePayloadInputEngineTest
         Pipe.SourceChannel sourceChannel = testPipe.source();
         sourceChannel.configureBlocking(false);
 
-        MockSplicer splicer = new MockSplicer();
-        MockSpliceableFactory factory = new MockSpliceableFactory();
-
-        engine = new SpliceablePayloadInputEngine("MultiOutIn", 0, "test",
-                                                  splicer, factory);
+        engine =
+            new MockPushEngine("MultiOutIn", 0, "test", "MOutIn", cacheMgr);
         engine.registerComponentObserver(this);
         engine.start();
 
@@ -322,7 +368,7 @@ public class SpliceablePayloadInputEngineTest
         int recvId = 0;
 
         int xmitCnt = 0;
-        while (engine.getTotalStrandDepth() <
+        while (engine.getReceiveCount() <
                (INPUT_OUTPUT_LOOP_CNT * groupSize))
         {
             if (xmitCnt < INPUT_OUTPUT_LOOP_CNT) {
@@ -340,6 +386,7 @@ public class SpliceablePayloadInputEngineTest
                 testBuf.position(0);
                 sinkChannel.write(testBuf);
                 transmitEng.flushOutQueue();
+                cacheMgr.returnBuffer(testBuf);
             }
             xmitCnt++;
 
@@ -347,13 +394,13 @@ public class SpliceablePayloadInputEngineTest
                 break;
             }
 
-            if (xmitCnt * groupSize  != engine.getTotalStrandDepth()) {
+            if (xmitCnt * groupSize  != engine.getReceiveCount()) {
                 Thread.sleep(100);
             }
         }
 
         assertEquals("Bad number of payloads received",
-                     xmitCnt * groupSize, engine.getTotalStrandDepth());
+                     xmitCnt * groupSize, engine.getReceiveCount());
 
         testOutput.sendLastAndStop();
         transmitEng.flushOutQueue();
@@ -361,43 +408,6 @@ public class SpliceablePayloadInputEngineTest
         Thread.sleep(100);
         assertTrue("Failure on sendLastAndStop command.",
                    sinkStopNotificationCalled);
-    }
-
-    public void testStrandMax()
-        throws Exception
-    {
-        // buffer caching manager
-        IByteBufferCache cacheMgr =
-            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
-                                BUFFER_LEN*40, "StrandMax");
-
-        // create a pipe for use in testing
-        Pipe testPipe = Pipe.open();
-        Pipe.SinkChannel sinkChannel = testPipe.sink();
-        sinkChannel.configureBlocking(false);
-
-        Pipe.SourceChannel sourceChannel = testPipe.source();
-        sourceChannel.configureBlocking(false);
-
-        MockSplicer splicer = new MockSplicer();
-        MockSpliceableFactory factory = new MockSpliceableFactory();
-
-        engine = new SpliceablePayloadInputEngine("StrandMax", 0, "test",
-                                                  splicer, factory);
-        engine.registerComponentObserver(this);
-        engine.start();
-
-        engine.addDataChannel(sourceChannel, cacheMgr);
-
-        Integer[] strandMax = engine.getStrandMax();
-        assertEquals("Bad strandMax length", 1, strandMax.length);
-
-        final int depth = strandMax[0].intValue() + 1;
-        engine.setAllStrandMax(depth);
-
-        Integer[] reMax = engine.getStrandMax();
-        assertEquals("Bad strandMax length", 1, reMax.length);
-        assertEquals("Bad strandMax", depth, reMax[0].intValue());
     }
 
     public synchronized void update(Object object, String notificationID)

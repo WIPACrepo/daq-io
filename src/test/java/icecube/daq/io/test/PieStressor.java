@@ -188,7 +188,7 @@ public class PieStressor
         System.out.println();
     }
 
-    private void runTest(boolean tryEngine, boolean tryReader) throws Exception
+    private void runTest(boolean tryEngine, boolean tryReader, double rate) throws Exception
     {
         System.out.println("running test");
 
@@ -217,13 +217,13 @@ public class PieStressor
             Paygen pagan;
 
             if (tryEngine) {
-                pagan = new Paygen(engine.getServerPort());
+                pagan = new Paygen(engine.getServerPort(), rate);
                 pagan.setName("engGen#" + i);
                 genList.add(pagan);
             }
 
             if (tryReader) {
-                pagan = new Paygen(reader.getServerPort());
+                pagan = new Paygen(reader.getServerPort(), rate);
                 pagan.setName("rdrGen#" + i);
                 genList.add(pagan);
             }
@@ -274,6 +274,7 @@ public class PieStressor
     {
         BasicConfigurator.configure();
         BasicConfigurator.configure(new MockAppender(Level.WARN));
+        Logger.getRootLogger().setLevel(Level.INFO);
 
         boolean tryEngine = true;
         boolean tryReader = false;
@@ -305,7 +306,10 @@ public class PieStressor
             }
         }
 
+        double rate = 1000.0;
+        if (args.length > 1) rate = Double.parseDouble(args[1]);
+        System.out.println("Rate is " + rate + " Hz.");
         PieStressor test = new PieStressor();
-        test.runTest(tryEngine, tryReader);
+        test.runTest(tryEngine, tryReader, rate);
     }
 }
