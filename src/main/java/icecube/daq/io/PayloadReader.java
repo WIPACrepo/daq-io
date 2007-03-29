@@ -242,15 +242,6 @@ if(DEBUG_NEW)System.err.println("ANend");
         return (Boolean[]) allocationStatus.toArray(new Boolean[0]);
     }
 
-    public synchronized long[] getAverageBytesSelected() {
-        long[] array = new long[chanList.size()];
-        for (int i = 0; i < array.length; i++) {
-            InputChannel cd = chanList.get(i);
-            array[i] = cd.getTotalBytesSelected() / cd.getNumberOfSelects();
-        }
-        return array;
-    }
-
     public synchronized Long[] getBufferCurrentAcquiredBuffers() {
         ArrayList byteLimit = new ArrayList();
         for (InputChannel cd : chanList) {
@@ -292,30 +283,6 @@ if(DEBUG_NEW)System.err.println("ANend");
         return (Long[]) byteLimit.toArray(new Long[0]);
     }
 
-    public synchronized Long[] getMaximumBytesSelected() {
-        ArrayList list = new ArrayList();
-        for (InputChannel cd : chanList) {
-            list.add(new Long(cd.getMaximumBytesSelected()));
-        }
-        return (Long[]) list.toArray(new Long[0]);
-    }
-
-    public synchronized Long[] getMinimumBytesSelected() {
-        ArrayList list = new ArrayList();
-        for (InputChannel cd : chanList) {
-            list.add(new Long(cd.getMinimumBytesSelected()));
-        }
-        return (Long[]) list.toArray(new Long[0]);
-    }
-
-    public synchronized int[] getNumberOfSelects() {
-        int[] array = new int[chanList.size()];
-        for (int i = 0; i < array.length; i++) {
-            array[i] = chanList.get(i).getNumberOfSelects();
-        }
-        return array;
-    }
-
     public synchronized Long[] getPercentMaxStopAllocation() {
         ArrayList byteLimit = new ArrayList();
         for (InputChannel cd : chanList) {
@@ -355,14 +322,6 @@ if(DEBUG_NEW)System.err.println("ANend");
             recordCount.add(new Long(cd.getStopMessagesReceived()));
         }
         return (Long[]) recordCount.toArray(new Long[0]);
-    }
-
-    public synchronized long[] getTotalBytesSelected() {
-        long[] array = new long[chanList.size()];
-        for (int i = 0; i < array.length; i++) {
-            array[i] = chanList.get(i).getTotalBytesSelected();
-        }
-        return array;
     }
 
     public boolean isDestroyed()

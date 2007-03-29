@@ -48,12 +48,6 @@ public abstract class InputChannel
     private long recordsReceived;
     private long stopsReceived;
 
-    // select statistics
-    private int numSelects;
-    private int minSelectBytes = Integer.MAX_VALUE;
-    private int maxSelectBytes = Integer.MIN_VALUE;
-    private long totSelectBytes;
-
     private long percentOfMaxStopAllocation =
         DEFAULT_PERCENT_STOP_ALLOCATION;
     private long percentOfMaxRestartAllocation =
@@ -181,21 +175,6 @@ if(DEBUG_FILL)System.err.println("FillEnd "+inputBuf+" bufPos "+bufPos+" payBuf 
         return limitToRestartAllocation;
     }
 
-    int getMinimumBytesSelected()
-    {
-        return minSelectBytes;
-    }
-
-    int getMaximumBytesSelected()
-    {
-        return maxSelectBytes;
-    }
-
-    int getNumberOfSelects()
-    {
-        return numSelects;
-    }
-
     long getPercentOfMaxStopAllocation()
     {
         return percentOfMaxStopAllocation;
@@ -214,11 +193,6 @@ if(DEBUG_FILL)System.err.println("FillEnd "+inputBuf+" bufPos "+bufPos+" payBuf 
     long getStopMessagesReceived()
     {
         return stopsReceived;
-    }
-
-    long getTotalBytesSelected()
-    {
-        return totSelectBytes;
     }
 
     boolean isAllocationStopped()
@@ -246,16 +220,6 @@ if(DEBUG_SELECT)System.err.println("SelTop "+inputBuf);
         int numBytes = ((ReadableByteChannel) channel).read(inputBuf);
         if (numBytes < 0) {
             throw new ClosedChannelException();
-        }
-
-        // gather statistics
-        numSelects++;
-        totSelectBytes += numBytes;
-        if (numBytes < minSelectBytes) {
-            minSelectBytes = numBytes;
-        }
-        if (numBytes > maxSelectBytes) {
-            maxSelectBytes = numBytes;
         }
 
 if(DEBUG_SELECT)System.err.println("SelGot "+inputBuf);
@@ -304,7 +268,6 @@ if(DEBUG_SELECT)System.err.println("  BadLen");
 
             // if this is a stop message...
             if (length == INT_SIZE) {
-if(DEBUG_SELECT)System.err.println("  GotStop");
                 stopped = true;
                 stopsReceived++;
                 notifyOnStop();
