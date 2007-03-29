@@ -146,18 +146,12 @@ if(DEBUG_FILL)System.err.println("FillEnd "+inputBuf+" bufPos "+bufPos+" payBuf 
 
     long getBufferCurrentAcquiredBuffers()
     {
-        if (bufMgr instanceof ByteBufferCache)
-            return ((ByteBufferCache) bufMgr).getCurrentAquiredBuffers();
-        else
-            return 0L;
+        return bufMgr.getCurrentAquiredBuffers();
     }
 
     long getBufferCurrentAcquiredBytes()
     {
-        if (bufMgr instanceof ByteBufferCache)
-            return ((ByteBufferCache) bufMgr).getCurrentAquiredBytes();
-        else
-            return 0L;
+        return bufMgr.getCurrentAquiredBytes();
     }
 
     long getBytesReceived()
