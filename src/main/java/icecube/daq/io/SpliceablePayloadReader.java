@@ -133,7 +133,7 @@ public class SpliceablePayloadReader
         }
 
         if (splicer.getStrandCount() != 0) {
-            LOG.error("splicer should not any leftover strands-- count: " +
+            LOG.error("splicer should not have any leftover strands-- count: " +
                       splicer.getStrandCount());
         } else {
             for (InputChannel cd : listChannels()) {
