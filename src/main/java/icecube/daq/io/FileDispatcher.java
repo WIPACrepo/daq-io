@@ -174,7 +174,6 @@ public class FileDispatcher implements Dispatcher {
                 LOG.debug("write ByteBuffer of length: " + buffer.limit() + " to file.");
             }
         } catch (IOException ioe) {
-            LOG.error("couldn't write to the file: ", ioe);
             throw new DispatchException(ioe);
         }
 
