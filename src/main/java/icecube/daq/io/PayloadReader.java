@@ -359,10 +359,36 @@ if(DEBUG_NEW)System.err.println("ANend");
     void makeReverseConnections()
         throws IOException
     {
+        final int MAX_RETRIES = 10;
+
         if (!madeReverseConnections) {
-            IOException deferred = null;
-            for (ReverseConnection rc : reverseConnList) {
-                rc.connect();
+            ArrayList<ReverseConnection> retries =
+                new ArrayList<ReverseConnection>(reverseConnList);
+            for (int i = 1; i <= MAX_RETRIES; i++) {
+                boolean failed = false;
+
+                Iterator<ReverseConnection> iter = retries.iterator();
+                while (iter.hasNext()) {
+                    ReverseConnection rc = iter.next();
+
+                    try {
+                        rc.connect();
+                        iter.remove();
+                    } catch (IOException ioe) {
+                        if (i == MAX_RETRIES) {
+                            LOG.error("Could not connect " + rc, ioe);
+                        }
+                        failed = true;
+                    }
+                }
+
+                if (failed) {
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException ie) {
+                        // ignore interrupts
+                    }
+                }
             }
             madeReverseConnections = true;
         }
@@ -714,6 +740,11 @@ if(DEBUG_SS)System.err.println("SSdone");
                 SocketChannel.open(new InetSocketAddress(hostName, port));
 
             addSocketChannel(sock, bufCache);
+        }
+
+        public String toString()
+        {
+            return hostName + ":" + port;
         }
     }
 }
