@@ -175,6 +175,7 @@ if(DEBUG_NEW)System.err.println("ANadd "+cd);
                 chanList.add(cd);
             }
             newChanList.clear();
+            newChanList.notify();
         }
 if(DEBUG_NEW)System.err.println("ANend");
     }
@@ -391,6 +392,15 @@ if(DEBUG_NEW)System.err.println("ANend");
                 }
             }
             madeReverseConnections = true;
+        }
+        synchronized (newChanList) {
+            while (newChanList.size() > 0) {
+                try {
+                    newChanList.wait();
+                } catch (InterruptedException ie) {
+                    // ignore interrupts
+                }
+            }
         }
     }
 
