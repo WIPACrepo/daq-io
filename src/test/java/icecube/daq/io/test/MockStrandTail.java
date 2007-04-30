@@ -1,8 +1,7 @@
 package icecube.daq.io.test;
 
 import icecube.daq.payload.IByteBufferCache;
-
-import icecube.daq.payload.splicer.Payload;
+import icecube.daq.payload.ILoadablePayload;
 
 import icecube.daq.splicer.ClosedStrandException;
 import icecube.daq.splicer.OrderingException;
@@ -144,8 +143,9 @@ ABLE</code>
             for (Spliceable spl : entries) {
                 if (spl instanceof MockSpliceable) {
                     bufMgr.returnBuffer(((MockSpliceable) spl).getByteBuffer());
-                } else if (spl instanceof Payload) {
-                    bufMgr.returnBuffer(((Payload) spl).getPayloadBacking());
+                } else if (spl instanceof ILoadablePayload) {
+                    ILoadablePayload pay = (ILoadablePayload) spl;
+                    bufMgr.returnBuffer(pay.getPayloadBacking());
                 }
                 numReturned++;
             }
