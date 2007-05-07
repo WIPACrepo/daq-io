@@ -145,7 +145,7 @@ ABLE</code>
                     bufMgr.returnBuffer(((MockSpliceable) spl).getByteBuffer());
                 } else if (spl instanceof ILoadablePayload) {
                     ILoadablePayload pay = (ILoadablePayload) spl;
-                    bufMgr.returnBuffer(pay.getPayloadBacking());
+                    pay.recycle();
                 }
                 numReturned++;
             }
