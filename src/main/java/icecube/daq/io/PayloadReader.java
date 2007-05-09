@@ -550,9 +550,16 @@ if(DEBUG_RUN)System.err.println("Rproc chanData "+chanData);
                             // channel went away
                             selKey.cancel();
                             chanList.remove(chanData);
-                            LOG.error("Closed " + name +
-                                      " socket channel, " + chanList.size() +
-                                      " channels remain");
+                            if (chanList.size() > 0) {
+                                LOG.error("Closed " + name +
+                                          " socket channel, " +
+                                          chanList.size() +
+                                          " channels remain");
+                            } else {
+                                LOG.error("Closed " + name +
+                                          " socket channel, stopping reader");
+                                channelStopFlag.set();
+                            }
                         } catch (IOException ioe) {
                             LOG.error("Could not process select", ioe);
                         }
