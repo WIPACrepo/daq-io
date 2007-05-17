@@ -69,6 +69,7 @@ public class FileDispatcher implements Dispatcher {
             throw new IllegalArgumentException("baseFileName cannot be NULL!");
         }
 
+        Runtime.getRuntime().addShutdownHook(new ShutdownHook());
         this.baseFileName = baseFileName;
         LOG.info("baseFileName is set to: " + baseFileName);
         if ( baseFileName.equalsIgnoreCase("tcal") ||
@@ -474,5 +475,24 @@ public class FileDispatcher implements Dispatcher {
         }
         diskSize = (int)usage.getBlocks() / KB_IN_MB;
         diskAvailable = (int) usage.getAvailable() / KB_IN_MB;
+    }
+
+    /**
+     * A ShutdownHook for closing and renaming the dispatch file if it
+     * is still open when invoked.
+     */
+    private class ShutdownHook extends Thread {
+        public void run() {
+            LOG.warn(" ShutdownHook invoked for " + baseFileName);
+            if (outChannel != null && outChannel.isOpen()) {
+                LOG.warn(" ShutdownHook: moving temp file for " + baseFileName);
+                try {
+                    moveToDest();
+                } catch (DispatchException de) {
+                    // We can't do anything about this now anyway...
+                    LOG.error(" Problem in ShutdownHook for " + baseFileName + ": " + de);
+                }
+            }
+        }
     }
 }
