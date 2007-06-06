@@ -96,6 +96,7 @@ public abstract class PayloadReader
         new ArrayList<InputChannel>();
 
     private Flag channelStopFlag = new Flag("channelStop");
+    /** exclusive lock used when changing reader state */
     private Object stateLock = new Object();
 
     // server port
@@ -133,7 +134,7 @@ public abstract class PayloadReader
     }
 
     public InputChannel addDataChannel(SelectableChannel channel,
-                                           IByteBufferCache bufMgr, int bufSize)
+                                       IByteBufferCache bufMgr, int bufSize)
         throws IOException
     {
 final boolean DEBUG_ADD = false;
@@ -144,7 +145,7 @@ if(DEBUG_ADD)System.err.println("AddChanTop");
             throw new RuntimeException(errMsg);
         }
 
-if(DEBUG_ADD)System.err.println("AddChanCre");
+if(DEBUG_ADD)System.err.println("AddChanCre "+channel);
         InputChannel chanData = createChannel(channel, bufMgr, bufSize);
 if(DEBUG_ADD)System.err.println("AddChan "+chanData);
         synchronized (newChanList) {
@@ -393,6 +394,8 @@ if(DEBUG_NEW)System.err.println("ANend");
             }
             madeReverseConnections = true;
         }
+
+        // wait for new connections to be noticed
         synchronized (newChanList) {
             while (newChanList.size() > 0) {
                 try {
@@ -433,8 +436,6 @@ if(DEBUG_RUN)System.err.println("R-1");
         while (thread != null) {
 if(DEBUG_RUN)System.err.println("Rtop "+state+" new "+newState);
 
-            int numSelected;
-
             if (newState != state) {
 if(DEBUG_RUN)System.err.println("Rstate "+state+"->"+newState);
 
@@ -452,7 +453,6 @@ if(DEBUG_RUN)System.err.println("Rstart "+cd);
                     // do nothing
                     break;
                 case DESTROYED:
-                    numSelected = 0;
                     break;
                 default:
                     try {
@@ -488,6 +488,7 @@ if(DEBUG_RUN)System.err.println("RpauseWait");
 if(DEBUG_RUN)System.err.println("RpauseAwake");
             }
 
+            int numSelected;
             try {
 if(DEBUG_RUN)System.err.println("Rsel");
                 numSelected = selector.select(SELECTOR_TIMEOUT);

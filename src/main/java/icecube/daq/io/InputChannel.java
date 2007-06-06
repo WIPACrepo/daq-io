@@ -262,6 +262,7 @@ if(DEBUG_SELECT)System.err.println("  BadLen");
 
             // if this is a stop message...
             if (length == INT_SIZE) {
+if(DEBUG_SELECT)System.err.println("  GotStop");
                 stopped = true;
                 stopsReceived++;
                 notifyOnStop();
@@ -314,9 +315,8 @@ if(DEBUG_SELECT)System.err.println("  NullBuf");
             //    return;
             //}
 
-if(DEBUG_SELECT)LOG.error("  Got "+payBuf);
             payBuf.flip();
-if(DEBUG_SELECT)LOG.error("  Flip "+payBuf);
+if(DEBUG_SELECT)System.err.println("  Got "+payBuf);
             pushPayload(payBuf);
         }
     }
@@ -335,16 +335,16 @@ if(DEBUG_SELECT)LOG.error("  Flip "+payBuf);
         allocationStopped = false;
         if (bufMgr instanceof ByteBufferCache && ((ByteBufferCache) bufMgr).getIsCacheBounded()) {
             long maxAllocation =
-                    ((ByteBufferCache) bufMgr).getMaxAquiredBytes();
+                ((ByteBufferCache) bufMgr).getMaxAquiredBytes();
             limitToStopAllocation = (maxAllocation *
-                    percentOfMaxStopAllocation) / 100;
+                                     percentOfMaxStopAllocation) / 100;
             limitToRestartAllocation = (maxAllocation *
-                    percentOfMaxRestartAllocation) / 100;
+                                        percentOfMaxRestartAllocation) / 100;
         } else {
             limitToStopAllocation = (DEFAULT_MAX_BYTES_ALLOCATION_LIMIT *
-                    percentOfMaxStopAllocation) / 100;
+                                     percentOfMaxStopAllocation) / 100;
             limitToRestartAllocation = (DEFAULT_MAX_BYTES_ALLOCATION_LIMIT *
-                    percentOfMaxRestartAllocation) / 100;
+                                        percentOfMaxRestartAllocation) / 100;
         }
     }
 
