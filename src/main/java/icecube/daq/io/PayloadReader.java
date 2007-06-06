@@ -150,7 +150,9 @@ if(DEBUG_ADD)System.err.println("AddChanCre "+channel);
 if(DEBUG_ADD)System.err.println("AddChan "+chanData);
         synchronized (newChanList) {
             newChanList.add(chanData);
-            selector.wakeup();
+            if (selector != null) {
+                selector.wakeup();
+            }
         }
 if(DEBUG_ADD)System.err.println("AddChanDone");
 
@@ -621,7 +623,9 @@ if(DEBUG_SET)System.err.println("SSTtop");
             this.newState = newState;
 if(DEBUG_SET)System.err.println("SSTnewState="+newState);
             stateLock.notify();
-            selector.wakeup();
+            if (selector != null) {
+                selector.wakeup();
+            }
         }
 if(DEBUG_SET)System.err.println("SSTend");
     }
