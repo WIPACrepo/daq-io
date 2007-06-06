@@ -23,6 +23,9 @@ public class SpliceablePayloadReader
     // default maximum size of strand queue
     private static final int DEFAULT_STRAND_QUEUE_MAX = 40000;
 
+    // maximum number of stop attempts
+    private static final int MAX_STOP_TRIES = 10;
+
     private Splicer splicer;
     private SpliceableFactory factory;
 
@@ -98,13 +101,20 @@ public class SpliceablePayloadReader
 
     public void startProcessing()
     {
+        int tries = 0;
         while (splicer.getState() != Splicer.STOPPED) {
-            if (LOG.isWarnEnabled()) {
+            if (++tries > MAX_STOP_TRIES) {
+                throw new Error("Couldn't stop splicer");
+            }
+
+            if (tries == 1 && LOG.isWarnEnabled()) {
                 LOG.warn("Splicer should have been in STOPPED state, not " +
                          splicer.getStateString() +
                          ".  Calling Splicer.forceStop()");
             }
+
             splicer.forceStop();
+
             try {
                 Thread.sleep(100);
             } catch (InterruptedException ie) {
