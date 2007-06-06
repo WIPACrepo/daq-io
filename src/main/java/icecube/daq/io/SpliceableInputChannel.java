@@ -60,7 +60,7 @@ public class SpliceableInputChannel
         return strandTail != null;
     }
 
-    void notifyOnStop()
+    public void notifyOnStop()
     {
         // since this is a SpliceablePayloadReceiveChannel, we
         // will have to shut down the splicer if necessary
@@ -119,7 +119,7 @@ public class SpliceableInputChannel
         this.strandTail = strandTail;
     }
 
-    void startReading()
+    public void startReading()
     {
         if (strandTail == null) {
             // just to be paranoid, check that strandTail has

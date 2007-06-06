@@ -33,7 +33,7 @@ public abstract class PushPayloadReader
             reader = (PushPayloadReader) parent;
         }
 
-        void notifyOnStop()
+        public void notifyOnStop()
         {
             reader.channelStopped(this);
             super.notifyOnStop();

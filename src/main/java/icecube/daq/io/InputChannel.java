@@ -194,19 +194,19 @@ if(DEBUG_FILL)System.err.println("FillEnd "+inputBuf+" bufPos "+bufPos+" payBuf 
         return allocationStopped;
     }
 
-    boolean isStopped()
+    public boolean isStopped()
     {
         return stopped;
     }
 
-    void notifyOnStop()
+    public void notifyOnStop()
     {
         if (parent != null) {
             parent.channelStopped();
         }
     }
 
-    void processSelect(SelectionKey selKey)
+    public void processSelect(SelectionKey selKey)
         throws IOException
     {
 final boolean DEBUG_SELECT = false;
@@ -324,7 +324,7 @@ if(DEBUG_SELECT)System.err.println("  Got "+payBuf);
     public abstract void pushPayload(ByteBuffer payBuf)
         throws IOException;
 
-    void register(Selector sel)
+    public void register(Selector sel)
         throws ClosedChannelException
     {
         channel.register(sel, SelectionKey.OP_READ, this);
@@ -348,7 +348,7 @@ if(DEBUG_SELECT)System.err.println("  Got "+payBuf);
         }
     }
 
-    void startReading()
+    public void startReading()
     {
         stopped = false;
     }
