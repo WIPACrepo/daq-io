@@ -176,6 +176,10 @@ if(DEBUG_NEW)System.err.println("ANreg "+cd);
 
 if(DEBUG_NEW)System.err.println("ANadd "+cd);
                 chanList.add(cd);
+
+                if (isRunning()) {
+                    cd.startReading();
+                }
             }
             newChanList.clear();
             newChanList.notify();
