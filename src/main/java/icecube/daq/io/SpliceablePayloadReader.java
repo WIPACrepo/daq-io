@@ -79,19 +79,6 @@ public class SpliceablePayloadReader
         return (Integer[]) strandDepth.toArray(new Integer[0]);
     }
 
-/*
-    public synchronized Boolean[] getStrandFillingStopped()
-    {
-        ArrayList allocationStatus = new ArrayList();
-
-        for (InputChannel chan : listChannels()) {
-            SpliceableInputChannel sChan = (SpliceableInputChannel) chan;
-            allocationStatus.add(new Boolean(sChan.strandFillingStopped));
-        }
-        return (Boolean[]) allocationStatus.toArray(new Boolean[0]);
-    }
-*/
-
     public synchronized int getTotalStrandDepth()
     {
         int totalDepth = 0;
@@ -113,8 +100,9 @@ public class SpliceablePayloadReader
     {
         while (splicer.getState() != Splicer.STOPPED) {
             if (LOG.isWarnEnabled()) {
-                LOG.warn("Splicer should have been in STOPPED state." +
-                "Calling Splicer.forceStop()");
+                LOG.warn("Splicer should have been in STOPPED state, not " +
+                         splicer.getStateString() +
+                         ".  Calling Splicer.forceStop()");
             }
             splicer.forceStop();
             try {
