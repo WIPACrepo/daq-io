@@ -213,6 +213,8 @@ final boolean DEBUG_SELECT = false;
 if(DEBUG_SELECT)System.err.println("SelTop "+inputBuf);
         int numBytes = ((ReadableByteChannel) channel).read(inputBuf);
         if (numBytes < 0) {
+            channel.close();
+            notifyOnStop();
             throw new ClosedChannelException();
         }
 
