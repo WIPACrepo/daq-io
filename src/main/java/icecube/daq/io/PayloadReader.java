@@ -765,6 +765,25 @@ if(DEBUG_SS)System.err.println("SSdone");
             SocketChannel sock =
                 SocketChannel.open(new InetSocketAddress(hostName, port));
 
+            boolean finished = false;
+            for (int i = 0; i < 10; i++) {
+                if (sock.finishConnect()) {
+                    finished = true;
+                    break;
+                }
+
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException ie) {
+                    // ignore interrupts
+                }
+            }
+
+            if (!finished) {
+                throw new IOException("Could not finish connection to " +
+                                      hostName + ":" + port);
+            }
+
             addSocketChannel(sock, bufCache);
         }
 
