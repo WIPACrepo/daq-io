@@ -168,7 +168,7 @@ if(DEBUG_NEW)System.err.println("ANtop");
             for (InputChannel cd : newChanList) {
 if(DEBUG_NEW)System.err.println("ANreg "+cd);
                 try {
-                    cd.register(selector);
+                    cd.register(sel);
                 } catch (ClosedChannelException cce) {
                     LOG.error("Cannot register closed channel", cce);
                     continue;
