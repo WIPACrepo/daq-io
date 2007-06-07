@@ -180,8 +180,7 @@ try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
      */
     public String getStateString()
     {
-try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
-        throw new Error("Unimplemented");
+        return "MockState";
     }
 
     /**
