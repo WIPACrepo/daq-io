@@ -4,10 +4,10 @@ import icecube.daq.common.DAQCmdInterface;
 
 import icecube.daq.io.test.MockAppender;
 
-import icecube.daq.payload.ByteBufferCache;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IUTCTime;
 import icecube.daq.payload.PayloadDestination;
+import icecube.daq.payload.VitreousBufferCache;
 
 import icecube.daq.payload.splicer.Payload;
 import icecube.daq.payload.splicer.PayloadFactory;
@@ -401,8 +401,7 @@ public class FileDispatcherTest
     public void testDispatchEvent()
         throws DispatchException
     {
-        IByteBufferCache bufCache =
-            new ByteBufferCache(1000, 20000, 40000, "testDispatchEvent");
+        IByteBufferCache bufCache = new VitreousBufferCache();
 
         FileDispatcher fd = new FileDispatcher("physics", bufCache);
         assertNotNull("ByteBuffer was null", fd.getByteBufferCache());
@@ -581,8 +580,7 @@ public class FileDispatcherTest
         }
 
         try {
-            IByteBufferCache bufCache =
-                new ByteBufferCache(1000, 20000, 40000, "testFull");
+            IByteBufferCache bufCache = new VitreousBufferCache();
 
             FileDispatcher fd =
                 new FileDispatcher(destDirName, "physics", bufCache);

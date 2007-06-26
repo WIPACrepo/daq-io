@@ -7,8 +7,8 @@ import icecube.daq.common.NormalState;
 
 import icecube.daq.io.test.MockAppender;
 
-import icecube.daq.payload.ByteBufferCache;
 import icecube.daq.payload.IByteBufferCache;
+import icecube.daq.payload.VitreousBufferCache;
 
 import java.io.IOException;
 
@@ -174,56 +174,56 @@ public class PayloadReaderTest
                         allocStopped[0].booleanValue());
         }
 
-        for (int i = 0; i < 9; i++) {
+        for (int i = 0; i < 7; i++) {
             Long[] data;
             String name;
             long val;
 
             switch (i) {
             case 0:
-                name = "curAcqBuf";
-                data = rdr.getBufferCurrentAcquiredBuffers();
-                val = bufsAcquired;
-            break;
-            case 1:
-                name = "curAcqByt";
-                data = rdr.getBufferCurrentAcquiredBytes();
-                val = bytesAcquired;
-                break;
-            case 2:
                 name = "bytesRcvd";
                 data = rdr.getBytesReceived();
                 val = bytesRcvd;
                 break;
-            case 3:
+            case 1:
                 name = "lim2Rest";
                 data = rdr.getLimitToRestartAllocation();
-                val = 100000;
+                val = 100000000;
                 break;
-            case 4:
+            case 2:
                 name = "lim2Stop";
                 data = rdr.getLimitToStopAllocation();
-                val = 140000;
+                val = 140000000;
                 break;
-            case 5:
+            case 3:
                 name = "maxRest";
                 data = rdr.getPercentMaxRestartAllocation();
                 val = 50;
                 break;
-            case 6:
+            case 4:
                 name = "maxStop";
                 data = rdr.getPercentMaxStopAllocation();
                 val = 70;
                 break;
-            case 7:
+            case 5:
                 name = "recsRcvd";
                 data = rdr.getRecordsReceived();
                 val = recsRcvd;
                 break;
-            case 8:
+            case 6:
                 name = "stopsRcvd";
                 data = rdr.getStopMessagesReceived();
                 val = stopsRcvd;
+                break;
+            case 7:
+                name = "curAcqBuf";
+                data = rdr.getBufferCurrentAcquiredBuffers();
+                val = bufsAcquired;
+            break;
+            case 8:
+                name = "curAcqByt";
+                data = rdr.getBufferCurrentAcquiredBytes();
+                val = bytesAcquired;
                 break;
             default:
                 name = "unknown";
@@ -347,9 +347,7 @@ public class PayloadReaderTest
     public void testBasic()
         throws IOException
     {
-        IByteBufferCache bufMgr =
-            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN * 20, BUFFER_LEN * 40,
-                                "BasicCache");
+        IByteBufferCache bufMgr = new VitreousBufferCache();
 
         Pipe testPipe = Pipe.open();
         Pipe.SinkChannel sinkChannel = testPipe.sink();
@@ -457,9 +455,7 @@ public class PayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr =
-            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
-                                BUFFER_LEN*40, "OutputInput");
+        IByteBufferCache bufMgr = new VitreousBufferCache();
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -528,9 +524,7 @@ public class PayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr =
-            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
-                                BUFFER_LEN*40, "MultiOutputInput");
+        IByteBufferCache bufMgr = new VitreousBufferCache();
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -621,9 +615,7 @@ public class PayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr =
-            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
-                                BUFFER_LEN*40, "MultiSize");
+        IByteBufferCache bufMgr = new VitreousBufferCache();
 
         tstRdr = new SimpleReader("MultiSize");
         tstRdr.registerComponentObserver(this);
@@ -733,9 +725,7 @@ public class PayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr =
-            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
-                                BUFFER_LEN*40, "OutputInput");
+        IByteBufferCache bufMgr = new VitreousBufferCache();
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -795,9 +785,7 @@ public class PayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr =
-            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
-                                BUFFER_LEN*40, "Getters");
+        IByteBufferCache bufMgr = new VitreousBufferCache();
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -870,9 +858,7 @@ public class PayloadReaderTest
     public void testInetServer()
         throws Exception
     {
-        IByteBufferCache bufMgr =
-            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
-                                BUFFER_LEN*40, "InetServer");
+        IByteBufferCache bufMgr = new VitreousBufferCache();
 
         tstRdr = new SimpleReader("InetServer");
 
@@ -976,9 +962,7 @@ public class PayloadReaderTest
     public void testMultiServer()
         throws Exception
     {
-        IByteBufferCache bufMgr =
-            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
-                                BUFFER_LEN*40, "MultiServer");
+        IByteBufferCache bufMgr = new VitreousBufferCache();
 
         final int numTstRdrs = 4;
 
@@ -1095,9 +1079,7 @@ public class PayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr =
-            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
-                                BUFFER_LEN*40, "ServerInput");
+        IByteBufferCache bufMgr = new VitreousBufferCache();
 
         Selector sel = Selector.open();
 

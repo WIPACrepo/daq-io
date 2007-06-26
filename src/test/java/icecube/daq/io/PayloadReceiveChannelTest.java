@@ -6,7 +6,8 @@ import icecube.daq.io.PayloadReceiveChannel;
 
 import icecube.daq.io.test.MockAppender;
 
-import icecube.daq.payload.ByteBufferCache;
+import icecube.daq.payload.IByteBufferCache;
+import icecube.daq.payload.VitreousBufferCache;
 
 import java.io.IOException;
 
@@ -57,9 +58,7 @@ public class PayloadReceiveChannelTest
 
         Pipe.SourceChannel srcChan = testPipe.source();
 
-        ByteBufferCache cacheMgr =
-            new ByteBufferCache(BUFFER_BLEN, BUFFER_BLEN*20,
-                                BUFFER_BLEN*40, "Basic");
+        IByteBufferCache cacheMgr = new VitreousBufferCache();
 
         Semaphore inputSem = new Semaphore(0);
 

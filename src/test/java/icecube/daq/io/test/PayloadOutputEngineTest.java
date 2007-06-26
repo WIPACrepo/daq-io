@@ -16,7 +16,7 @@ import icecube.daq.common.*;
 import icecube.daq.io.PayloadOutputEngine;
 import icecube.daq.io.PayloadTransmitChannel;
 import icecube.daq.payload.IByteBufferCache;
-import icecube.daq.payload.ByteBufferCache;
+import icecube.daq.payload.VitreousBufferCache;
 
 import java.io.IOException;
 import java.net.BindException;
@@ -346,9 +346,7 @@ public class PayloadOutputEngineTest
 
     public void testOutputLoop() throws Exception {
         // buffer caching manager
-        IByteBufferCache cacheMgr =
-            new ByteBufferCache(BUFFER_BLEN, BUFFER_BLEN*20,
-                                BUFFER_BLEN*40, "OutputLoop");
+        IByteBufferCache cacheMgr = new VitreousBufferCache();
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -419,9 +417,7 @@ public class PayloadOutputEngineTest
 
     public void testServerOutput() throws Exception {
         // buffer caching manager
-        IByteBufferCache cacheMgr =
-            new ByteBufferCache(BUFFER_BLEN, BUFFER_BLEN*20,
-                                BUFFER_BLEN*40, "ServerOutput");
+        IByteBufferCache cacheMgr = new VitreousBufferCache();
 
         Selector sel = Selector.open();
 

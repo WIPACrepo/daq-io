@@ -7,8 +7,8 @@ import icecube.daq.common.NormalState;
 
 import icecube.daq.io.test.MockAppender;
 
-import icecube.daq.payload.ByteBufferCache;
 import icecube.daq.payload.IByteBufferCache;
+import icecube.daq.payload.VitreousBufferCache;
 
 import java.io.IOException;
 
@@ -146,9 +146,7 @@ public class PushPayloadReaderTest
     public void testStartStop()
         throws Exception
     {
-        IByteBufferCache bufMgr =
-            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
-                                BUFFER_LEN*40, "OutputInput");
+        IByteBufferCache bufMgr = new VitreousBufferCache();
 
         tstRdr = new MockPushReader("StartStop", bufMgr);
 
@@ -194,9 +192,7 @@ public class PushPayloadReaderTest
     public void testStartDispose()
         throws Exception
     {
-        IByteBufferCache bufMgr =
-            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
-                                BUFFER_LEN*40, "OutputInput");
+        IByteBufferCache bufMgr = new VitreousBufferCache();
 
         tstRdr = new MockPushReader("StartDisp", bufMgr);
 
@@ -221,9 +217,7 @@ public class PushPayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr =
-            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
-                                BUFFER_LEN*40, "OutputInput");
+        IByteBufferCache bufMgr = new VitreousBufferCache();
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -298,9 +292,7 @@ public class PushPayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr =
-            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
-                                BUFFER_LEN*40, "MultiOutputInput");
+        IByteBufferCache bufMgr = new VitreousBufferCache();
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();

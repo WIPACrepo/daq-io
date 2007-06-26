@@ -10,8 +10,8 @@ import icecube.daq.io.test.MockSpliceableFactory;
 import icecube.daq.io.test.MockSplicer;
 import icecube.daq.io.test.MockStrandTail;
 
-import icecube.daq.payload.ByteBufferCache;
 import icecube.daq.payload.IByteBufferCache;
+import icecube.daq.payload.VitreousBufferCache;
 
 import icecube.daq.splicer.Splicer;
 
@@ -178,9 +178,7 @@ public class SpliceablePayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr =
-            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
-                                BUFFER_LEN*40, "OutputInput");
+        IByteBufferCache bufMgr = new VitreousBufferCache();
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -258,9 +256,7 @@ public class SpliceablePayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr =
-            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
-                                BUFFER_LEN*40, "MultiOutputInput");
+        IByteBufferCache bufMgr = new VitreousBufferCache();
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
