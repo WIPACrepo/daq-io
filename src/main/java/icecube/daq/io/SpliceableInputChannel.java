@@ -81,10 +81,12 @@ public class SpliceableInputChannel
         Spliceable spliceable = factory.createSpliceable(payBuf);
         if (spliceable == null) {
             if (LOG.isErrorEnabled()) {
-                LOG.error("Couldn't generate a payload from a buf: ");
-                LOG.error("buf record: " + payBuf.getInt(0));
-                LOG.error("buf limit: " + payBuf.limit());
-                LOG.error("buf capacity: " + payBuf.capacity());
+                LOG.error("Couldn't use buffer (limit " +
+                          payBuf.limit() + ", capacity " + payBuf.capacity() +
+                          ") to create payload (length " +
+                          (payBuf.limit() < 4 ? -1 : payBuf.getInt(0)) +
+                          ", capacity " +
+                          (payBuf.limit() < 8 ? -1 : payBuf.getInt(4)) + ")");
             }
 
             throw new RuntimeException("Couldn't create a Spliceable");
