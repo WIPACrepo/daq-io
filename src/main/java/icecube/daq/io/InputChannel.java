@@ -1,6 +1,5 @@
 package icecube.daq.io;
 
-import icecube.daq.payload.ByteBufferCache;
 import icecube.daq.payload.IByteBufferCache;
 
 import java.io.IOException;
@@ -335,9 +334,8 @@ if(DEBUG_SELECT)System.err.println("  Got "+payBuf);
     private void setAllocationLimits()
     {
         allocationStopped = false;
-        if (bufMgr instanceof ByteBufferCache && ((ByteBufferCache) bufMgr).getIsCacheBounded()) {
-            long maxAllocation =
-                ((ByteBufferCache) bufMgr).getMaxAquiredBytes();
+        if (bufMgr.getIsCacheBounded()) {
+            final long maxAllocation = bufMgr.getMaxAquiredBytes();
             limitToStopAllocation = (maxAllocation *
                                      percentOfMaxStopAllocation) / 100;
             limitToRestartAllocation = (maxAllocation *
