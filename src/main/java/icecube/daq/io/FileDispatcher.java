@@ -194,7 +194,7 @@ public class FileDispatcher implements Dispatcher {
     public void dispatchEvent(Payload event) throws DispatchException {
         if (bufferCache == null) {
             final String errMsg =
-                "ByteBufferCache is null! Cannot dispatch events!";
+                "Buffer cache is null! Cannot dispatch events!";
 
             throw new DispatchException(errMsg);
         }
