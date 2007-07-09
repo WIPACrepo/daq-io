@@ -30,7 +30,7 @@ public class PayloadReceiveChannelTest
 {
     private static final int BUFFER_BLEN = 5000;
 
-    private static Level logLevel = Level.INFO;
+    private static Level logLevel = Level.WARN;
 
     public PayloadReceiveChannelTest(String name)
     {

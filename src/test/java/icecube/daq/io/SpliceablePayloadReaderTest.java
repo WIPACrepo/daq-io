@@ -46,7 +46,7 @@ public class SpliceablePayloadReaderTest
     private static final int BUFFER_LEN = 5000;
     private static final int INPUT_OUTPUT_LOOP_CNT = 5;
 
-    private static Level logLevel = Level.INFO;
+    private static Level logLevel = Level.WARN;
 
     private static ByteBuffer stopMsg;
 

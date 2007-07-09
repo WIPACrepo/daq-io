@@ -203,7 +203,7 @@ class AdjustablePayload
 public class FileDispatcherTest
     extends TestCase
 {
-    private static Level logLevel = Level.INFO;
+    private static Level logLevel = Level.WARN;
 
     /**
      * Constructs an instance of this test.
