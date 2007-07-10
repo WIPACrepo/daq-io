@@ -31,7 +31,7 @@ try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
         return new MockSpliceable(bBuf);
     }
 
-    public void invalidateSplicables(List x0)
+    public void invalidateSpliceables(List x0)
     {
 try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
         throw new Error("Unimplemented");
