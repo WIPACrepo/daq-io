@@ -20,7 +20,7 @@ try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
         throw new Error("Unimplemented");
     }
 
-    public Spliceable createCurrentPlaceSplicaeable()
+    public Spliceable createCurrentPlaceSpliceable()
     {
 try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
         throw new Error("Unimplemented");
