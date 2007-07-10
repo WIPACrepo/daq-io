@@ -13,7 +13,6 @@ package icecube.daq.io;
 import EDU.oswego.cs.dl.util.concurrent.Mutex;
 import EDU.oswego.cs.dl.util.concurrent.LinkedQueue;
 import EDU.oswego.cs.dl.util.concurrent.Semaphore;
-import icecube.daq.payload.ByteBufferCache;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.VitreousBufferCache;
 import icecube.daq.common.DAQComponentObserver;
@@ -190,9 +189,9 @@ public class PayloadReceiveChannel {
     protected void setCacheLimits()
     {
         allocationStopped = false;
-        if (bufferMgr instanceof ByteBufferCache && ((ByteBufferCache) bufferMgr).getIsCacheBounded()) {
+        if (bufferMgr.getIsCacheBounded()) {
             long maxAllocation =
-                    ((ByteBufferCache) bufferMgr).getMaxAquiredBytes();
+                    bufferMgr.getMaxAquiredBytes();
             limitToStopAllocation = (maxAllocation *
                     percentOfMaxStopAllocation) / 100;
             limitToRestartAllocation = (maxAllocation *
@@ -367,24 +366,12 @@ public class PayloadReceiveChannel {
 
     public long getBufferCurrentAcquiredBytes()
     {
-        if (bufferMgr instanceof ByteBufferCache) {
-            return ((ByteBufferCache) bufferMgr).getCurrentAquiredBytes();
-        } else if (bufferMgr instanceof VitreousBufferCache) {
-            return ((VitreousBufferCache) bufferMgr).getCurrentAquiredBytes();
-        }
-
-        return Long.MIN_VALUE;
+        return bufferMgr.getCurrentAquiredBytes();
     }
 
     public long getBufferCurrentAcquiredBuffers()
     {
-        if (bufferMgr instanceof ByteBufferCache) {
-            return ((ByteBufferCache) bufferMgr).getCurrentAquiredBuffers();
-        } else if (bufferMgr instanceof VitreousBufferCache) {
-            return ((VitreousBufferCache) bufferMgr).getCurrentAquiredBuffers();
-        }
-
-        return Long.MIN_VALUE;
+        return bufferMgr.getCurrentAquiredBuffers();
     }
 
     public String presentState()
@@ -402,8 +389,7 @@ public class PayloadReceiveChannel {
             // check for allocation limits--flow control
 
             if (allocationStopped) {
-                if (bufferMgr instanceof ByteBufferCache &&
-                    ((ByteBufferCache) bufferMgr).getCurrentAquiredBytes() <=
+                if (bufferMgr.getCurrentAquiredBytes() <=
                     limitToRestartAllocation)
                 {
                     // lets try to allocate
