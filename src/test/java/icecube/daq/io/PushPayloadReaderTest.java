@@ -5,7 +5,7 @@ import icecube.daq.common.DAQComponentObserver;
 import icecube.daq.common.ErrorState;
 import icecube.daq.common.NormalState;
 
-import icecube.daq.io.test.MockAppender;
+import icecube.daq.io.test.LoggingCase;
 
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.VitreousBufferCache;
@@ -26,13 +26,9 @@ import java.nio.channels.WritableByteChannel;
 import java.util.Iterator;
 
 import junit.framework.Test;
-import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
 import junit.textui.TestRunner;
-
-import org.apache.log4j.BasicConfigurator;
-import org.apache.log4j.Level;
 
 class MockPushReader
     extends PushPayloadReader
@@ -68,13 +64,11 @@ class MockPushReader
 }
 
 public class PushPayloadReaderTest
-    extends TestCase
+    extends LoggingCase
     implements DAQComponentObserver
 {
     private static final int BUFFER_LEN = 5000;
     private static final int INPUT_OUTPUT_LOOP_CNT = 5;
-
-    private static Level logLevel = Level.WARN;
 
     private static ByteBuffer stopMsg;
 
@@ -115,9 +109,6 @@ public class PushPayloadReaderTest
 
         sinkStopNotificationCalled = false;
         sinkErrorNotificationCalled = false;
-
-        BasicConfigurator.resetConfiguration();
-        BasicConfigurator.configure(new MockAppender(logLevel));
     }
 
     /**

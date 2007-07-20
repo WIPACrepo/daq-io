@@ -4,7 +4,7 @@ import EDU.oswego.cs.dl.util.concurrent.Semaphore;
 
 import icecube.daq.io.PayloadReceiveChannel;
 
-import icecube.daq.io.test.MockAppender;
+import icecube.daq.io.test.LoggingCase;
 
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.VitreousBufferCache;
@@ -15,7 +15,6 @@ import java.nio.channels.Pipe;
 import java.nio.channels.Selector;
 
 import junit.framework.Test;
-import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
 import junit.textui.TestRunner;
@@ -23,28 +22,14 @@ import junit.textui.TestRunner;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import org.apache.log4j.BasicConfigurator;
-import org.apache.log4j.Level;
-
 public class PayloadReceiveChannelTest
-    extends TestCase
+    extends LoggingCase
 {
     private static final int BUFFER_BLEN = 5000;
-
-    private static Level logLevel = Level.WARN;
 
     public PayloadReceiveChannelTest(String name)
     {
         super(name);
-    }
-
-    protected void setUp()
-        throws Exception
-    {
-        super.setUp();
-
-        BasicConfigurator.resetConfiguration();
-        BasicConfigurator.configure(new MockAppender(logLevel));
     }
 
     public static Test suite()

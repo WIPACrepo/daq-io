@@ -5,7 +5,7 @@ import icecube.daq.common.DAQComponentObserver;
 import icecube.daq.common.ErrorState;
 import icecube.daq.common.NormalState;
 
-import icecube.daq.io.test.MockAppender;
+import icecube.daq.io.test.LoggingCase;
 
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.VitreousBufferCache;
@@ -29,13 +29,9 @@ import java.util.Iterator;
 import java.util.List;
 
 import junit.framework.Test;
-import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
 import junit.textui.TestRunner;
-
-import org.apache.log4j.BasicConfigurator;
-import org.apache.log4j.Level;
 
 class SimpleReader
     extends PayloadReader
@@ -92,13 +88,11 @@ class SimpleReader
 }
 
 public class PayloadReaderTest
-    extends TestCase
+    extends LoggingCase
     implements DAQComponentObserver
 {
     private static final int BUFFER_LEN = 5000;
     private static final int INPUT_OUTPUT_LOOP_CNT = 5;
-
-    private static Level logLevel = Level.WARN;
 
     private static ByteBuffer stopMsg;
 
@@ -319,9 +313,6 @@ public class PayloadReaderTest
 
         sinkStopNotificationCalled = false;
         sinkErrorNotificationCalled = false;
-
-        BasicConfigurator.resetConfiguration();
-        BasicConfigurator.configure(new MockAppender(logLevel));
     }
 
     /**
@@ -889,6 +880,9 @@ public class PayloadReaderTest
         assertTrue("PayloadReader in " + tstRdr.getPresentState() +
                    ", not Running after startup", tstRdr.isRunning());
 
+        assertEquals("Bad number of log messages",
+                     0, getNumberOfMessages());
+
         ByteBuffer testBuf;
 
         final int bufLen = 64;
@@ -923,6 +917,14 @@ public class PayloadReaderTest
             // XXX should check recvCnt
         }
 
+
+        assertEquals("Bad number of log messages",
+                     1, getNumberOfMessages());
+        assertEquals("Unexpected log message 0",
+                     "Closed InetServer socket channel, 1 channels remain",
+                     getMessage(0));
+        clearMessages();
+
         tstRdr.forcedStopProcessing();
         Thread.sleep(100);
 
@@ -941,9 +943,7 @@ public class PayloadReaderTest
         assertTrue("PayloadReader in " + tstRdr.getPresentState() +
                    ", not Idle after StopSig", tstRdr.isStopped());
 
-
         tstRdr.destroyProcessor();
-
         waitUntilDestroyed(tstRdr);
         assertTrue("PayloadReader did not die after kill request",
                    tstRdr.isDestroyed());

@@ -5,7 +5,7 @@ import icecube.daq.common.DAQComponentObserver;
 import icecube.daq.common.ErrorState;
 import icecube.daq.common.NormalState;
 
-import icecube.daq.io.test.MockAppender;
+import icecube.daq.io.test.LoggingCase;
 import icecube.daq.io.test.MockSpliceableFactory;
 import icecube.daq.io.test.MockSplicer;
 import icecube.daq.io.test.MockStrandTail;
@@ -31,22 +31,16 @@ import java.nio.channels.WritableByteChannel;
 import java.util.Iterator;
 
 import junit.framework.Test;
-import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
 import junit.textui.TestRunner;
 
-import org.apache.log4j.BasicConfigurator;
-import org.apache.log4j.Level;
-
 public class SpliceablePayloadReaderTest
-    extends TestCase
+    extends LoggingCase
     implements DAQComponentObserver
 {
     private static final int BUFFER_LEN = 5000;
     private static final int INPUT_OUTPUT_LOOP_CNT = 5;
-
-    private static Level logLevel = Level.WARN;
 
     private static ByteBuffer stopMsg;
 
@@ -99,9 +93,6 @@ public class SpliceablePayloadReaderTest
 
         sinkStopNotificationCalled = false;
         sinkErrorNotificationCalled = false;
-
-        BasicConfigurator.resetConfiguration();
-        BasicConfigurator.configure(new MockAppender(logLevel));
     }
 
     /**
@@ -150,11 +141,22 @@ public class SpliceablePayloadReaderTest
         assertTrue("PayloadReader in " + tstRdr.getPresentState() +
                    ", not Idle after StopSig", tstRdr.isStopped());
 
+        assertEquals("Bad number of log messages",
+                     0, getNumberOfMessages());
+
         // try it a second time
         tstRdr.startProcessing();
         waitUntilRunning(tstRdr);
         assertTrue("PayloadReader in " + tstRdr.getPresentState() +
                    ", not Running after StartSig", tstRdr.isRunning());
+
+        assertEquals("Bad number of log messages",
+                     1, getNumberOfMessages());
+        assertEquals("Unexpected log message 0",
+                     "Splicer should have been in STOPPED state," +
+                     " not MockState.  Calling Splicer.forceStop()",
+                     getMessage(0));
+        clearMessages();
 
         tstRdr.forcedStopProcessing();
         waitUntilStopped(tstRdr);
@@ -166,12 +168,23 @@ public class SpliceablePayloadReaderTest
         assertTrue("PayloadReader did not die after kill request",
                    tstRdr.isDestroyed());
 
+        assertEquals("Bad number of log messages",
+                     0, getNumberOfMessages());
+
         try {
             tstRdr.startProcessing();
             fail("PayloadReader restart after kill succeeded");
         } catch (Error e) {
             // expect this to fail
         }
+
+        assertEquals("Bad number of log messages",
+                     1, getNumberOfMessages());
+        assertEquals("Unexpected log message 0",
+                     "Splicer should have been in STOPPED state," +
+                     " not MockState.  Calling Splicer.forceStop()",
+                     getMessage(0));
+        clearMessages();
     }
 
     public void testOutputInput()

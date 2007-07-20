@@ -15,6 +15,7 @@ import EDU.oswego.cs.dl.util.concurrent.LinkedQueue;
 import icecube.daq.common.*;
 import icecube.daq.io.PayloadOutputEngine;
 import icecube.daq.io.PayloadTransmitChannel;
+import icecube.daq.io.test.LoggingCase;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.VitreousBufferCache;
 
@@ -30,7 +31,6 @@ import java.nio.ByteBuffer;
 import java.util.Iterator;
 
 import junit.framework.Test;
-import junit.framework.TestCase;
 import junit.framework.TestSuite;
 import junit.textui.TestRunner;
 
@@ -41,7 +41,7 @@ import junit.textui.TestRunner;
  * @version $Id: PayloadOutputEngineTest.java,v 1.4 2006/06/30 18:07:06 dwharton Exp $
  */
 public class PayloadOutputEngineTest
-        extends TestCase implements DAQComponentObserver {
+        extends LoggingCase implements DAQComponentObserver {
 
     // private static member data
     private static final int BUFFER_BLEN = 32000;
@@ -356,9 +356,20 @@ public class PayloadOutputEngineTest
         engine = new PayloadOutputEngine("OutputLoop", 0, "test");
         engine.registerComponentObserver(this);
         engine.start();
+
+        assertEquals("Bad number of log messages",
+                     0, getNumberOfMessages());
+
         PayloadTransmitChannel transmitEng =
             engine.addDataChannel(testPipe.sink(), cacheMgr);
         transmitEng.registerComponentObserver(this, "OutputLoop");
+
+        assertEquals("Bad number of log messages",
+                     1, getNumberOfMessages());
+        assertEquals("Unexpected log message",
+                     "Setting multiple observers", getMessage(0));
+        clearMessages();
+
         assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
                    ", not Idle after StopSig", engine.isStopped());
         engine.startProcessing();
@@ -431,8 +442,17 @@ public class PayloadOutputEngineTest
             SocketChannel.open(new InetSocketAddress("localhost", port));
         sock.configureBlocking(false);
 
+        assertEquals("Bad number of log messages",
+                     0, getNumberOfMessages());
+
         PayloadTransmitChannel transmitEng = engine.connect(cacheMgr, sock, 1);
         transmitEng.registerComponentObserver(this, "ServerOutput");
+
+        assertEquals("Bad number of log messages",
+                     1, getNumberOfMessages());
+        assertEquals("Unexpected log message",
+                     "Setting multiple observers", getMessage(0));
+        clearMessages();
 
         SocketChannel chan = acceptChannel(sel);
 
