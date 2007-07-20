@@ -23,13 +23,14 @@ import org.apache.commons.logging.LogFactory;
  * Dispatch payload files to PnF
  */
 public class FileDispatcher implements Dispatcher {
+    public static final String DISPATCH_DEST_STORAGE = "/mnt/data/pdaqlocal";
+
     private static final Log LOG = LogFactory.getLog(FileDispatcher.class);
 
     private static final String START_PREFIX =
         DAQCmdInterface.DAQ_ONLINE_RUNSTART_FLAG;
     private static final String STOP_PREFIX =
         DAQCmdInterface.DAQ_ONLINE_RUNSTOP_FLAG;
-    private static final String DISPATCH_DEST_STORAGE = "/mnt/data/pdaqlocal";
     private static final int KB_IN_MB = 1024;
 
     private String baseFileName;
