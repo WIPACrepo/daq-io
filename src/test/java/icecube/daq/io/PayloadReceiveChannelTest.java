@@ -17,6 +17,7 @@ import java.nio.channels.Selector;
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
+
 import junit.textui.TestRunner;
 
 import org.apache.commons.logging.Log;
@@ -46,6 +47,11 @@ public class PayloadReceiveChannelTest
         BasicConfigurator.configure(new MockAppender(logLevel));
     }
 
+    public static Test suite()
+    {
+        return new TestSuite(PayloadReceiveChannelTest.class);
+    }
+
     public void testConstructor()
         throws IOException
     {
@@ -68,11 +74,6 @@ public class PayloadReceiveChannelTest
 
         assertFalse("Expected channel to be non-blocking",
                     srcChan.isBlocking());
-    }
-
-    public static Test suite()
-    {
-        return new TestSuite(PayloadReceiveChannelTest.class);
     }
 
     public static void main(String[] args)
