@@ -8,6 +8,8 @@ import icecube.daq.splicer.Splicer;
 import icecube.daq.splicer.StrandTail;
 
 import icecube.daq.payload.IByteBufferCache;
+import icecube.daq.payload.ILoadablePayload;
+import icecube.daq.payload.IPayload;
 
 import java.io.IOException;
 
@@ -97,18 +99,35 @@ public class SpliceableInputChannel
 
     private void pushSpliceable(Spliceable spliceable)
     {
+        boolean success;
         try {
             strandTail.push(spliceable);
+            success = true;
         } catch (OrderingException oe) {
-            // TODO: Need to be reviewed.
-            if (LOG.isErrorEnabled()) {
-                LOG.error("coudn't push a spliceable object: ", oe);
-            }
+            success = false;
         } catch (ClosedStrandException cse) {
-            // TODO: Need to be reviewed.
+            success = false;
+        }
+
+        if (!success) {
+            IPayload payload = (IPayload) spliceable;
             if (LOG.isErrorEnabled()) {
-                LOG.error("coudn't push a spliceable object: ", cse);
+                long time;
+                if (payload.getPayloadTimeUTC() == null) {
+                    time = -1L;
+                } else {
+                    time = payload.getPayloadTimeUTC().getUTCTimeAsLong();
+                }
+                
+                if (LOG.isErrorEnabled()) {
+                    LOG.error("Couldn't push payload type " +
+                              payload.getPayloadType() +
+                              ", length " + payload.getPayloadLength() +
+                              ", time " + time + "; recycling");
+                }
             }
+
+            ((ILoadablePayload) payload).recycle();
         }
     }
 
