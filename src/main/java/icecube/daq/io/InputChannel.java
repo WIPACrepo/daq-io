@@ -334,18 +334,18 @@ if(DEBUG_SELECT)System.err.println("  Got "+payBuf);
     private void setAllocationLimits()
     {
         allocationStopped = false;
+
+        final long maxAllocation;
         if (bufMgr.getIsCacheBounded()) {
-            final long maxAllocation = bufMgr.getMaxAquiredBytes();
-            limitToStopAllocation = (maxAllocation *
-                                     percentOfMaxStopAllocation) / 100;
-            limitToRestartAllocation = (maxAllocation *
-                                        percentOfMaxRestartAllocation) / 100;
+            maxAllocation = bufMgr.getMaxAquiredBytes();
         } else {
-            limitToStopAllocation = (DEFAULT_MAX_BYTES_ALLOCATION_LIMIT *
-                                     percentOfMaxStopAllocation) / 100;
-            limitToRestartAllocation = (DEFAULT_MAX_BYTES_ALLOCATION_LIMIT *
-                                        percentOfMaxRestartAllocation) / 100;
+            maxAllocation = DEFAULT_MAX_BYTES_ALLOCATION_LIMIT;
         }
+
+        limitToStopAllocation =
+            (maxAllocation / 100L) * percentOfMaxStopAllocation;
+        limitToRestartAllocation =
+            (maxAllocation / 100L) * percentOfMaxRestartAllocation;
     }
 
     public void startReading()
