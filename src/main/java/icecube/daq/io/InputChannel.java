@@ -271,23 +271,43 @@ if(DEBUG_SELECT)System.err.println("  GotStop");
                 break;
             }
 
-            // if we can't allocate byte buffers, give up
-            if (allocationStopped) {
-if(DEBUG_SELECT)System.err.println("  NoAlloc");
+            // check for allocation limits
+            if (bufMgr.getCurrentAquiredBytes() >= limitToStopAllocation) {
+                if (!allocationStopped) {
+                    if (LOG.isErrorEnabled()) {
+                        LOG.error("Channel#" + id + " stopped: AcqBytes " +
+                                  bufMgr.getCurrentAquiredBytes() +
+                                  " >= limit " + limitToStopAllocation);
+                    }
+if(DEBUG_SELECT)System.err.println("  AllocStopped");
+                    allocationStopped = true;
+                }
+
                 break;
             }
 
-            // check for allocation limits
-            if (bufMgr.getCurrentAquiredBytes() >= limitToStopAllocation) {
-                if (LOG.isErrorEnabled()) {
-                    LOG.error("Channel#" + id + " stopped: AcqBytes " +
-                              bufMgr.getCurrentAquiredBytes() + " >= limit " +
-                              limitToStopAllocation);
+            // if byte buffer allocation was stopped...
+            if (allocationStopped) {
+                if (bufMgr.getCurrentAquiredBytes() >
+                    limitToRestartAllocation)
+                {
+                    // give buffer cache a chance to clear out
+                    try {
+                        Thread.sleep(1000);
+                    } catch (Exception ie) {
+                        // ignore interrupts
+                    }
+                    break;
                 }
-                allocationStopped = true;
-if(DEBUG_SELECT)System.err.println("  AllocStopped");
 
-                break;
+if(DEBUG_SELECT)System.err.println("  RestartAlloc");
+                // restart allocation
+                allocationStopped = false;
+                if (LOG.isErrorEnabled()) {
+                    LOG.error("Channel#" + id + " restarted: AcqBytes " +
+                              bufMgr.getCurrentAquiredBytes() + " <= limit " +
+                              limitToRestartAllocation);
+                }
             }
 
             // if buffer does not contain enough bytes for the payload length...
