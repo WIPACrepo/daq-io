@@ -19,15 +19,16 @@ import org.apache.commons.logging.LogFactory;
 
 public abstract class InputChannel
 {
+    public static final long DEFAULT_MAX_BYTES_ALLOCATION_LIMIT = 200000000;
+
+    public static final long PERCENT_STOP_ALLOCATION = 70;
+    public static final long PERCENT_RESTART_ALLOCATION = 50;
+
     /** logging object */
     private static final Log LOG = LogFactory.getLog(PayloadReader.class);
 
     /** size of initial integer payload length */
     private static final int INT_SIZE = 4;
-
-    private static final long DEFAULT_PERCENT_STOP_ALLOCATION = 70;
-    private static final long DEFAULT_PERCENT_RESTART_ALLOCATION = 50;
-    private static final long DEFAULT_MAX_BYTES_ALLOCATION_LIMIT = 200000000;
 
     private InputChannelParent parent;
     private SelectableChannel channel;
@@ -46,11 +47,6 @@ public abstract class InputChannel
     private long bytesReceived;
     private long recordsReceived;
     private long stopsReceived;
-
-    private long percentOfMaxStopAllocation =
-        DEFAULT_PERCENT_STOP_ALLOCATION;
-    private long percentOfMaxRestartAllocation =
-        DEFAULT_PERCENT_RESTART_ALLOCATION;
 
     private static int nextId = 1;
     final int id = nextId++;
@@ -166,16 +162,6 @@ if(DEBUG_FILL)System.err.println("FillEnd "+inputBuf+" bufPos "+bufPos+" payBuf 
     long getLimitToRestartAllocation()
     {
         return limitToRestartAllocation;
-    }
-
-    long getPercentOfMaxStopAllocation()
-    {
-        return percentOfMaxStopAllocation;
-    }
-
-    long getPercentOfMaxRestartAllocation()
-    {
-        return percentOfMaxRestartAllocation;
     }
 
     long getRecordsReceived()
@@ -363,9 +349,11 @@ if(DEBUG_SELECT)System.err.println("  Got "+payBuf);
         }
 
         limitToStopAllocation =
-            (maxAllocation / 100L) * percentOfMaxStopAllocation;
+            ((maxAllocation / 100L) * PERCENT_STOP_ALLOCATION) +
+            (((maxAllocation % 100L) * PERCENT_STOP_ALLOCATION) / 100L);
         limitToRestartAllocation =
-            (maxAllocation / 100L) * percentOfMaxRestartAllocation;
+            ((maxAllocation / 100L) * PERCENT_RESTART_ALLOCATION) +
+            (((maxAllocation % 100L) * PERCENT_RESTART_ALLOCATION) / 100L);
     }
 
     public void startReading()

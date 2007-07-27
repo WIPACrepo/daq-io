@@ -291,22 +291,6 @@ if(DEBUG_NEW)System.err.println("ANend");
         return (Long[]) byteLimit.toArray(new Long[0]);
     }
 
-    public synchronized Long[] getPercentMaxStopAllocation() {
-        ArrayList byteLimit = new ArrayList();
-        for (InputChannel cd : chanList) {
-            byteLimit.add(new Long(cd.getPercentOfMaxStopAllocation()));
-        }
-        return (Long[]) byteLimit.toArray(new Long[0]);
-    }
-
-    public synchronized Long[] getPercentMaxRestartAllocation() {
-        ArrayList byteLimit = new ArrayList();
-        for (InputChannel cd : chanList) {
-            byteLimit.add(new Long(cd.getPercentOfMaxRestartAllocation()));
-        }
-        return (Long[]) byteLimit.toArray(new Long[0]);
-    }
-
     public String getPresentState()
     {
         return state.toString();

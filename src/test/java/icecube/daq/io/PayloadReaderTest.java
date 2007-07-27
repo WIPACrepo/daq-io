@@ -168,7 +168,7 @@ public class PayloadReaderTest
                         allocStopped[0].booleanValue());
         }
 
-        for (int i = 0; i < 9; i++) {
+        for (int i = 0; i < 7; i++) {
             Long[] data;
             String name;
             long val;
@@ -190,31 +190,21 @@ public class PayloadReaderTest
                 val = 140000000;
                 break;
             case 3:
-                name = "maxRest";
-                data = rdr.getPercentMaxRestartAllocation();
-                val = 50;
-                break;
-            case 4:
-                name = "maxStop";
-                data = rdr.getPercentMaxStopAllocation();
-                val = 70;
-                break;
-            case 5:
                 name = "recsRcvd";
                 data = rdr.getRecordsReceived();
                 val = recsRcvd;
                 break;
-            case 6:
+            case 4:
                 name = "stopsRcvd";
                 data = rdr.getStopMessagesReceived();
                 val = stopsRcvd;
                 break;
-            case 7:
+            case 5:
                 name = "curAcqBuf";
                 data = rdr.getBufferCurrentAcquiredBuffers();
                 val = bufsAcquired;
             break;
-            case 8:
+            case 6:
                 name = "curAcqByt";
                 data = rdr.getBufferCurrentAcquiredBytes();
                 val = bytesAcquired;
