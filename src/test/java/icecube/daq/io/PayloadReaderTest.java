@@ -168,7 +168,7 @@ public class PayloadReaderTest
                         allocStopped[0].booleanValue());
         }
 
-        for (int i = 0; i < 7; i++) {
+        for (int i = 0; i < 9; i++) {
             Long[] data;
             String name;
             long val;
@@ -809,9 +809,10 @@ public class PayloadReaderTest
         final int bufLen = 64;
 
         final int acquireLen = bufLen;
-        //testBuf = bufMgr.acquireBuffer(acquireLen);
-        testBuf = ByteBuffer.allocateDirect(acquireLen);
+        testBuf = bufMgr.acquireBuffer(acquireLen);
         assertNotNull("Unable to acquire transmit buffer", testBuf);
+
+        checkGetters(tstRdr, 1, 1, acquireLen, 0, 0, 0);
 
         testBuf.putInt(0, bufLen);
         testBuf.limit(bufLen);
@@ -824,7 +825,7 @@ public class PayloadReaderTest
             Thread.sleep(100);
         }
 
-        checkGetters(tstRdr, 1, 1, BUFFER_LEN, bufLen, 1, 0);
+        checkGetters(tstRdr, 1, 1, acquireLen, bufLen, 1, 0);
 
         assertFalse("PayloadReader in Error state after ErrorSig",
                    tstRdr.isError());
