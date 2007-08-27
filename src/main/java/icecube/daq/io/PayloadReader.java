@@ -316,6 +316,14 @@ if(DEBUG_NEW)System.err.println("ANend");
         return (Long[]) recordCount.toArray(new Long[0]);
     }
 
+    public synchronized long getTotalRecordsReceived() {
+        long total = 0;
+        for (InputChannel cd : chanList) {
+            total += cd.getRecordsReceived();
+        }
+        return total;
+    }
+
     public boolean isDestroyed()
     {
         return state == RunState.DESTROYED;
