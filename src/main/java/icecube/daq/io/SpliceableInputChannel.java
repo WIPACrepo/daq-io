@@ -112,18 +112,12 @@ public class SpliceableInputChannel
         if (!success) {
             IPayload payload = (IPayload) spliceable;
             if (LOG.isErrorEnabled()) {
-                long time;
-                if (payload.getPayloadTimeUTC() == null) {
-                    time = -1L;
-                } else {
-                    time = payload.getPayloadTimeUTC().getUTCTimeAsLong();
-                }
-                
                 if (LOG.isErrorEnabled()) {
                     LOG.error("Couldn't push payload type " +
                               payload.getPayloadType() +
                               ", length " + payload.getPayloadLength() +
-                              ", time " + time + "; recycling");
+                              ", time " + payload.getPayloadTimeUTC() +
+                              "; recycling");
                 }
             }
 
