@@ -267,6 +267,39 @@ public class FileDispatcherTest
         return dir.delete();
     }
 
+    private void handleLogMessages()
+    {
+        File destDir = new File(FileDispatcher.DISPATCH_DEST_STORAGE);
+
+        int expMsgs;
+        if (!destDir.isDirectory()) {
+            expMsgs = 1;
+        } else if (!destDir.canWrite()) {
+            expMsgs = 2;
+        } else {
+            expMsgs = 0;
+        }
+
+        assertEquals("Bad number of log messages",
+                     expMsgs, getNumberOfMessages());
+        if (expMsgs > 1) {
+            assertEquals("Unexpected log message 0",
+                         "Cannot write to " +
+                         FileDispatcher.DISPATCH_DEST_STORAGE + "!",
+                         getMessage(0));
+        }
+        if (expMsgs > 0) {
+            final int msgNum = expMsgs - 1;
+
+            assertEquals("Unexpected log message " + msgNum,
+                         FileDispatcher.DISPATCH_DEST_STORAGE +
+                         " does not exist!  Using current directory.",
+                         getMessage(msgNum));
+        }
+
+        clearMessages();
+    }
+
     protected void setUp()
         throws Exception
     {
@@ -402,17 +435,9 @@ public class FileDispatcherTest
         IByteBufferCache bufCache = new VitreousBufferCache();
 
         FileDispatcher fd = new FileDispatcher("physics", bufCache);
-        assertNotNull("ByteBuffer was null", fd.getByteBufferCache());
+        handleLogMessages();
 
-        if (!new File(FileDispatcher.DISPATCH_DEST_STORAGE).isDirectory()) {
-            assertEquals("Bad number of log messages",
-                         1, getNumberOfMessages());
-            assertEquals("Unexpected log message 0",
-                         FileDispatcher.DISPATCH_DEST_STORAGE +
-                         " does not exist!  Using current directory.",
-                         getMessage(0));
-            clearMessages();
-        }
+        assertNotNull("ByteBuffer was null", fd.getByteBufferCache());
 
         assertEquals("Total dispatched events is not zero",
                      0, fd.getTotalDispatchedEvents());
@@ -427,16 +452,7 @@ public class FileDispatcherTest
         throws DispatchException
     {
         FileDispatcher fd = new FileDispatcher("physics");
-
-        if (!new File(FileDispatcher.DISPATCH_DEST_STORAGE).isDirectory()) {
-            assertEquals("Bad number of log messages",
-                         1, getNumberOfMessages());
-            assertEquals("Unexpected log message 0",
-                         FileDispatcher.DISPATCH_DEST_STORAGE +
-                         " does not exist!  Using current directory.",
-                         getMessage(0));
-            clearMessages();
-        }
+        handleLogMessages();
 
         try {
             fd.dispatchEvent(new AdjustablePayload(8));
@@ -489,16 +505,7 @@ public class FileDispatcherTest
         throws DispatchException
     {
         FileDispatcher fd = new FileDispatcher("physics");
-
-        if (!new File(FileDispatcher.DISPATCH_DEST_STORAGE).isDirectory()) {
-            assertEquals("Bad number of log messages",
-                         1, getNumberOfMessages());
-            assertEquals("Unexpected log message 0",
-                         FileDispatcher.DISPATCH_DEST_STORAGE +
-                         " does not exist!  Using current directory.",
-                         getMessage(0));
-            clearMessages();
-        }
+        handleLogMessages();
 
         ByteBuffer bb = ByteBuffer.allocate(12);
         int[] indices = new int[] { 0, 4, 8 };
@@ -532,16 +539,7 @@ public class FileDispatcherTest
         throws DispatchException
     {
         FileDispatcher fd = new FileDispatcher("physics");
-
-        if (!new File(FileDispatcher.DISPATCH_DEST_STORAGE).isDirectory()) {
-            assertEquals("Bad number of log messages",
-                         1, getNumberOfMessages());
-            assertEquals("Unexpected log message 0",
-                         FileDispatcher.DISPATCH_DEST_STORAGE +
-                         " does not exist!  Using current directory.",
-                         getMessage(0));
-            clearMessages();
-        }
+        handleLogMessages();
 
         try {
             fd.setMaxFileSize(-1000);
@@ -563,16 +561,7 @@ public class FileDispatcherTest
     public void testBogusDataBoundary()
     {
         FileDispatcher fd = new FileDispatcher("physics");
-
-        if (!new File(FileDispatcher.DISPATCH_DEST_STORAGE).isDirectory()) {
-            assertEquals("Bad number of log messages",
-                         1, getNumberOfMessages());
-            assertEquals("Unexpected log message 0",
-                         FileDispatcher.DISPATCH_DEST_STORAGE +
-                         " does not exist!  Using current directory.",
-                         getMessage(0));
-            clearMessages();
-        }
+        handleLogMessages();
 
         try {
             fd.dataBoundary();
@@ -586,16 +575,7 @@ public class FileDispatcherTest
         throws DispatchException
     {
         FileDispatcher fd = new FileDispatcher("physics");
-
-        if (!new File(FileDispatcher.DISPATCH_DEST_STORAGE).isDirectory()) {
-            assertEquals("Bad number of log messages",
-                         1, getNumberOfMessages());
-            assertEquals("Unexpected log message 0",
-                         FileDispatcher.DISPATCH_DEST_STORAGE +
-                         " does not exist!  Using current directory.",
-                         getMessage(0));
-            clearMessages();
-        }
+        handleLogMessages();
 
         try {
             fd.dataBoundary(null);
