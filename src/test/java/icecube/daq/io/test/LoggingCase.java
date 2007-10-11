@@ -9,7 +9,8 @@ import org.apache.log4j.BasicConfigurator;
 public class LoggingCase
     extends TestCase
 {
-    private MockAppender appender = new MockAppender();
+    private MockAppender appender =
+        new MockAppender(/*org.apache.log4j.Level.ALL*/)/*.setVerbose(true)*/;
 
     /**
      * Constructs an instance of this test.
