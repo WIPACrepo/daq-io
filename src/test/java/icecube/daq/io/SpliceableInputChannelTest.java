@@ -43,9 +43,11 @@ public class SpliceableInputChannelTest
     class MockStrandTail
         implements StrandTail
     {
+        private boolean closed;
+
         public void close()
         {
-            throw new Error("Unimplemented");
+            closed = true;
         }
 
         public Spliceable head()
@@ -55,7 +57,7 @@ public class SpliceableInputChannelTest
 
         public boolean isClosed()
         {
-            throw new Error("Unimplemented");
+            return closed;
         }
 
         public StrandTail push(List spliceables)
@@ -246,6 +248,7 @@ public class SpliceableInputChannelTest
             buf.putLong(time);
 
             chan.setStrandTail(new UnpushableStrandTail(i == 0));
+            chan.startReading();
 
             assertEquals("Unexpected log message", 0, getNumberOfMessages());
 
@@ -254,7 +257,15 @@ public class SpliceableInputChannelTest
             assertEquals("Buffer cache memory leak",
                          expBytes, bufMgr.getCurrentAquiredBytes());
 
-            assertEquals("Expected log message", 1, getNumberOfMessages());
+            chan.notifyOnStop();
+
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ie) {
+                // ignore interrupts
+            }
+
+            assertEquals("Expected log message", 2, getNumberOfMessages());
             assertEquals("Bad log message",
                          "Couldn't push payload type " + type + ", length " +
                          buf.capacity() + ", time " + time + "; recycling",
