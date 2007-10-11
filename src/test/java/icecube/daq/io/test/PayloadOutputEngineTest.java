@@ -41,19 +41,100 @@ import junit.textui.TestRunner;
  * @version $Id: PayloadOutputEngineTest.java,v 1.4 2006/06/30 18:07:06 dwharton Exp $
  */
 public class PayloadOutputEngineTest
-        extends LoggingCase implements DAQComponentObserver {
+    extends LoggingCase
+{
+    class Observer
+        implements DAQComponentObserver
+    {
+        private String sinkNotificationId;
+        private boolean sinkStopNotificationCalled;
+        private boolean sinkErrorNotificationCalled;
+
+        private String sourceNotificationId;
+        private boolean sourceStopNotificationCalled;
+        private boolean sourceErrorNotificationCalled;
+
+        boolean gotSinkError()
+        {
+            return sinkErrorNotificationCalled;
+        }
+
+        boolean gotSinkStop()
+        {
+            return sinkStopNotificationCalled;
+        }
+
+        boolean gotSourceError()
+        {
+            return sourceErrorNotificationCalled;
+        }
+
+        boolean gotSourceStop()
+        {
+            return sourceStopNotificationCalled;
+        }
+
+        void setSinkNotificationId(String id)
+        {
+            sinkNotificationId = id;
+        }
+
+        void setSourceNotificationId(String id)
+        {
+            sourceNotificationId = id;
+        }
+
+        public synchronized void update(Object object, String notificationId)
+        {
+            if (object instanceof NormalState) {
+                NormalState state = (NormalState)object;
+                if (state == NormalState.STOPPED) {
+                    if (notificationId.equals(DAQCmdInterface.SOURCE) ||
+                        notificationId.equals(sourceNotificationId))
+                    {
+                        sourceStopNotificationCalled = true;
+                    } else if (notificationId.equals(DAQCmdInterface.SINK) ||
+                               notificationId.equals(sinkNotificationId))
+                    {
+                        sinkStopNotificationCalled = true;
+                    } else {
+                        throw new Error("Unexpected stop notification \"" +
+                                        notificationId + "\"");
+                    }
+                } else {
+                    throw new Error("Unexpected notification state " +
+                                    state);
+                }
+            } else if (object instanceof ErrorState) {
+                ErrorState state = (ErrorState)object;
+                if (state == ErrorState.UNKNOWN_ERROR) {
+                    if (notificationId.equals(DAQCmdInterface.SOURCE) ||
+                        notificationId.equals(sourceNotificationId))
+                    {
+                        sourceErrorNotificationCalled = true;
+                    } else if (notificationId.equals(DAQCmdInterface.SINK) ||
+                               notificationId.equals(sinkNotificationId))
+                    {
+                        sourceStopNotificationCalled = true;
+                    } else {
+                        throw new Error("Unexpected error notification \"" +
+                                        notificationId + "\"");
+                    }
+                } else {
+                    throw new Error("Unexpected notification state " +
+                                    state);
+                }
+            } else {
+                throw new Error("Unexpected notification object " +
+                                object.getClass().getName());
+            }
+        }
+    }
 
     // private static member data
     private static final int BUFFER_BLEN = 32000;
     private static final String SRC_NOTIFICATION_ID = "SourceID";
     private static final String SRC_ERROR_ID = "SourceErrorID";
-
-    // private instance member data
-    private boolean sourceStopNotificationCalled;
-    private boolean sourceErrorNotificationCalled;
-    private boolean sourceStopNotificationStatus;
-    private String receivedStopNotificationID = "";
-    private String receivedErrorNotificationID = "";
 
     /**
      * The object being tested.
@@ -68,31 +149,6 @@ public class PayloadOutputEngineTest
     public PayloadOutputEngineTest(String name)
     {
         super(name);
-    }
-
-
-    public synchronized void DAQComponentProcessStopNotification(String notificationID,
-                                                                 boolean status) {
-        receivedStopNotificationID = notificationID;
-        if (notificationID.compareTo(SRC_NOTIFICATION_ID) == 0) {
-            sourceStopNotificationCalled = true;
-            sourceStopNotificationStatus = status;
-        }
-    }
-
-    public synchronized void DAQComponentProcessErrorNotification(String notificationID,
-                                                                  String info,
-                                                                  Exception e) {
-        receivedErrorNotificationID = notificationID;
-        if (notificationID.compareTo(SRC_ERROR_ID) == 0) {
-            sourceErrorNotificationCalled = true;
-        }
-
-        //System.out.println("Error notification.");
-    }
-
-    public void DAQConfigurationNotification(String info, boolean status) {
-
     }
 
     private SocketChannel acceptChannel(Selector sel)
@@ -148,24 +204,6 @@ public class PayloadOutputEngineTest
         ssChan.register(sel, SelectionKey.OP_ACCEPT);
 
         return ssChan.socket().getLocalPort();
-    }
-
-    /**
-     * Sets up the fixture, for example, open a network connection. This method
-     * is called before a test is executed.
-     *
-     * @throws Exception if super class setUp fails.
-     */
-    protected void setUp()
-            throws Exception
-    {
-        super.setUp();
-
-        sourceErrorNotificationCalled = false;
-        sourceStopNotificationCalled = false;
-        sourceStopNotificationStatus = false;
-        receivedErrorNotificationID = "";
-        receivedStopNotificationID = "";
     }
 
     /**
@@ -283,9 +321,12 @@ public class PayloadOutputEngineTest
     }
 
     public void testInjectError() throws Exception {
+        Observer observer = new Observer();
+
         engine = new PayloadOutputEngine("InjectError", 0, "test");
+        engine.registerComponentObserver(observer);
+
         engine.start();
-        engine.registerComponentObserver(this);
         assertTrue("PayloadOutputEngine not in Idle state after creation", engine.isStopped());
         engine.startProcessing();
 
@@ -301,19 +342,19 @@ public class PayloadOutputEngineTest
                    engine.isError());
 
         assertTrue("PayloadOutputEngine error notification not called",
-                   sourceErrorNotificationCalled);
+                   observer.gotSourceError());
         assertFalse("PayloadOutputEngine stop notification incorrectly" +
-                    " called", sourceStopNotificationCalled);
-        assertEquals("PayloadOutputEngine error notification incorrect",
-                     DAQCmdInterface.SOURCE,
-                     receivedErrorNotificationID);
+                    " called", observer.gotSourceStop());
     }
 
     public void testInjectLowLevelError() throws Exception {
 
+        Observer observer = new Observer();
+
         engine = new PayloadOutputEngine("LowLevel", 0, "test");
+        engine.registerComponentObserver(observer);
+
         engine.start();
-        engine.registerComponentObserver(this);
 
         assertTrue("PayloadOutputEngine not in Idle state after creation", engine.isStopped());
         engine.startProcessing();
@@ -331,12 +372,9 @@ public class PayloadOutputEngineTest
                    engine.isError());
 
         assertTrue("PayloadOutputEngine error notification not called",
-                   sourceErrorNotificationCalled);
+                   observer.gotSourceError());
         assertFalse("PayloadOutputEngine stop notification incorrectly called",
-                    sourceStopNotificationCalled);
-        assertEquals("PayloadOutputEngine error notification incorrect",
-                     DAQCmdInterface.SOURCE,
-                     receivedErrorNotificationID);
+                    observer.gotSourceStop());
 
         engine.forcedStopProcessing();
         Thread.sleep(500);
@@ -353,16 +391,23 @@ public class PayloadOutputEngineTest
         testPipe.sink().configureBlocking(false);
         testPipe.source().configureBlocking(true);
 
+        Observer observer = new Observer();
+
         engine = new PayloadOutputEngine("OutputLoop", 0, "test");
-        engine.registerComponentObserver(this);
+        engine.registerComponentObserver(observer);
         engine.start();
 
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
 
+        final String notificationId = "OutputLoop";
+
+        Observer xmitObserver = new Observer();
+        xmitObserver.setSinkNotificationId(notificationId);
+
         PayloadTransmitChannel transmitEng =
             engine.addDataChannel(testPipe.sink(), cacheMgr);
-        transmitEng.registerComponentObserver(this, "OutputLoop");
+        transmitEng.registerComponentObserver(xmitObserver, notificationId);
 
         assertEquals("Bad number of log messages",
                      1, getNumberOfMessages());
@@ -423,7 +468,7 @@ public class PayloadOutputEngineTest
             Thread.sleep(100);
         }
         assertTrue("Failure on sendLastAndStop command.",
-                   sourceStopNotificationCalled);
+                   observer.gotSourceStop());
     }
 
     public void testServerOutput() throws Exception {
@@ -434,8 +479,10 @@ public class PayloadOutputEngineTest
 
         int port = createServer(sel);
 
+        Observer observer = new Observer();
+
         engine = new PayloadOutputEngine("ServerOutput", 0, "test");
-        engine.registerComponentObserver(this);
+        engine.registerComponentObserver(observer);
         engine.start();
 
         SocketChannel sock =
@@ -445,8 +492,13 @@ public class PayloadOutputEngineTest
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
 
+        final String notificationId = "ServerOutput";
+
+        Observer xmitObserver = new Observer();
+        xmitObserver.setSinkNotificationId(notificationId);
+
         PayloadTransmitChannel transmitEng = engine.connect(cacheMgr, sock, 1);
-        transmitEng.registerComponentObserver(this, "ServerOutput");
+        transmitEng.registerComponentObserver(xmitObserver, notificationId);
 
         assertEquals("Bad number of log messages",
                      1, getNumberOfMessages());
@@ -506,27 +558,7 @@ public class PayloadOutputEngineTest
         transmitEng.flushOutQueue();
         Thread.sleep(10);
         assertTrue("Failure on sendLastAndStop command.",
-                   sourceStopNotificationCalled);
-    }
-
-    public synchronized void update(Object object, String notificationID)
-    {
-        if (object instanceof NormalState){
-            NormalState state = (NormalState)object;
-            if (state == NormalState.STOPPED){
-                if (notificationID.equals(DAQCmdInterface.SOURCE)){
-                    sourceStopNotificationCalled = true;
-                }
-            }
-        } else if (object instanceof ErrorState){
-            ErrorState state = (ErrorState)object;
-            if (state == ErrorState.UNKNOWN_ERROR){
-                if (notificationID.equals(DAQCmdInterface.SOURCE)){
-                    sourceErrorNotificationCalled = true;
-                    receivedErrorNotificationID = DAQCmdInterface.SOURCE;
-                }
-            }
-        }
+                   observer.gotSourceStop());
     }
 
     /**

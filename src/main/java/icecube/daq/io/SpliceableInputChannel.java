@@ -110,16 +110,20 @@ public class SpliceableInputChannel
         }
 
         if (ex != null) {
-            IPayload payload = (IPayload) spliceable;
-            if (LOG.isErrorEnabled()) {
-                LOG.error("Couldn't push payload type " +
-                          payload.getPayloadType() +
-                          ", length " + payload.getPayloadLength() +
-                          ", time " + payload.getPayloadTimeUTC() +
-                          "; recycling", ex);
-            }
+            if (spliceable instanceof ILoadablePayload) {
+                ILoadablePayload payload = (ILoadablePayload) spliceable;
+                if (LOG.isErrorEnabled()) {
+                    LOG.error("Couldn't push payload type " +
+                              payload.getPayloadType() +
+                              ", length " + payload.getPayloadLength() +
+                              ", time " + payload.getPayloadTimeUTC() +
+                              "; recycling", ex);
+                }
 
-            ((ILoadablePayload) payload).recycle();
+                payload.recycle();
+            } else if (LOG.isErrorEnabled()) {
+                LOG.error("Couldn't push spliceable", ex);
+            }
         }
     }
 

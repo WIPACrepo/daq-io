@@ -35,17 +35,53 @@ import junit.framework.TestSuite;
 
 import junit.textui.TestRunner;
 
+class Observer
+    implements DAQComponentObserver
+{
+    private boolean sinkStopNotificationCalled;
+    private boolean sinkErrorNotificationCalled;
+
+    boolean gotError()
+    {
+        return sinkErrorNotificationCalled;
+    }
+
+    boolean gotStop()
+    {
+        return sinkStopNotificationCalled;
+    }
+
+    public synchronized void update(Object object, String notificationID)
+    {
+        if (object instanceof NormalState){
+            NormalState state = (NormalState)object;
+            if (state == NormalState.STOPPED){
+                if (notificationID.equals(DAQCmdInterface.SINK)){
+                    sinkStopNotificationCalled = true;
+                } else {
+                    throw new Error("Unexpected notification update");
+                }
+            }
+        } else if (object instanceof ErrorState){
+            ErrorState state = (ErrorState)object;
+            if (state == ErrorState.UNKNOWN_ERROR){
+                if (notificationID.equals(DAQCmdInterface.SINK)){
+                    sinkErrorNotificationCalled = true;
+                } else {
+                    throw new Error("Unexpected notification update");
+                }
+            }
+        }
+    }
+}
+
 public class SpliceablePayloadReaderTest
     extends LoggingCase
-    implements DAQComponentObserver
 {
     private static final int BUFFER_LEN = 5000;
     private static final int INPUT_OUTPUT_LOOP_CNT = 5;
 
     private static ByteBuffer stopMsg;
-
-    private boolean sinkStopNotificationCalled;
-    private boolean sinkErrorNotificationCalled;
 
     private SpliceablePayloadReader tstRdr;
 
@@ -90,9 +126,6 @@ public class SpliceablePayloadReaderTest
         super.setUp();
 
         tstRdr = null;
-
-        sinkStopNotificationCalled = false;
-        sinkErrorNotificationCalled = false;
     }
 
     /**
@@ -204,8 +237,10 @@ public class SpliceablePayloadReaderTest
         MockSplicer splicer = new MockSplicer();
         MockSpliceableFactory factory = new MockSpliceableFactory();
 
+        Observer observer = new Observer();
+
         tstRdr = new SpliceablePayloadReader("OutputInput", splicer, factory);
-        tstRdr.registerComponentObserver(this);
+        tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
         waitUntilStopped(tstRdr);
@@ -261,8 +296,7 @@ public class SpliceablePayloadReaderTest
         sendStopMsg(sinkChannel);
 
         Thread.sleep(100);
-        assertTrue("Failure on sendStopMsg command.",
-                   sinkStopNotificationCalled);
+        assertTrue("Failure on sendStopMsg command.", observer.gotStop());
     }
 
     public void testMultiOutputInput()
@@ -282,8 +316,10 @@ public class SpliceablePayloadReaderTest
         MockSplicer splicer = new MockSplicer();
         MockSpliceableFactory factory = new MockSpliceableFactory();
 
+        Observer observer = new Observer();
+
         tstRdr = new SpliceablePayloadReader("OutputInput", splicer, factory);
-        tstRdr.registerComponentObserver(this);
+        tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
         waitUntilStopped(tstRdr);
@@ -354,34 +390,10 @@ public class SpliceablePayloadReaderTest
         sendStopMsg(sinkChannel);
 
         Thread.sleep(100);
-        assertTrue("Failure on sendStopMsg command.",
-                   sinkStopNotificationCalled);
+        assertTrue("Failure on sendStopMsg command.", observer.gotStop());
 
         assertTrue("PayloadReader in " + tstRdr.getPresentState() +
                    ", not Idle after stop", tstRdr.isStopped());
-    }
-
-    public synchronized void update(Object object, String notificationID)
-    {
-        if (object instanceof NormalState){
-            NormalState state = (NormalState)object;
-            if (state == NormalState.STOPPED){
-                if (notificationID.equals(DAQCmdInterface.SINK)){
-                    sinkStopNotificationCalled = true;
-                } else {
-                    throw new Error("Unexpected notification update");
-                }
-            }
-        } else if (object instanceof ErrorState){
-            ErrorState state = (ErrorState)object;
-            if (state == ErrorState.UNKNOWN_ERROR){
-                if (notificationID.equals(DAQCmdInterface.SINK)){
-                    sinkErrorNotificationCalled = true;
-                } else {
-                    throw new Error("Unexpected notification update");
-                }
-            }
-        }
     }
 
     private static final void waitUntilDestroyed(PayloadReader rdr)
