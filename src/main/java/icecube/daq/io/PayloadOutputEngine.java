@@ -373,6 +373,17 @@ public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOu
         return (String[]) stateList.toArray(new String[0]);
     }
 
+    public synchronized Long[] getDepth() {
+        ArrayList recordCount = new ArrayList();
+        Iterator payloadListIterator = payloadEngineList.iterator();
+        while (payloadListIterator.hasNext()) {
+            PayloadTransmitChannel msg =
+                (PayloadTransmitChannel) payloadListIterator.next();
+            recordCount.add(new Long(msg.getDepth()));
+        }
+        return (Long[]) recordCount.toArray(new Long[0]);
+    }
+
     public synchronized Long[] getBytesSent() {
         ArrayList byteCount = new ArrayList();
         Iterator payloadListIterator = payloadEngineList.iterator();

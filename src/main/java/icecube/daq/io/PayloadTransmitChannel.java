@@ -118,7 +118,7 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
     private ByteBuffer lastMessage;
 
     // output buffer queue
-    public LinkedQueue outputQueue;
+    public DepthQueue outputQueue;
     private boolean queueStillEmpty;
 
     private DAQComponentObserver compObserver;
@@ -141,7 +141,7 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
         cancelSelectorOnExit = false;
         selector = sel;
         bufferMgr = bufMgr;
-        outputQueue = new LinkedQueue();
+        outputQueue = new DepthQueue();
         // make up a last message that we can use when we need it
         lastMessage = ByteBuffer.allocate(INT_SIZE);
         lastMessage.putInt(0, INT_SIZE);
@@ -691,5 +691,15 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
                 break;
         }
         return name;
+    }
+
+    /**
+     * Get the number of buffers queued for output.
+     *
+     * @return number of queued buffers
+     */
+    public int getDepth()
+    {
+        return outputQueue.getDepth();
     }
 }
