@@ -99,26 +99,24 @@ public class SpliceableInputChannel
 
     private void pushSpliceable(Spliceable spliceable)
     {
-        boolean success;
+        Exception ex;
         try {
             strandTail.push(spliceable);
-            success = true;
+            ex = null;
         } catch (OrderingException oe) {
-            success = false;
+            ex = oe;
         } catch (ClosedStrandException cse) {
-            success = false;
+            ex = cse;
         }
 
-        if (!success) {
+        if (ex != null) {
             IPayload payload = (IPayload) spliceable;
             if (LOG.isErrorEnabled()) {
-                if (LOG.isErrorEnabled()) {
-                    LOG.error("Couldn't push payload type " +
-                              payload.getPayloadType() +
-                              ", length " + payload.getPayloadLength() +
-                              ", time " + payload.getPayloadTimeUTC() +
-                              "; recycling");
-                }
+                LOG.error("Couldn't push payload type " +
+                          payload.getPayloadType() +
+                          ", length " + payload.getPayloadLength() +
+                          ", time " + payload.getPayloadTimeUTC() +
+                          "; recycling", ex);
             }
 
             ((ILoadablePayload) payload).recycle();
