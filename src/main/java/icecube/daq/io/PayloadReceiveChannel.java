@@ -1,7 +1,7 @@
 /*
  * class: PayloadReceiveChannel
  *
- * Version $Id: PayloadReceiveChannel.java,v 1.24 2005/12/20 00:51:14 mcp Exp $
+ * Version $Id: PayloadReceiveChannel.java 2125 2007-10-12 18:27:05Z ksb $
  *
  * Date: May 15 2005
  *
@@ -37,7 +37,7 @@ import org.apache.commons.logging.LogFactory;
  * for acquiring buffers into the buffer cache and managing the flow control.
  *
  * @author mcp
- * @version $Id: PayloadReceiveChannel.java,v 1.24 2005/12/20 00:51:14 mcp Exp $
+ * @version $Id: PayloadReceiveChannel.java 2125 2007-10-12 18:27:05Z ksb $
  */
 public class PayloadReceiveChannel {
 

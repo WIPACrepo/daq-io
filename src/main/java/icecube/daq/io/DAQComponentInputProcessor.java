@@ -15,7 +15,7 @@ import java.nio.channels.ReadableByteChannel;
 
 /**
  * @author mcp
- * @version $Id: DAQComponentInputProcessor, v 1.1, Nov 13, 2006 4:45:35 PM artur $
+ * @version $Id: DAQComponentInputProcessor.java 2125 2007-10-12 18:27:05Z ksb $
  */
 public interface DAQComponentInputProcessor extends DAQComponentIOProcess {
 

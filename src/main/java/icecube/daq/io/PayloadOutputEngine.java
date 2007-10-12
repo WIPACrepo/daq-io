@@ -1,7 +1,7 @@
 /*
  * class: PayloadOutputEngine
  *
- * Version $Id: PayloadOutputEngine.java,v 1.8 2005/12/09 19:53:19 mcp Exp $
+ * Version $Id: PayloadOutputEngine.java 2125 2007-10-12 18:27:05Z ksb $
  *
  * Date: May 19 2005
  *
@@ -39,7 +39,7 @@ import org.apache.commons.logging.LogFactory;
  * a collection a PayloadTransmitChannels
  *
  * @author mcp
- * @version $Id: PayloadOutputEngine.java,v 1.8 2005/12/09 19:53:19 mcp Exp $
+ * @version $Id: PayloadOutputEngine.java 2125 2007-10-12 18:27:05Z ksb $
  */
 public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOutputProcess, Runnable {
 

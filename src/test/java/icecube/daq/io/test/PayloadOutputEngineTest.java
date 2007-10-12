@@ -1,7 +1,7 @@
 /*
  * class: PayloadOutputEngineTest
  *
- * Version $Id: PayloadOutputEngineTest.java,v 1.4 2006/06/30 18:07:06 dwharton Exp $
+ * Version $Id: PayloadOutputEngineTest.java 2125 2007-10-12 18:27:05Z ksb $
  *
  * Date: May 19 2005
  *
@@ -38,7 +38,7 @@ import junit.textui.TestRunner;
  * This class defines the tests that any PayloadOutputEngine object should pass.
  *
  * @author mcp
- * @version $Id: PayloadOutputEngineTest.java,v 1.4 2006/06/30 18:07:06 dwharton Exp $
+ * @version $Id: PayloadOutputEngineTest.java 2125 2007-10-12 18:27:05Z ksb $
  */
 public class PayloadOutputEngineTest
     extends LoggingCase
