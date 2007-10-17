@@ -8,6 +8,8 @@ import icecube.daq.splicer.Splicer;
 import icecube.daq.splicer.StrandTail;
 
 import icecube.daq.payload.IByteBufferCache;
+import icecube.daq.payload.ILoadablePayload;
+import icecube.daq.payload.IPayload;
 
 import java.io.IOException;
 
@@ -60,7 +62,7 @@ public class SpliceableInputChannel
         return strandTail != null;
     }
 
-    void notifyOnStop()
+    public void notifyOnStop()
     {
         // since this is a SpliceablePayloadReceiveChannel, we
         // will have to shut down the splicer if necessary
@@ -81,10 +83,12 @@ public class SpliceableInputChannel
         Spliceable spliceable = factory.createSpliceable(payBuf);
         if (spliceable == null) {
             if (LOG.isErrorEnabled()) {
-                LOG.error("Couldn't generate a payload from a buf: ");
-                LOG.error("buf record: " + payBuf.getInt(0));
-                LOG.error("buf limit: " + payBuf.limit());
-                LOG.error("buf capacity: " + payBuf.capacity());
+                LOG.error("Couldn't use buffer (limit " +
+                          payBuf.limit() + ", capacity " + payBuf.capacity() +
+                          ") to create payload (length " +
+                          (payBuf.limit() < 4 ? -1 : payBuf.getInt(0)) +
+                          ", capacity " +
+                          (payBuf.limit() < 8 ? -1 : payBuf.getInt(4)) + ")");
             }
 
             throw new RuntimeException("Couldn't create a Spliceable");
@@ -95,17 +99,30 @@ public class SpliceableInputChannel
 
     private void pushSpliceable(Spliceable spliceable)
     {
+        Exception ex;
         try {
             strandTail.push(spliceable);
+            ex = null;
         } catch (OrderingException oe) {
-            // TODO: Need to be reviewed.
-            if (LOG.isErrorEnabled()) {
-                LOG.error("coudn't push a spliceable object: ", oe);
-            }
+            ex = oe;
         } catch (ClosedStrandException cse) {
-            // TODO: Need to be reviewed.
-            if (LOG.isErrorEnabled()) {
-                LOG.error("coudn't push a spliceable object: ", cse);
+            ex = cse;
+        }
+
+        if (ex != null) {
+            if (spliceable instanceof ILoadablePayload) {
+                ILoadablePayload payload = (ILoadablePayload) spliceable;
+                if (LOG.isErrorEnabled()) {
+                    LOG.error("Couldn't push payload type " +
+                              payload.getPayloadType() +
+                              ", length " + payload.getPayloadLength() +
+                              ", time " + payload.getPayloadTimeUTC() +
+                              "; recycling", ex);
+                }
+
+                payload.recycle();
+            } else if (LOG.isErrorEnabled()) {
+                LOG.error("Couldn't push spliceable", ex);
             }
         }
     }
@@ -119,7 +136,7 @@ public class SpliceableInputChannel
         this.strandTail = strandTail;
     }
 
-    void startReading()
+    public void startReading()
     {
         if (strandTail == null) {
             // just to be paranoid, check that strandTail has

@@ -23,6 +23,9 @@ public class SpliceablePayloadReader
     // default maximum size of strand queue
     private static final int DEFAULT_STRAND_QUEUE_MAX = 40000;
 
+    // maximum number of stop attempts
+    private static final int MAX_STOP_TRIES = 10;
+
     private Splicer splicer;
     private SpliceableFactory factory;
 
@@ -79,19 +82,6 @@ public class SpliceablePayloadReader
         return (Integer[]) strandDepth.toArray(new Integer[0]);
     }
 
-/*
-    public synchronized Boolean[] getStrandFillingStopped()
-    {
-        ArrayList allocationStatus = new ArrayList();
-
-        for (InputChannel chan : listChannels()) {
-            SpliceableInputChannel sChan = (SpliceableInputChannel) chan;
-            allocationStatus.add(new Boolean(sChan.strandFillingStopped));
-        }
-        return (Boolean[]) allocationStatus.toArray(new Boolean[0]);
-    }
-*/
-
     public synchronized int getTotalStrandDepth()
     {
         int totalDepth = 0;
@@ -111,12 +101,20 @@ public class SpliceablePayloadReader
 
     public void startProcessing()
     {
+        int tries = 0;
         while (splicer.getState() != Splicer.STOPPED) {
-            if (LOG.isWarnEnabled()) {
-                LOG.warn("Splicer should have been in STOPPED state." +
-                "Calling Splicer.forceStop()");
+            if (++tries > MAX_STOP_TRIES) {
+                throw new Error("Couldn't stop splicer");
             }
+
+            if (tries == 1 && LOG.isWarnEnabled()) {
+                LOG.warn("Splicer should have been in STOPPED state, not " +
+                         splicer.getStateString() +
+                         ".  Calling Splicer.forceStop()");
+            }
+
             splicer.forceStop();
+
             try {
                 Thread.sleep(100);
             } catch (InterruptedException ie) {
@@ -133,7 +131,7 @@ public class SpliceablePayloadReader
         }
 
         if (splicer.getStrandCount() != 0) {
-            LOG.error("splicer should not any leftover strands-- count: " +
+            LOG.error("splicer should not have any leftover strands-- count: " +
                       splicer.getStrandCount());
         } else {
             for (InputChannel cd : listChannels()) {

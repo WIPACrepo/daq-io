@@ -1,7 +1,7 @@
 /*
  * interface: Dispatcher
  *
- * Version $Id: Dispatcher.java,v 1.7 2005/11/07 00:19:13 patton Exp $
+ * Version $Id: Dispatcher.java 2125 2007-10-12 18:27:05Z ksb $
  *
  * Date: April 1 2004
  *
@@ -18,7 +18,7 @@ import java.nio.ByteBuffer;
  * This interface specifies how events are dispatched from the DAQ system.
  *
  * @author patton
- * @version $Id: Dispatcher.java,v 1.7 2005/11/07 00:19:13 patton Exp $
+ * @version $Id: Dispatcher.java 2125 2007-10-12 18:27:05Z ksb $
  */
 public interface Dispatcher
 {

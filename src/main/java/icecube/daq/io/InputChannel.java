@@ -1,6 +1,5 @@
 package icecube.daq.io;
 
-import icecube.daq.payload.ByteBufferCache;
 import icecube.daq.payload.IByteBufferCache;
 
 import java.io.IOException;
@@ -20,15 +19,16 @@ import org.apache.commons.logging.LogFactory;
 
 public abstract class InputChannel
 {
+    public static final long DEFAULT_MAX_BYTES_ALLOCATION_LIMIT = 200000000;
+
+    public static final long PERCENT_STOP_ALLOCATION = 70;
+    public static final long PERCENT_RESTART_ALLOCATION = 50;
+
     /** logging object */
     private static final Log LOG = LogFactory.getLog(PayloadReader.class);
 
     /** size of initial integer payload length */
     private static final int INT_SIZE = 4;
-
-    private static final long DEFAULT_PERCENT_STOP_ALLOCATION = 70;
-    private static final long DEFAULT_PERCENT_RESTART_ALLOCATION = 50;
-    private static final long DEFAULT_MAX_BYTES_ALLOCATION_LIMIT = 200000000;
 
     private InputChannelParent parent;
     private SelectableChannel channel;
@@ -47,11 +47,6 @@ public abstract class InputChannel
     private long bytesReceived;
     private long recordsReceived;
     private long stopsReceived;
-
-    private long percentOfMaxStopAllocation =
-        DEFAULT_PERCENT_STOP_ALLOCATION;
-    private long percentOfMaxRestartAllocation =
-        DEFAULT_PERCENT_RESTART_ALLOCATION;
 
     private static int nextId = 1;
     final int id = nextId++;
@@ -169,16 +164,6 @@ if(DEBUG_FILL)System.err.println("FillEnd "+inputBuf+" bufPos "+bufPos+" payBuf 
         return limitToRestartAllocation;
     }
 
-    long getPercentOfMaxStopAllocation()
-    {
-        return percentOfMaxStopAllocation;
-    }
-
-    long getPercentOfMaxRestartAllocation()
-    {
-        return percentOfMaxRestartAllocation;
-    }
-
     long getRecordsReceived()
     {
         return recordsReceived;
@@ -194,25 +179,27 @@ if(DEBUG_FILL)System.err.println("FillEnd "+inputBuf+" bufPos "+bufPos+" payBuf 
         return allocationStopped;
     }
 
-    boolean isStopped()
+    public boolean isStopped()
     {
         return stopped;
     }
 
-    void notifyOnStop()
+    public void notifyOnStop()
     {
         if (parent != null) {
             parent.channelStopped();
         }
     }
 
-    void processSelect(SelectionKey selKey)
+    public void processSelect(SelectionKey selKey)
         throws IOException
     {
 final boolean DEBUG_SELECT = false;
 if(DEBUG_SELECT)System.err.println("SelTop "+inputBuf);
         int numBytes = ((ReadableByteChannel) channel).read(inputBuf);
         if (numBytes < 0) {
+            channel.close();
+            notifyOnStop();
             throw new ClosedChannelException();
         }
 
@@ -262,6 +249,7 @@ if(DEBUG_SELECT)System.err.println("  BadLen");
 
             // if this is a stop message...
             if (length == INT_SIZE) {
+if(DEBUG_SELECT)System.err.println("  GotStop");
                 stopped = true;
                 stopsReceived++;
                 notifyOnStop();
@@ -269,23 +257,43 @@ if(DEBUG_SELECT)System.err.println("  BadLen");
                 break;
             }
 
-            // if we can't allocate byte buffers, give up
-            if (allocationStopped) {
-if(DEBUG_SELECT)System.err.println("  NoAlloc");
+            // check for allocation limits
+            if (bufMgr.getCurrentAquiredBytes() >= limitToStopAllocation) {
+                if (!allocationStopped) {
+                    if (LOG.isErrorEnabled()) {
+                        LOG.error("Channel#" + id + " stopped: AcqBytes " +
+                                  bufMgr.getCurrentAquiredBytes() +
+                                  " >= limit " + limitToStopAllocation);
+                    }
+if(DEBUG_SELECT)System.err.println("  AllocStopped");
+                    allocationStopped = true;
+                }
+
                 break;
             }
 
-            // check for allocation limits
-            if (bufMgr.getCurrentAquiredBytes() >= limitToStopAllocation) {
-                if (LOG.isErrorEnabled()) {
-                    LOG.error("Channel#" + id + " stopped: AcqBytes " +
-                              bufMgr.getCurrentAquiredBytes() + " >= limit " +
-                              limitToStopAllocation);
+            // if byte buffer allocation was stopped...
+            if (allocationStopped) {
+                if (bufMgr.getCurrentAquiredBytes() >
+                    limitToRestartAllocation)
+                {
+                    // give buffer cache a chance to clear out
+                    try {
+                        Thread.sleep(1000);
+                    } catch (Exception ie) {
+                        // ignore interrupts
+                    }
+                    break;
                 }
-                allocationStopped = true;
-if(DEBUG_SELECT)System.err.println("  AllocStopped");
 
-                break;
+if(DEBUG_SELECT)System.err.println("  RestartAlloc");
+                // restart allocation
+                allocationStopped = false;
+                if (LOG.isErrorEnabled()) {
+                    LOG.error("Channel#" + id + " restarted: AcqBytes " +
+                              bufMgr.getCurrentAquiredBytes() + " <= limit " +
+                              limitToRestartAllocation);
+                }
             }
 
             // if buffer does not contain enough bytes for the payload length...
@@ -314,9 +322,8 @@ if(DEBUG_SELECT)System.err.println("  NullBuf");
             //    return;
             //}
 
-if(DEBUG_SELECT)LOG.error("  Got "+payBuf);
             payBuf.flip();
-if(DEBUG_SELECT)LOG.error("  Flip "+payBuf);
+if(DEBUG_SELECT)System.err.println("  Got "+payBuf);
             pushPayload(payBuf);
         }
     }
@@ -324,7 +331,7 @@ if(DEBUG_SELECT)LOG.error("  Flip "+payBuf);
     public abstract void pushPayload(ByteBuffer payBuf)
         throws IOException;
 
-    void register(Selector sel)
+    public void register(Selector sel)
         throws ClosedChannelException
     {
         channel.register(sel, SelectionKey.OP_READ, this);
@@ -333,22 +340,23 @@ if(DEBUG_SELECT)LOG.error("  Flip "+payBuf);
     private void setAllocationLimits()
     {
         allocationStopped = false;
-        if (bufMgr instanceof ByteBufferCache && ((ByteBufferCache) bufMgr).getIsCacheBounded()) {
-            long maxAllocation =
-                    ((ByteBufferCache) bufMgr).getMaxAquiredBytes();
-            limitToStopAllocation = (maxAllocation *
-                    percentOfMaxStopAllocation) / 100;
-            limitToRestartAllocation = (maxAllocation *
-                    percentOfMaxRestartAllocation) / 100;
+
+        final long maxAllocation;
+        if (bufMgr.getIsCacheBounded()) {
+            maxAllocation = bufMgr.getMaxAquiredBytes();
         } else {
-            limitToStopAllocation = (DEFAULT_MAX_BYTES_ALLOCATION_LIMIT *
-                    percentOfMaxStopAllocation) / 100;
-            limitToRestartAllocation = (DEFAULT_MAX_BYTES_ALLOCATION_LIMIT *
-                    percentOfMaxRestartAllocation) / 100;
+            maxAllocation = DEFAULT_MAX_BYTES_ALLOCATION_LIMIT;
         }
+
+        limitToStopAllocation =
+            ((maxAllocation / 100L) * PERCENT_STOP_ALLOCATION) +
+            (((maxAllocation % 100L) * PERCENT_STOP_ALLOCATION) / 100L);
+        limitToRestartAllocation =
+            ((maxAllocation / 100L) * PERCENT_RESTART_ALLOCATION) +
+            (((maxAllocation % 100L) * PERCENT_RESTART_ALLOCATION) / 100L);
     }
 
-    void startReading()
+    public void startReading()
     {
         stopped = false;
     }

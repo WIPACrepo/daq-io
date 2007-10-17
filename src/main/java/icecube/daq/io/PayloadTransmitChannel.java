@@ -1,7 +1,7 @@
 /*
  * class: PayloadTransmitChannel
  *
- * Version $Id: PayloadTransmitChannel.java,v 1.10 2005/11/10 05:48:49 artur Exp $
+ * Version $Id: PayloadTransmitChannel.java 2125 2007-10-12 18:27:05Z ksb $
  *
  * Date: May 15 2005
  *
@@ -35,7 +35,7 @@ import org.apache.commons.logging.LogFactory;
  * for returning buffers into the buffer cache.
  *
  * @author mcp
- * @version $Id: PayloadTransmitChannel.java,v 1.10 2005/11/10 05:48:49 artur Exp $
+ * @version $Id: PayloadTransmitChannel.java 2125 2007-10-12 18:27:05Z ksb $
  */
 public class PayloadTransmitChannel implements IByteBufferReceiver {
 
@@ -118,7 +118,7 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
     private ByteBuffer lastMessage;
 
     // output buffer queue
-    public LinkedQueue outputQueue;
+    public DepthQueue outputQueue;
     private boolean queueStillEmpty;
 
     private DAQComponentObserver compObserver;
@@ -141,7 +141,7 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
         cancelSelectorOnExit = false;
         selector = sel;
         bufferMgr = bufMgr;
-        outputQueue = new LinkedQueue();
+        outputQueue = new DepthQueue();
         // make up a last message that we can use when we need it
         lastMessage = ByteBuffer.allocate(INT_SIZE);
         lastMessage.putInt(0, INT_SIZE);
@@ -691,5 +691,15 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
                 break;
         }
         return name;
+    }
+
+    /**
+     * Get the number of buffers queued for output.
+     *
+     * @return number of queued buffers
+     */
+    public int getDepth()
+    {
+        return outputQueue.getDepth();
     }
 }

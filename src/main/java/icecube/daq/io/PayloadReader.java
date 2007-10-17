@@ -96,6 +96,7 @@ public abstract class PayloadReader
         new ArrayList<InputChannel>();
 
     private Flag channelStopFlag = new Flag("channelStop");
+    /** exclusive lock used when changing reader state */
     private Object stateLock = new Object();
 
     // server port
@@ -133,7 +134,7 @@ public abstract class PayloadReader
     }
 
     public InputChannel addDataChannel(SelectableChannel channel,
-                                           IByteBufferCache bufMgr, int bufSize)
+                                       IByteBufferCache bufMgr, int bufSize)
         throws IOException
     {
 final boolean DEBUG_ADD = false;
@@ -144,12 +145,14 @@ if(DEBUG_ADD)System.err.println("AddChanTop");
             throw new RuntimeException(errMsg);
         }
 
-if(DEBUG_ADD)System.err.println("AddChanCre");
+if(DEBUG_ADD)System.err.println("AddChanCre "+channel);
         InputChannel chanData = createChannel(channel, bufMgr, bufSize);
 if(DEBUG_ADD)System.err.println("AddChan "+chanData);
         synchronized (newChanList) {
             newChanList.add(chanData);
-            selector.wakeup();
+            if (selector != null) {
+                selector.wakeup();
+            }
         }
 if(DEBUG_ADD)System.err.println("AddChanDone");
 
@@ -165,7 +168,7 @@ if(DEBUG_NEW)System.err.println("ANtop");
             for (InputChannel cd : newChanList) {
 if(DEBUG_NEW)System.err.println("ANreg "+cd);
                 try {
-                    cd.register(selector);
+                    cd.register(sel);
                 } catch (ClosedChannelException cce) {
                     LOG.error("Cannot register closed channel", cce);
                     continue;
@@ -173,8 +176,13 @@ if(DEBUG_NEW)System.err.println("ANreg "+cd);
 
 if(DEBUG_NEW)System.err.println("ANadd "+cd);
                 chanList.add(cd);
+
+                if (isRunning()) {
+                    cd.startReading();
+                }
             }
             newChanList.clear();
+            newChanList.notify();
         }
 if(DEBUG_NEW)System.err.println("ANend");
     }
@@ -283,22 +291,6 @@ if(DEBUG_NEW)System.err.println("ANend");
         return (Long[]) byteLimit.toArray(new Long[0]);
     }
 
-    public synchronized Long[] getPercentMaxStopAllocation() {
-        ArrayList byteLimit = new ArrayList();
-        for (InputChannel cd : chanList) {
-            byteLimit.add(new Long(cd.getPercentOfMaxStopAllocation()));
-        }
-        return (Long[]) byteLimit.toArray(new Long[0]);
-    }
-
-    public synchronized Long[] getPercentMaxRestartAllocation() {
-        ArrayList byteLimit = new ArrayList();
-        for (InputChannel cd : chanList) {
-            byteLimit.add(new Long(cd.getPercentOfMaxRestartAllocation()));
-        }
-        return (Long[]) byteLimit.toArray(new Long[0]);
-    }
-
     public String getPresentState()
     {
         return state.toString();
@@ -322,6 +314,14 @@ if(DEBUG_NEW)System.err.println("ANend");
             recordCount.add(new Long(cd.getStopMessagesReceived()));
         }
         return (Long[]) recordCount.toArray(new Long[0]);
+    }
+
+    public synchronized long getTotalRecordsReceived() {
+        long total = 0;
+        for (InputChannel cd : chanList) {
+            total += cd.getRecordsReceived();
+        }
+        return total;
     }
 
     public boolean isDestroyed()
@@ -359,12 +359,49 @@ if(DEBUG_NEW)System.err.println("ANend");
     void makeReverseConnections()
         throws IOException
     {
+        final int MAX_RETRIES = 10;
+
         if (!madeReverseConnections) {
-            IOException deferred = null;
-            for (ReverseConnection rc : reverseConnList) {
-                rc.connect();
+            ArrayList<ReverseConnection> retries =
+                new ArrayList<ReverseConnection>(reverseConnList);
+            for (int i = 1; i <= MAX_RETRIES; i++) {
+                boolean failed = false;
+
+                Iterator<ReverseConnection> iter = retries.iterator();
+                while (iter.hasNext()) {
+                    ReverseConnection rc = iter.next();
+
+                    try {
+                        rc.connect();
+                        iter.remove();
+                    } catch (IOException ioe) {
+                        if (i == MAX_RETRIES) {
+                            LOG.error("Could not connect " + rc, ioe);
+                        }
+                        failed = true;
+                    }
+                }
+
+                if (failed) {
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException ie) {
+                        // ignore interrupts
+                    }
+                }
             }
             madeReverseConnections = true;
+        }
+
+        // wait for new connections to be noticed
+        synchronized (newChanList) {
+            while (newChanList.size() > 0) {
+                try {
+                    newChanList.wait();
+                } catch (InterruptedException ie) {
+                    // ignore interrupts
+                }
+            }
         }
     }
 
@@ -397,8 +434,6 @@ if(DEBUG_RUN)System.err.println("R-1");
         while (thread != null) {
 if(DEBUG_RUN)System.err.println("Rtop "+state+" new "+newState);
 
-            int numSelected;
-
             if (newState != state) {
 if(DEBUG_RUN)System.err.println("Rstate "+state+"->"+newState);
 
@@ -416,7 +451,6 @@ if(DEBUG_RUN)System.err.println("Rstart "+cd);
                     // do nothing
                     break;
                 case DESTROYED:
-                    numSelected = 0;
                     break;
                 default:
                     try {
@@ -452,6 +486,7 @@ if(DEBUG_RUN)System.err.println("RpauseWait");
 if(DEBUG_RUN)System.err.println("RpauseAwake");
             }
 
+            int numSelected;
             try {
 if(DEBUG_RUN)System.err.println("Rsel");
                 numSelected = selector.select(SELECTOR_TIMEOUT);
@@ -514,9 +549,16 @@ if(DEBUG_RUN)System.err.println("Rproc chanData "+chanData);
                             // channel went away
                             selKey.cancel();
                             chanList.remove(chanData);
-                            LOG.error("Closed " + name +
-                                      " socket channel, " + chanList.size() +
-                                      " channels remain");
+                            if (chanList.size() > 0) {
+                                LOG.error("Closed " + name +
+                                          " socket channel, " +
+                                          chanList.size() +
+                                          " channels remain");
+                            } else {
+                                LOG.error("Closed " + name +
+                                          " socket channel, stopping reader");
+                                channelStopFlag.set();
+                            }
                         } catch (IOException ioe) {
                             LOG.error("Could not process select", ioe);
                         }
@@ -577,7 +619,9 @@ if(DEBUG_SET)System.err.println("SSTtop");
             this.newState = newState;
 if(DEBUG_SET)System.err.println("SSTnewState="+newState);
             stateLock.notify();
-            selector.wakeup();
+            if (selector != null) {
+                selector.wakeup();
+            }
         }
 if(DEBUG_SET)System.err.println("SSTend");
     }
@@ -713,7 +757,31 @@ if(DEBUG_SS)System.err.println("SSdone");
             SocketChannel sock =
                 SocketChannel.open(new InetSocketAddress(hostName, port));
 
+            boolean finished = false;
+            for (int i = 0; i < 10; i++) {
+                if (sock.finishConnect()) {
+                    finished = true;
+                    break;
+                }
+
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException ie) {
+                    // ignore interrupts
+                }
+            }
+
+            if (!finished) {
+                throw new IOException("Could not finish connection to " +
+                                      hostName + ":" + port);
+            }
+
             addSocketChannel(sock, bufCache);
+        }
+
+        public String toString()
+        {
+            return hostName + ":" + port;
         }
     }
 }

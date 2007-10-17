@@ -23,13 +23,14 @@ import org.apache.commons.logging.LogFactory;
  * Dispatch payload files to PnF
  */
 public class FileDispatcher implements Dispatcher {
+    public static final String DISPATCH_DEST_STORAGE = "/mnt/data/pdaqlocal";
+
     private static final Log LOG = LogFactory.getLog(FileDispatcher.class);
 
     private static final String START_PREFIX =
         DAQCmdInterface.DAQ_ONLINE_RUNSTART_FLAG;
     private static final String STOP_PREFIX =
         DAQCmdInterface.DAQ_ONLINE_RUNSTOP_FLAG;
-    private static final String DISPATCH_DEST_STORAGE = "/mnt/data/pdaqlocal";
     private static final int KB_IN_MB = 1024;
 
     private String baseFileName;
@@ -69,6 +70,7 @@ public class FileDispatcher implements Dispatcher {
             throw new IllegalArgumentException("baseFileName cannot be NULL!");
         }
 
+        Runtime.getRuntime().addShutdownHook(new ShutdownHook());
         this.baseFileName = baseFileName;
         LOG.info("baseFileName is set to: " + baseFileName);
         if ( baseFileName.equalsIgnoreCase("tcal") ||
@@ -174,7 +176,6 @@ public class FileDispatcher implements Dispatcher {
                 LOG.debug("write ByteBuffer of length: " + buffer.limit() + " to file.");
             }
         } catch (IOException ioe) {
-            LOG.error("couldn't write to the file: ", ioe);
             throw new DispatchException(ioe);
         }
 
@@ -194,7 +195,7 @@ public class FileDispatcher implements Dispatcher {
     public void dispatchEvent(Payload event) throws DispatchException {
         if (bufferCache == null) {
             final String errMsg =
-                "ByteBufferCache is null! Cannot dispatch events!";
+                "Buffer cache is null! Cannot dispatch events!";
 
             throw new DispatchException(errMsg);
         }
@@ -475,5 +476,24 @@ public class FileDispatcher implements Dispatcher {
         }
         diskSize = (int)usage.getBlocks() / KB_IN_MB;
         diskAvailable = (int) usage.getAvailable() / KB_IN_MB;
+    }
+
+    /**
+     * A ShutdownHook for closing and renaming the dispatch file if it
+     * is still open when invoked.
+     */
+    private class ShutdownHook extends Thread {
+        public void run() {
+            LOG.warn(" ShutdownHook invoked for " + baseFileName);
+            if (outChannel != null && outChannel.isOpen()) {
+                LOG.warn(" ShutdownHook: moving temp file for " + baseFileName);
+                try {
+                    moveToDest();
+                } catch (DispatchException de) {
+                    // We can't do anything about this now anyway...
+                    LOG.error(" Problem in ShutdownHook for " + baseFileName + ": " + de);
+                }
+            }
+        }
     }
 }

@@ -33,7 +33,7 @@ public abstract class PushPayloadReader
             reader = (PushPayloadReader) parent;
         }
 
-        void notifyOnStop()
+        public void notifyOnStop()
         {
             reader.channelStopped(this);
             super.notifyOnStop();
@@ -49,7 +49,8 @@ public abstract class PushPayloadReader
 
     private static final Log LOG = LogFactory.getLog(PushPayloadReader.class);
 
-    private ArrayList<InputChannel> chanList = new ArrayList<InputChannel>();
+    private ArrayList<InputChannel> pushChanList =
+        new ArrayList<InputChannel>();
 
     private long dequeuedMessages;
     private long stopMessagesPropagated;
@@ -62,29 +63,29 @@ public abstract class PushPayloadReader
         super(name);
     }
 
+    void channelStopped(InputChannel chan)
+    {
+        pushChanList.remove(chan);
+        if (pushChanList.size() == 0) {
+            sendStop();
+            stopMessagesPropagated++;
+            totStops++;
+        }
+    }
+
     public InputChannel createChannel(SelectableChannel channel,
                                       IByteBufferCache bufMgr, int bufSize)
         throws IOException
     {
-        if (chanList.size() == 0) {
+        if (pushChanList.size() == 0) {
             dequeuedMessages = 0;
             stopMessagesPropagated = 0;
         }
 
         InputChannel chan =
             new PushInputChannel(this, channel, bufMgr, bufSize);
-        chanList.add(chan);
+        pushChanList.add(chan);
         return chan;
-    }
-
-    void channelStopped(InputChannel chan)
-    {
-        chanList.remove(chan);
-        if (chanList.size() == 0) {
-            sendStop();
-            stopMessagesPropagated++;
-            totStops++;
-        }
     }
 
     /**

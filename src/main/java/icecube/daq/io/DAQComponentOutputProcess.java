@@ -1,7 +1,7 @@
 /*
  * class: DAQComponentOutputProcess
  *
- * Version $Id: DAQComponentOutputProcess.java,v 1.3 2005/04/06 01:37:42 mcp Exp $
+ * Version $Id: DAQComponentOutputProcess.java 2125 2007-10-12 18:27:05Z ksb $
  *
  * Date: March 24 2005
  *
@@ -20,7 +20,7 @@ import java.nio.channels.WritableByteChannel;
 /**
  * This represents the engine for the transmit channels.
  *
- * @version $Id: DAQComponentOutputProcess.java,v 1.3 2005/04/06 01:37:42 mcp Exp $
+ * @version $Id: DAQComponentOutputProcess.java 2125 2007-10-12 18:27:05Z ksb $
  * @author mcp
  */
 public interface DAQComponentOutputProcess extends DAQComponentIOProcess {

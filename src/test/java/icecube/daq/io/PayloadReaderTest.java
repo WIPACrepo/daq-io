@@ -1,14 +1,10 @@
 package icecube.daq.io;
 
-import icecube.daq.common.DAQCmdInterface;
-import icecube.daq.common.DAQComponentObserver;
-import icecube.daq.common.ErrorState;
-import icecube.daq.common.NormalState;
+import icecube.daq.io.test.LoggingCase;
+import icecube.daq.io.test.MockObserver;
 
-import icecube.daq.io.test.MockAppender;
-
-import icecube.daq.payload.ByteBufferCache;
 import icecube.daq.payload.IByteBufferCache;
+import icecube.daq.payload.VitreousBufferCache;
 
 import java.io.IOException;
 
@@ -29,13 +25,9 @@ import java.util.Iterator;
 import java.util.List;
 
 import junit.framework.Test;
-import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
 import junit.textui.TestRunner;
-
-import org.apache.log4j.BasicConfigurator;
-import org.apache.log4j.Level;
 
 class SimpleReader
     extends PayloadReader
@@ -92,18 +84,12 @@ class SimpleReader
 }
 
 public class PayloadReaderTest
-    extends TestCase
-    implements DAQComponentObserver
+    extends LoggingCase
 {
     private static final int BUFFER_LEN = 5000;
     private static final int INPUT_OUTPUT_LOOP_CNT = 5;
 
-    private static Level logLevel = Level.INFO;
-
     private static ByteBuffer stopMsg;
-
-    private boolean sinkStopNotificationCalled;
-    private boolean sinkErrorNotificationCalled;
 
     private SimpleReader tstRdr;
 
@@ -174,56 +160,46 @@ public class PayloadReaderTest
                         allocStopped[0].booleanValue());
         }
 
-        for (int i = 0; i < 9; i++) {
+        for (int i = 0; i < 7; i++) {
             Long[] data;
             String name;
             long val;
 
             switch (i) {
             case 0:
-                name = "curAcqBuf";
-                data = rdr.getBufferCurrentAcquiredBuffers();
-                val = bufsAcquired;
-            break;
-            case 1:
-                name = "curAcqByt";
-                data = rdr.getBufferCurrentAcquiredBytes();
-                val = bytesAcquired;
-                break;
-            case 2:
                 name = "bytesRcvd";
                 data = rdr.getBytesReceived();
                 val = bytesRcvd;
                 break;
-            case 3:
+            case 1:
                 name = "lim2Rest";
                 data = rdr.getLimitToRestartAllocation();
-                val = 100000;
+                val = 100000000;
                 break;
-            case 4:
+            case 2:
                 name = "lim2Stop";
                 data = rdr.getLimitToStopAllocation();
-                val = 140000;
+                val = 140000000;
                 break;
-            case 5:
-                name = "maxRest";
-                data = rdr.getPercentMaxRestartAllocation();
-                val = 50;
-                break;
-            case 6:
-                name = "maxStop";
-                data = rdr.getPercentMaxStopAllocation();
-                val = 70;
-                break;
-            case 7:
+            case 3:
                 name = "recsRcvd";
                 data = rdr.getRecordsReceived();
                 val = recsRcvd;
                 break;
-            case 8:
+            case 4:
                 name = "stopsRcvd";
                 data = rdr.getStopMessagesReceived();
                 val = stopsRcvd;
+                break;
+            case 5:
+                name = "curAcqBuf";
+                data = rdr.getBufferCurrentAcquiredBuffers();
+                val = bufsAcquired;
+            break;
+            case 6:
+                name = "curAcqByt";
+                data = rdr.getBufferCurrentAcquiredBytes();
+                val = bytesAcquired;
                 break;
             default:
                 name = "unknown";
@@ -316,12 +292,6 @@ public class PayloadReaderTest
         super.setUp();
 
         tstRdr = null;
-
-        sinkStopNotificationCalled = false;
-        sinkErrorNotificationCalled = false;
-
-        BasicConfigurator.resetConfiguration();
-        BasicConfigurator.configure(new MockAppender(logLevel));
     }
 
     /**
@@ -347,9 +317,7 @@ public class PayloadReaderTest
     public void testBasic()
         throws IOException
     {
-        IByteBufferCache bufMgr =
-            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN * 20, BUFFER_LEN * 40,
-                                "BasicCache");
+        IByteBufferCache bufMgr = new VitreousBufferCache();
 
         Pipe testPipe = Pipe.open();
         Pipe.SinkChannel sinkChannel = testPipe.sink();
@@ -457,9 +425,7 @@ public class PayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr =
-            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
-                                BUFFER_LEN*40, "OutputInput");
+        IByteBufferCache bufMgr = new VitreousBufferCache();
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -469,8 +435,10 @@ public class PayloadReaderTest
         Pipe.SourceChannel sourceChannel = testPipe.source();
         sourceChannel.configureBlocking(false);
 
+        MockObserver observer = new MockObserver();
+
         tstRdr = new SimpleReader("OutputInput");
-        tstRdr.registerComponentObserver(this);
+        tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
         waitUntilStopped(tstRdr);
@@ -521,16 +489,14 @@ public class PayloadReaderTest
 
         Thread.sleep(100);
         assertTrue("Failure on sendStopMsg command.",
-                   sinkStopNotificationCalled);
+                   observer.gotSinkStop());
     }
 
     public void testMultiOutputInput()
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr =
-            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
-                                BUFFER_LEN*40, "MultiOutputInput");
+        IByteBufferCache bufMgr = new VitreousBufferCache();
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -540,8 +506,10 @@ public class PayloadReaderTest
         Pipe.SourceChannel sourceChannel = testPipe.source();
         sourceChannel.configureBlocking(false);
 
+        MockObserver observer = new MockObserver();
+
         tstRdr = new SimpleReader("MultiOutputInput");
-        tstRdr.registerComponentObserver(this);
+        tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
         waitUntilStopped(tstRdr);
@@ -611,7 +579,7 @@ public class PayloadReaderTest
 
         Thread.sleep(100);
         assertTrue("Failure on sendStopMsg command.",
-                   sinkStopNotificationCalled);
+                   observer.gotSinkStop());
 
         assertTrue("PayloadReader in " + tstRdr.getPresentState() +
                    ", not Idle after stop", tstRdr.isStopped());
@@ -621,12 +589,12 @@ public class PayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr =
-            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
-                                BUFFER_LEN*40, "MultiSize");
+        IByteBufferCache bufMgr = new VitreousBufferCache();
+
+        MockObserver observer = new MockObserver();
 
         tstRdr = new SimpleReader("MultiSize");
-        tstRdr.registerComponentObserver(this);
+        tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
         waitUntilStopped(tstRdr);
@@ -719,7 +687,7 @@ public class PayloadReaderTest
 
                 waitUntilStopped(tstRdr);
                 assertTrue("Failure on sendStopMsg command.",
-                           sinkStopNotificationCalled);
+                           observer.gotSinkStop());
                 assertTrue("PayloadReader in " + tstRdr.getPresentState() +
                            ", not Idle after stop", tstRdr.isStopped());
 
@@ -733,9 +701,7 @@ public class PayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr =
-            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
-                                BUFFER_LEN*40, "OutputInput");
+        IByteBufferCache bufMgr = new VitreousBufferCache();
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -745,8 +711,10 @@ public class PayloadReaderTest
         Pipe.SourceChannel sourceChannel = testPipe.source();
         sourceChannel.configureBlocking(false);
 
+        MockObserver observer = new MockObserver();
+
         tstRdr = new SimpleReader("Disposing");
-        tstRdr.registerComponentObserver(this);
+        tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
         waitUntilStopped(tstRdr);
@@ -788,16 +756,14 @@ public class PayloadReaderTest
 
         Thread.sleep(100);
         assertTrue("Failure on sendStopMsg command.",
-                   sinkStopNotificationCalled);
+                   observer.gotSinkStop());
     }
 
     public void testGetters()
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr =
-            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
-                                BUFFER_LEN*40, "Getters");
+        IByteBufferCache bufMgr = new VitreousBufferCache();
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -807,8 +773,10 @@ public class PayloadReaderTest
         Pipe.SourceChannel sourceChannel = testPipe.source();
         sourceChannel.configureBlocking(false);
 
+        MockObserver observer = new MockObserver();
+
         tstRdr = new SimpleReader("Getters");
-        tstRdr.registerComponentObserver(this);
+        tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
         waitUntilStopped(tstRdr);
@@ -830,9 +798,10 @@ public class PayloadReaderTest
         final int bufLen = 64;
 
         final int acquireLen = bufLen;
-        //testBuf = bufMgr.acquireBuffer(acquireLen);
-        testBuf = ByteBuffer.allocateDirect(acquireLen);
+        testBuf = bufMgr.acquireBuffer(acquireLen);
         assertNotNull("Unable to acquire transmit buffer", testBuf);
+
+        checkGetters(tstRdr, 1, 1, acquireLen, 0, 0, 0);
 
         testBuf.putInt(0, bufLen);
         testBuf.limit(bufLen);
@@ -845,12 +814,12 @@ public class PayloadReaderTest
             Thread.sleep(100);
         }
 
-        checkGetters(tstRdr, 1, 1, BUFFER_LEN, bufLen, 1, 0);
+        checkGetters(tstRdr, 1, 1, acquireLen, bufLen, 1, 0);
 
         assertFalse("PayloadReader in Error state after ErrorSig",
                    tstRdr.isError());
         assertFalse("Error notification was received.",
-                   sinkErrorNotificationCalled);
+                   observer.gotSinkError());
 
         sendStopMsg(sinkChannel);
 
@@ -859,7 +828,7 @@ public class PayloadReaderTest
         }
 
         assertTrue("Sink stop notification was not received.",
-                   sinkStopNotificationCalled);
+                   observer.gotSinkStop());
 
         checkGetters(tstRdr, 0, 0, BUFFER_LEN, bufLen, 1, 1);
     }
@@ -870,9 +839,7 @@ public class PayloadReaderTest
     public void testInetServer()
         throws Exception
     {
-        IByteBufferCache bufMgr =
-            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
-                                BUFFER_LEN*40, "InetServer");
+        IByteBufferCache bufMgr = new VitreousBufferCache();
 
         tstRdr = new SimpleReader("InetServer");
 
@@ -902,6 +869,9 @@ public class PayloadReaderTest
         waitUntilRunning(tstRdr);
         assertTrue("PayloadReader in " + tstRdr.getPresentState() +
                    ", not Running after startup", tstRdr.isRunning());
+
+        assertEquals("Bad number of log messages",
+                     0, getNumberOfMessages());
 
         ByteBuffer testBuf;
 
@@ -937,6 +907,14 @@ public class PayloadReaderTest
             // XXX should check recvCnt
         }
 
+
+        assertEquals("Bad number of log messages",
+                     1, getNumberOfMessages());
+        assertEquals("Unexpected log message 0",
+                     "Closed InetServer socket channel, 1 channels remain",
+                     getMessage(0));
+        clearMessages();
+
         tstRdr.forcedStopProcessing();
         Thread.sleep(100);
 
@@ -955,9 +933,7 @@ public class PayloadReaderTest
         assertTrue("PayloadReader in " + tstRdr.getPresentState() +
                    ", not Idle after StopSig", tstRdr.isStopped());
 
-
         tstRdr.destroyProcessor();
-
         waitUntilDestroyed(tstRdr);
         assertTrue("PayloadReader did not die after kill request",
                    tstRdr.isDestroyed());
@@ -976,9 +952,7 @@ public class PayloadReaderTest
     public void testMultiServer()
         throws Exception
     {
-        IByteBufferCache bufMgr =
-            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
-                                BUFFER_LEN*40, "MultiServer");
+        IByteBufferCache bufMgr = new VitreousBufferCache();
 
         final int numTstRdrs = 4;
 
@@ -1095,9 +1069,7 @@ public class PayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr =
-            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
-                                BUFFER_LEN*40, "ServerInput");
+        IByteBufferCache bufMgr = new VitreousBufferCache();
 
         Selector sel = Selector.open();
 
@@ -1192,29 +1164,6 @@ public class PayloadReaderTest
         waitUntilDestroyed(tstRdr);
         assertTrue("PayloadReader did not die after kill request",
                    tstRdr.isDestroyed());
-    }
-
-    public synchronized void update(Object object, String notificationID)
-    {
-        if (object instanceof NormalState){
-            NormalState state = (NormalState)object;
-            if (state == NormalState.STOPPED){
-                if (notificationID.equals(DAQCmdInterface.SINK)){
-                    sinkStopNotificationCalled = true;
-                } else {
-                    throw new Error("Unexpected notification update");
-                }
-            }
-        } else if (object instanceof ErrorState){
-            ErrorState state = (ErrorState)object;
-            if (state == ErrorState.UNKNOWN_ERROR){
-                if (notificationID.equals(DAQCmdInterface.SINK)){
-                    sinkErrorNotificationCalled = true;
-                } else {
-                    throw new Error("Unexpected notification update");
-                }
-            }
-        }
     }
 
     private static final void waitUntilDestroyed(PayloadReader rdr)

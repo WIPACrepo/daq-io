@@ -2,12 +2,12 @@ package icecube.daq.io;
 
 import icecube.daq.common.DAQCmdInterface;
 
-import icecube.daq.io.test.MockAppender;
+import icecube.daq.io.test.LoggingCase;
 
-import icecube.daq.payload.ByteBufferCache;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IUTCTime;
 import icecube.daq.payload.PayloadDestination;
+import icecube.daq.payload.VitreousBufferCache;
 
 import icecube.daq.payload.splicer.Payload;
 import icecube.daq.payload.splicer.PayloadFactory;
@@ -22,13 +22,9 @@ import java.nio.ByteBuffer;
 import java.util.zip.DataFormatException;
 
 import junit.framework.Test;
-import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
 import junit.textui.TestRunner;
-
-import org.apache.log4j.BasicConfigurator;
-import org.apache.log4j.Level;
 
 class AdjustablePayload
     extends Payload
@@ -201,10 +197,8 @@ class AdjustablePayload
 }
 
 public class FileDispatcherTest
-    extends TestCase
+    extends LoggingCase
 {
-    private static Level logLevel = Level.INFO;
-
     /**
      * Constructs an instance of this test.
      *
@@ -273,13 +267,43 @@ public class FileDispatcherTest
         return dir.delete();
     }
 
+    private void handleLogMessages()
+    {
+        File destDir = new File(FileDispatcher.DISPATCH_DEST_STORAGE);
+
+        int expMsgs;
+        if (!destDir.isDirectory()) {
+            expMsgs = 1;
+        } else if (!destDir.canWrite()) {
+            expMsgs = 2;
+        } else {
+            expMsgs = 0;
+        }
+
+        assertEquals("Bad number of log messages",
+                     expMsgs, getNumberOfMessages());
+        if (expMsgs > 1) {
+            assertEquals("Unexpected log message 0",
+                         "Cannot write to " +
+                         FileDispatcher.DISPATCH_DEST_STORAGE + "!",
+                         getMessage(0));
+        }
+        if (expMsgs > 0) {
+            final int msgNum = expMsgs - 1;
+
+            assertEquals("Unexpected log message " + msgNum,
+                         FileDispatcher.DISPATCH_DEST_STORAGE +
+                         " does not exist!  Using current directory.",
+                         getMessage(msgNum));
+        }
+
+        clearMessages();
+    }
+
     protected void setUp()
         throws Exception
     {
         super.setUp();
-
-        BasicConfigurator.resetConfiguration();
-        BasicConfigurator.configure(new MockAppender(logLevel));
 
         File tempFile = FileDispatcher.getTempFile(".", "physics");
         if (tempFile.exists()) {
@@ -359,6 +383,13 @@ public class FileDispatcherTest
         assertEquals("Unexpected destination directory",
                      ".", fd.getDispatchDestinationDirectory());
 
+        assertEquals("Bad number of log messages",
+                     1, getNumberOfMessages());
+        assertEquals("Unexpected log message 0",
+                     badDir + " does not exist!  Using current directory.",
+                     getMessage(0));
+        clearMessages();
+
         try {
             fd.setDispatchDestStorage(badDir);
             fail("Should not be able to set bogus destination directory");
@@ -401,10 +432,11 @@ public class FileDispatcherTest
     public void testDispatchEvent()
         throws DispatchException
     {
-        IByteBufferCache bufCache =
-            new ByteBufferCache(1000, 20000, 40000, "testDispatchEvent");
+        IByteBufferCache bufCache = new VitreousBufferCache();
 
         FileDispatcher fd = new FileDispatcher("physics", bufCache);
+        handleLogMessages();
+
         assertNotNull("ByteBuffer was null", fd.getByteBufferCache());
 
         assertEquals("Total dispatched events is not zero",
@@ -420,6 +452,7 @@ public class FileDispatcherTest
         throws DispatchException
     {
         FileDispatcher fd = new FileDispatcher("physics");
+        handleLogMessages();
 
         try {
             fd.dispatchEvent(new AdjustablePayload(8));
@@ -445,6 +478,9 @@ public class FileDispatcherTest
         destDir.mkdir();
         destDir.setReadOnly();
 
+        assertEquals("Bad number of log messages",
+                     0, getNumberOfMessages());
+
         try {
             FileDispatcher fd =
                 new FileDispatcher(destDirName, "physics");
@@ -453,12 +489,23 @@ public class FileDispatcherTest
         } finally {
             deleteDirectory(destDir);
         }
+
+        assertEquals("Bad number of log messages",
+                     2, getNumberOfMessages());
+        assertEquals("Unexpected log message 0",
+                     "Cannot write to " + destDirName + "!", getMessage(0));
+        assertEquals("Unexpected log message 1",
+                     destDirName + " does not exist!  Using current directory.",
+                     getMessage(1));
+        clearMessages();
+
     }
 
     public void testUnimplemented()
         throws DispatchException
     {
         FileDispatcher fd = new FileDispatcher("physics");
+        handleLogMessages();
 
         ByteBuffer bb = ByteBuffer.allocate(12);
         int[] indices = new int[] { 0, 4, 8 };
@@ -492,6 +539,7 @@ public class FileDispatcherTest
         throws DispatchException
     {
         FileDispatcher fd = new FileDispatcher("physics");
+        handleLogMessages();
 
         try {
             fd.setMaxFileSize(-1000);
@@ -513,6 +561,7 @@ public class FileDispatcherTest
     public void testBogusDataBoundary()
     {
         FileDispatcher fd = new FileDispatcher("physics");
+        handleLogMessages();
 
         try {
             fd.dataBoundary();
@@ -526,6 +575,7 @@ public class FileDispatcherTest
         throws DispatchException
     {
         FileDispatcher fd = new FileDispatcher("physics");
+        handleLogMessages();
 
         try {
             fd.dataBoundary(null);
@@ -581,8 +631,7 @@ public class FileDispatcherTest
         }
 
         try {
-            IByteBufferCache bufCache =
-                new ByteBufferCache(1000, 20000, 40000, "testFull");
+            IByteBufferCache bufCache = new VitreousBufferCache();
 
             FileDispatcher fd =
                 new FileDispatcher(destDirName, "physics", bufCache);

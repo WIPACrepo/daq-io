@@ -5,13 +5,13 @@ import icecube.daq.common.DAQComponentObserver;
 import icecube.daq.common.ErrorState;
 import icecube.daq.common.NormalState;
 
-import icecube.daq.io.test.MockAppender;
+import icecube.daq.io.test.LoggingCase;
 import icecube.daq.io.test.MockSpliceableFactory;
 import icecube.daq.io.test.MockSplicer;
 import icecube.daq.io.test.MockStrandTail;
 
-import icecube.daq.payload.ByteBufferCache;
 import icecube.daq.payload.IByteBufferCache;
+import icecube.daq.payload.VitreousBufferCache;
 
 import icecube.daq.splicer.Splicer;
 
@@ -31,27 +31,57 @@ import java.nio.channels.WritableByteChannel;
 import java.util.Iterator;
 
 import junit.framework.Test;
-import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
 import junit.textui.TestRunner;
 
-import org.apache.log4j.BasicConfigurator;
-import org.apache.log4j.Level;
+class Observer
+    implements DAQComponentObserver
+{
+    private boolean sinkStopNotificationCalled;
+    private boolean sinkErrorNotificationCalled;
+
+    boolean gotError()
+    {
+        return sinkErrorNotificationCalled;
+    }
+
+    boolean gotStop()
+    {
+        return sinkStopNotificationCalled;
+    }
+
+    public synchronized void update(Object object, String notificationID)
+    {
+        if (object instanceof NormalState){
+            NormalState state = (NormalState)object;
+            if (state == NormalState.STOPPED){
+                if (notificationID.equals(DAQCmdInterface.SINK)){
+                    sinkStopNotificationCalled = true;
+                } else {
+                    throw new Error("Unexpected notification update");
+                }
+            }
+        } else if (object instanceof ErrorState){
+            ErrorState state = (ErrorState)object;
+            if (state == ErrorState.UNKNOWN_ERROR){
+                if (notificationID.equals(DAQCmdInterface.SINK)){
+                    sinkErrorNotificationCalled = true;
+                } else {
+                    throw new Error("Unexpected notification update");
+                }
+            }
+        }
+    }
+}
 
 public class SpliceablePayloadReaderTest
-    extends TestCase
-    implements DAQComponentObserver
+    extends LoggingCase
 {
     private static final int BUFFER_LEN = 5000;
     private static final int INPUT_OUTPUT_LOOP_CNT = 5;
 
-    private static Level logLevel = Level.INFO;
-
     private static ByteBuffer stopMsg;
-
-    private boolean sinkStopNotificationCalled;
-    private boolean sinkErrorNotificationCalled;
 
     private SpliceablePayloadReader tstRdr;
 
@@ -96,12 +126,6 @@ public class SpliceablePayloadReaderTest
         super.setUp();
 
         tstRdr = null;
-
-        sinkStopNotificationCalled = false;
-        sinkErrorNotificationCalled = false;
-
-        BasicConfigurator.resetConfiguration();
-        BasicConfigurator.configure(new MockAppender(logLevel));
     }
 
     /**
@@ -150,11 +174,22 @@ public class SpliceablePayloadReaderTest
         assertTrue("PayloadReader in " + tstRdr.getPresentState() +
                    ", not Idle after StopSig", tstRdr.isStopped());
 
+        assertEquals("Bad number of log messages",
+                     0, getNumberOfMessages());
+
         // try it a second time
         tstRdr.startProcessing();
         waitUntilRunning(tstRdr);
         assertTrue("PayloadReader in " + tstRdr.getPresentState() +
                    ", not Running after StartSig", tstRdr.isRunning());
+
+        assertEquals("Bad number of log messages",
+                     1, getNumberOfMessages());
+        assertEquals("Unexpected log message 0",
+                     "Splicer should have been in STOPPED state," +
+                     " not MockState.  Calling Splicer.forceStop()",
+                     getMessage(0));
+        clearMessages();
 
         tstRdr.forcedStopProcessing();
         waitUntilStopped(tstRdr);
@@ -166,21 +201,30 @@ public class SpliceablePayloadReaderTest
         assertTrue("PayloadReader did not die after kill request",
                    tstRdr.isDestroyed());
 
+        assertEquals("Bad number of log messages",
+                     0, getNumberOfMessages());
+
         try {
             tstRdr.startProcessing();
             fail("PayloadReader restart after kill succeeded");
         } catch (Error e) {
             // expect this to fail
         }
+
+        assertEquals("Bad number of log messages",
+                     1, getNumberOfMessages());
+        assertEquals("Unexpected log message 0",
+                     "Splicer should have been in STOPPED state," +
+                     " not MockState.  Calling Splicer.forceStop()",
+                     getMessage(0));
+        clearMessages();
     }
 
     public void testOutputInput()
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr =
-            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
-                                BUFFER_LEN*40, "OutputInput");
+        IByteBufferCache bufMgr = new VitreousBufferCache();
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -193,8 +237,10 @@ public class SpliceablePayloadReaderTest
         MockSplicer splicer = new MockSplicer();
         MockSpliceableFactory factory = new MockSpliceableFactory();
 
+        Observer observer = new Observer();
+
         tstRdr = new SpliceablePayloadReader("OutputInput", splicer, factory);
-        tstRdr.registerComponentObserver(this);
+        tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
         waitUntilStopped(tstRdr);
@@ -250,17 +296,14 @@ public class SpliceablePayloadReaderTest
         sendStopMsg(sinkChannel);
 
         Thread.sleep(100);
-        assertTrue("Failure on sendStopMsg command.",
-                   sinkStopNotificationCalled);
+        assertTrue("Failure on sendStopMsg command.", observer.gotStop());
     }
 
     public void testMultiOutputInput()
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr =
-            new ByteBufferCache(BUFFER_LEN, BUFFER_LEN*20,
-                                BUFFER_LEN*40, "MultiOutputInput");
+        IByteBufferCache bufMgr = new VitreousBufferCache();
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -273,8 +316,10 @@ public class SpliceablePayloadReaderTest
         MockSplicer splicer = new MockSplicer();
         MockSpliceableFactory factory = new MockSpliceableFactory();
 
+        Observer observer = new Observer();
+
         tstRdr = new SpliceablePayloadReader("OutputInput", splicer, factory);
-        tstRdr.registerComponentObserver(this);
+        tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
         waitUntilStopped(tstRdr);
@@ -345,34 +390,10 @@ public class SpliceablePayloadReaderTest
         sendStopMsg(sinkChannel);
 
         Thread.sleep(100);
-        assertTrue("Failure on sendStopMsg command.",
-                   sinkStopNotificationCalled);
+        assertTrue("Failure on sendStopMsg command.", observer.gotStop());
 
         assertTrue("PayloadReader in " + tstRdr.getPresentState() +
                    ", not Idle after stop", tstRdr.isStopped());
-    }
-
-    public synchronized void update(Object object, String notificationID)
-    {
-        if (object instanceof NormalState){
-            NormalState state = (NormalState)object;
-            if (state == NormalState.STOPPED){
-                if (notificationID.equals(DAQCmdInterface.SINK)){
-                    sinkStopNotificationCalled = true;
-                } else {
-                    throw new Error("Unexpected notification update");
-                }
-            }
-        } else if (object instanceof ErrorState){
-            ErrorState state = (ErrorState)object;
-            if (state == ErrorState.UNKNOWN_ERROR){
-                if (notificationID.equals(DAQCmdInterface.SINK)){
-                    sinkErrorNotificationCalled = true;
-                } else {
-                    throw new Error("Unexpected notification update");
-                }
-            }
-        }
     }
 
     private static final void waitUntilDestroyed(PayloadReader rdr)

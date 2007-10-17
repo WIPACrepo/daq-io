@@ -1,7 +1,7 @@
 /*
  * class: PayloadReceiveChannel
  *
- * Version $Id: PayloadReceiveChannel.java,v 1.24 2005/12/20 00:51:14 mcp Exp $
+ * Version $Id: PayloadReceiveChannel.java 2125 2007-10-12 18:27:05Z ksb $
  *
  * Date: May 15 2005
  *
@@ -14,7 +14,7 @@ import EDU.oswego.cs.dl.util.concurrent.Mutex;
 import EDU.oswego.cs.dl.util.concurrent.LinkedQueue;
 import EDU.oswego.cs.dl.util.concurrent.Semaphore;
 import icecube.daq.payload.IByteBufferCache;
-import icecube.daq.payload.ByteBufferCache;
+import icecube.daq.payload.VitreousBufferCache;
 import icecube.daq.common.DAQComponentObserver;
 import icecube.daq.common.NormalState;
 import icecube.daq.common.DAQCmdInterface;
@@ -37,7 +37,7 @@ import org.apache.commons.logging.LogFactory;
  * for acquiring buffers into the buffer cache and managing the flow control.
  *
  * @author mcp
- * @version $Id: PayloadReceiveChannel.java,v 1.24 2005/12/20 00:51:14 mcp Exp $
+ * @version $Id: PayloadReceiveChannel.java 2125 2007-10-12 18:27:05Z ksb $
  */
 public class PayloadReceiveChannel {
 
@@ -189,9 +189,9 @@ public class PayloadReceiveChannel {
     protected void setCacheLimits()
     {
         allocationStopped = false;
-        if (((ByteBufferCache) bufferMgr).getIsCacheBounded()) {
+        if (bufferMgr.getIsCacheBounded()) {
             long maxAllocation =
-                    ((ByteBufferCache) bufferMgr).getMaxAquiredBytes();
+                    bufferMgr.getMaxAquiredBytes();
             limitToStopAllocation = (maxAllocation *
                     percentOfMaxStopAllocation) / 100;
             limitToRestartAllocation = (maxAllocation *
@@ -366,14 +366,12 @@ public class PayloadReceiveChannel {
 
     public long getBufferCurrentAcquiredBytes()
     {
-        return ((ByteBufferCache) bufferMgr).
-                getCurrentAquiredBytes();
+        return bufferMgr.getCurrentAquiredBytes();
     }
 
     public long getBufferCurrentAcquiredBuffers()
     {
-        return ((ByteBufferCache) bufferMgr).
-                getCurrentAquiredBuffers();
+        return bufferMgr.getCurrentAquiredBuffers();
     }
 
     public String presentState()
@@ -391,8 +389,9 @@ public class PayloadReceiveChannel {
             // check for allocation limits--flow control
 
             if (allocationStopped) {
-                if (((ByteBufferCache) bufferMgr).getCurrentAquiredBytes()
-                    <= limitToRestartAllocation) {
+                if (bufferMgr.getCurrentAquiredBytes() <=
+                    limitToRestartAllocation)
+                {
                     // lets try to allocate
                     payloadBuf = bufferMgr.acquireBuffer(neededBufBlen);
                     // if successful, then reassert read interest
