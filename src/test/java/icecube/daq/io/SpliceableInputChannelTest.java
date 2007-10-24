@@ -129,6 +129,11 @@ public class SpliceableInputChannelTest
             throw new Error("Unimplemented");
         }
 
+        public ByteBuffer getPayloadBacking()
+        {
+            throw new Error("Unimplemented");
+        }
+
         public int getPayloadInterfaceType()
         {
             throw new Error("Unimplemented");
