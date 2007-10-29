@@ -119,7 +119,7 @@ public class SpliceableInputChannelTest
             time = buf.getLong(8);
         }
 
-        public int compareTo(Object obj)
+        public int compareSpliceable(Spliceable spl)
         {
             throw new Error("Unimplemented");
         }
