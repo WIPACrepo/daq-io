@@ -259,6 +259,16 @@ public class SpliceableInputChannelTest
 
             chan.pushPayload(buf);
 
+            for (int q = 0; q < 10 && chan.getQueueDepth() > 0; q++) {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException ie) {
+                    // ignore interrupts
+                }
+            }
+
+            assertEquals("Expected queue to be empty",
+                         0, chan.getQueueDepth());
             assertEquals("Buffer cache memory leak",
                          expBytes, bufMgr.getCurrentAquiredBytes());
 

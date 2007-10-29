@@ -17,6 +17,8 @@ import java.nio.ByteBuffer;
 
 import java.nio.channels.SelectableChannel;
 
+import java.util.ArrayList;
+
 import java.util.zip.DataFormatException;
 
 import org.apache.commons.logging.Log;
@@ -33,6 +35,8 @@ public class SpliceableInputChannel
 
     private SpliceableFactory factory;
     private StrandTail strandTail;
+    private QueueThread thread;
+    private ArrayList<Spliceable> queue;
 
     SpliceableInputChannel(InputChannelParent parent, SelectableChannel channel,
                            IByteBufferCache bufMgr, int bufSize,
@@ -46,6 +50,12 @@ public class SpliceableInputChannel
             throw new IllegalArgumentException(errMsg);
         }
         this.factory = factory;
+        this.queue = new ArrayList<Spliceable>();
+    }
+
+    int getQueueDepth()
+    {
+        return queue.size();
     }
 
     int getStrandTailDepth()
@@ -62,6 +72,11 @@ public class SpliceableInputChannel
         return strandTail != null;
     }
 
+    public boolean isRunning()
+    {
+        return thread != null;
+    }
+
     public void notifyOnStop()
     {
         // since this is a SpliceablePayloadReceiveChannel, we
@@ -71,9 +86,8 @@ public class SpliceableInputChannel
         }
 
         pushSpliceable(Splicer.LAST_POSSIBLE_SPLICEABLE);
-        if (!strandTail.isClosed()) {
-            strandTail.close();
-        }
+
+        thread = null;
 
         super.notifyOnStop();
     }
@@ -99,31 +113,13 @@ public class SpliceableInputChannel
 
     private void pushSpliceable(Spliceable spliceable)
     {
-        Exception ex;
-        try {
-            strandTail.push(spliceable);
-            ex = null;
-        } catch (OrderingException oe) {
-            ex = oe;
-        } catch (ClosedStrandException cse) {
-            ex = cse;
+        if (thread == null) {
+            LOG.error("Pushed spliceable without active thread!");
         }
 
-        if (ex != null) {
-            if (spliceable instanceof ILoadablePayload) {
-                ILoadablePayload payload = (ILoadablePayload) spliceable;
-                if (LOG.isErrorEnabled()) {
-                    LOG.error("Couldn't push payload type " +
-                              payload.getPayloadType() +
-                              ", length " + payload.getPayloadLength() +
-                              ", time " + payload.getPayloadTimeUTC() +
-                              "; recycling", ex);
-                }
-
-                payload.recycle();
-            } else if (LOG.isErrorEnabled()) {
-                LOG.error("Couldn't push spliceable", ex);
-            }
+        synchronized (queue) {
+            queue.add(spliceable);
+            queue.notifyAll();
         }
     }
 
@@ -144,11 +140,90 @@ public class SpliceableInputChannel
             throw new Error("Strand tail has not been initialized");
         }
 
+        if (thread != null) {
+            LOG.error("Thread is already running!");
+        } else {
+            thread = new QueueThread();
+        }
+
         super.startReading();
     }
 
     public String toString()
     {
         return "SpliceableInputChannel#" + id;
+    }
+
+    class QueueThread
+        implements Runnable
+    {
+        QueueThread()
+        {
+            Thread tmpThread = new Thread(this);
+            tmpThread.setName("QueueThread");
+            tmpThread.start();
+        }
+
+        public void run()
+        {
+            ArrayList<Spliceable> workList = new ArrayList<Spliceable>();
+
+            while (isRunning() || queue.size() > 0) {
+                synchronized (queue) {
+                    while (isRunning() && queue.size() == 0) {
+                        try {
+                            queue.wait(100);
+                        } catch (InterruptedException ie) {
+                            // ignore interrupts
+                        }
+                    }
+
+                    workList.addAll(queue);
+                    queue.clear();
+                }
+
+                for (Spliceable spliceable : workList) {
+                    Exception ex;
+                    try {
+                        strandTail.push(spliceable);
+                        ex = null;
+                    } catch (OrderingException oe) {
+                        ex = oe;
+                    } catch (ClosedStrandException cse) {
+                        ex = cse;
+                    }
+
+                    if (ex != null) {
+                        if (spliceable instanceof ILoadablePayload) {
+                            ILoadablePayload payload =
+                                (ILoadablePayload) spliceable;
+
+                            if (LOG.isErrorEnabled()) {
+                                if (LOG.isErrorEnabled()) {
+                                    LOG.error("Couldn't push payload type " +
+                                              payload.getPayloadType() +
+                                              ", length " +
+                                              payload.getPayloadLength() +
+                                              ", time " +
+                                              payload.getPayloadTimeUTC() +
+                                              "; recycling", ex);
+                                }
+                            }
+
+                            payload.recycle();
+                        } else if (LOG.isErrorEnabled()) {
+                            LOG.error("Couldn't push " +
+                                      spliceable.getClass().getName(), ex);
+                        }
+                    }
+                }
+
+                workList.clear();
+            }
+
+            if (!strandTail.isClosed()) {
+                strandTail.close();
+            }
+        }
     }
 }
