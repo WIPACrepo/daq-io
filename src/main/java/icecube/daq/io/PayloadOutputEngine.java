@@ -1,7 +1,7 @@
 /*
  * class: PayloadOutputEngine
  *
- * Version $Id: PayloadOutputEngine.java 2125 2007-10-12 18:27:05Z ksb $
+ * Version $Id: PayloadOutputEngine.java 2228 2007-11-02 16:02:54Z dglo $
  *
  * Date: May 19 2005
  *
@@ -15,10 +15,7 @@ import EDU.oswego.cs.dl.util.concurrent.Semaphore;
 import EDU.oswego.cs.dl.util.concurrent.SynchronizedBoolean;
 import EDU.oswego.cs.dl.util.concurrent.SyncCollection;
 
-import icecube.daq.common.DAQComponentObserver;
-import icecube.daq.common.NormalState;
 import icecube.daq.common.DAQCmdInterface;
-import icecube.daq.common.ErrorState;
 import icecube.daq.payload.IByteBufferCache;
 
 import java.io.IOException;
@@ -39,7 +36,7 @@ import org.apache.commons.logging.LogFactory;
  * a collection a PayloadTransmitChannels
  *
  * @author mcp
- * @version $Id: PayloadOutputEngine.java 2125 2007-10-12 18:27:05Z ksb $
+ * @version $Id: PayloadOutputEngine.java 2228 2007-11-02 16:02:54Z dglo $
  */
 public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOutputProcess, Runnable {
 

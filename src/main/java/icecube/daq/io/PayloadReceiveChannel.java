@@ -1,7 +1,7 @@
 /*
  * class: PayloadReceiveChannel
  *
- * Version $Id: PayloadReceiveChannel.java 2125 2007-10-12 18:27:05Z ksb $
+ * Version $Id: PayloadReceiveChannel.java 2228 2007-11-02 16:02:54Z dglo $
  *
  * Date: May 15 2005
  *
@@ -15,10 +15,7 @@ import EDU.oswego.cs.dl.util.concurrent.LinkedQueue;
 import EDU.oswego.cs.dl.util.concurrent.Semaphore;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.VitreousBufferCache;
-import icecube.daq.common.DAQComponentObserver;
-import icecube.daq.common.NormalState;
 import icecube.daq.common.DAQCmdInterface;
-import icecube.daq.common.ErrorState;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -37,7 +34,7 @@ import org.apache.commons.logging.LogFactory;
  * for acquiring buffers into the buffer cache and managing the flow control.
  *
  * @author mcp
- * @version $Id: PayloadReceiveChannel.java 2125 2007-10-12 18:27:05Z ksb $
+ * @version $Id: PayloadReceiveChannel.java 2228 2007-11-02 16:02:54Z dglo $
  */
 public class PayloadReceiveChannel {
 

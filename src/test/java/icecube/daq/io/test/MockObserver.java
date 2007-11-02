@@ -1,9 +1,10 @@
 package icecube.daq.io.test;
 
 import icecube.daq.common.DAQCmdInterface;
-import icecube.daq.common.DAQComponentObserver;
-import icecube.daq.common.ErrorState;
-import icecube.daq.common.NormalState;
+
+import icecube.daq.io.DAQComponentObserver;
+import icecube.daq.io.ErrorState;
+import icecube.daq.io.NormalState;
 
 public class MockObserver
     implements DAQComponentObserver

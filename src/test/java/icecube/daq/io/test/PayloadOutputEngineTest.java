@@ -1,7 +1,7 @@
 /*
  * class: PayloadOutputEngineTest
  *
- * Version $Id: PayloadOutputEngineTest.java 2125 2007-10-12 18:27:05Z ksb $
+ * Version $Id: PayloadOutputEngineTest.java 2228 2007-11-02 16:02:54Z dglo $
  *
  * Date: May 19 2005
  *
@@ -12,7 +12,11 @@ package icecube.daq.io.test;
 
 import EDU.oswego.cs.dl.util.concurrent.LinkedQueue;
 
-import icecube.daq.common.*;
+import icecube.daq.common.DAQCmdInterface;
+
+import icecube.daq.io.DAQComponentObserver;
+import icecube.daq.io.ErrorState;
+import icecube.daq.io.NormalState;
 import icecube.daq.io.PayloadOutputEngine;
 import icecube.daq.io.PayloadTransmitChannel;
 import icecube.daq.io.test.LoggingCase;
@@ -38,7 +42,7 @@ import junit.textui.TestRunner;
  * This class defines the tests that any PayloadOutputEngine object should pass.
  *
  * @author mcp
- * @version $Id: PayloadOutputEngineTest.java 2125 2007-10-12 18:27:05Z ksb $
+ * @version $Id: PayloadOutputEngineTest.java 2228 2007-11-02 16:02:54Z dglo $
  */
 public class PayloadOutputEngineTest
     extends LoggingCase

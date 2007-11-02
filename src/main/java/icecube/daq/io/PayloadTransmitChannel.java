@@ -1,7 +1,7 @@
 /*
  * class: PayloadTransmitChannel
  *
- * Version $Id: PayloadTransmitChannel.java 2125 2007-10-12 18:27:05Z ksb $
+ * Version $Id: PayloadTransmitChannel.java 2228 2007-11-02 16:02:54Z dglo $
  *
  * Date: May 15 2005
  *
@@ -13,10 +13,7 @@ package icecube.daq.io;
 import EDU.oswego.cs.dl.util.concurrent.Mutex;
 import EDU.oswego.cs.dl.util.concurrent.LinkedQueue;
 
-import icecube.daq.common.NormalState;
 import icecube.daq.common.DAQCmdInterface;
-import icecube.daq.common.DAQComponentObserver;
-import icecube.daq.common.ErrorState;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IByteBufferReceiver;
 
@@ -35,7 +32,7 @@ import org.apache.commons.logging.LogFactory;
  * for returning buffers into the buffer cache.
  *
  * @author mcp
- * @version $Id: PayloadTransmitChannel.java 2125 2007-10-12 18:27:05Z ksb $
+ * @version $Id: PayloadTransmitChannel.java 2228 2007-11-02 16:02:54Z dglo $
  */
 public class PayloadTransmitChannel implements IByteBufferReceiver {
 

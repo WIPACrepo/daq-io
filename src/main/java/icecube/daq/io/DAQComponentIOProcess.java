@@ -1,7 +1,5 @@
 package icecube.daq.io;
 
-import icecube.daq.common.DAQComponentObserver;
-
 public interface DAQComponentIOProcess
 {
     public void destroyProcessor();

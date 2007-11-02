@@ -1,7 +1,5 @@
 package icecube.daq.io;
 
-import icecube.daq.common.DAQComponentObserver;
-import icecube.daq.common.NormalState;
 import icecube.daq.common.DAQCmdInterface;
 
 import icecube.daq.payload.IByteBufferCache;
