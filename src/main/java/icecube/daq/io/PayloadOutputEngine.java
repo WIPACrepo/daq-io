@@ -1,7 +1,7 @@
 /*
  * class: PayloadOutputEngine
  *
- * Version $Id: PayloadOutputEngine.java 2228 2007-11-02 16:02:54Z dglo $
+ * Version $Id: PayloadOutputEngine.java 2271 2007-11-09 17:46:49Z dglo $
  *
  * Date: May 19 2005
  *
@@ -36,7 +36,7 @@ import org.apache.commons.logging.LogFactory;
  * a collection a PayloadTransmitChannels
  *
  * @author mcp
- * @version $Id: PayloadOutputEngine.java 2228 2007-11-02 16:02:54Z dglo $
+ * @version $Id: PayloadOutputEngine.java 2271 2007-11-09 17:46:49Z dglo $
  */
 public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOutputProcess, Runnable {
 
@@ -330,7 +330,7 @@ public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOu
         }
     }
 
-    public PayloadTransmitChannel connect(IByteBufferCache bufCache, WritableByteChannel chan,
+    public OutputChannel connect(IByteBufferCache bufCache, WritableByteChannel chan,
                                           int srcId) throws IOException {
         return addDataChannel(chan, bufCache);
     }
@@ -428,8 +428,8 @@ public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOu
         return (presState == STATE_DESTROYED);
     }
 
-    public PayloadTransmitChannel addDataChannel(WritableByteChannel channel,
-                                                 IByteBufferCache bufMgr) {
+    public OutputChannel addDataChannel(WritableByteChannel channel,
+                                        IByteBufferCache bufMgr) {
 
 
         if (presState != STATE_IDLE) {

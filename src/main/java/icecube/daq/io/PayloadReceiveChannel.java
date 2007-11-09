@@ -1,7 +1,7 @@
 /*
  * class: PayloadReceiveChannel
  *
- * Version $Id: PayloadReceiveChannel.java 2228 2007-11-02 16:02:54Z dglo $
+ * Version $Id: PayloadReceiveChannel.java 2271 2007-11-09 17:46:49Z dglo $
  *
  * Date: May 15 2005
  *
@@ -34,9 +34,9 @@ import org.apache.commons.logging.LogFactory;
  * for acquiring buffers into the buffer cache and managing the flow control.
  *
  * @author mcp
- * @version $Id: PayloadReceiveChannel.java 2228 2007-11-02 16:02:54Z dglo $
+ * @version $Id: PayloadReceiveChannel.java 2271 2007-11-09 17:46:49Z dglo $
  */
-public class PayloadReceiveChannel {
+public class PayloadReceiveChannel implements IOChannel {
 
     protected static final int STATE_IDLE = 0;
     protected static final int STATE_GETBUFFER = 1;

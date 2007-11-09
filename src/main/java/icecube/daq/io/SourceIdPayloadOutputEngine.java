@@ -1,7 +1,7 @@
 /*
  * class: SystemTestPayloadOutputEngine
  *
- * Version $Id: SourceIdPayloadOutputEngine.java 2268 2007-11-09 16:49:57Z dglo $
+ * Version $Id: SourceIdPayloadOutputEngine.java 2271 2007-11-09 17:46:49Z dglo $
  *
  * Date: May 23 2005
  *
@@ -26,7 +26,7 @@ import org.apache.commons.logging.LogFactory;
  * This class ...does what?
  *
  * @author mcp
- * @version $Id: SourceIdPayloadOutputEngine.java 2268 2007-11-09 16:49:57Z dglo $
+ * @version $Id: SourceIdPayloadOutputEngine.java 2271 2007-11-09 17:46:49Z dglo $
  */
 public class SourceIdPayloadOutputEngine extends PayloadOutputEngine {
 
@@ -70,14 +70,14 @@ public class SourceIdPayloadOutputEngine extends PayloadOutputEngine {
         return bufMgr;
     }
 
-    public PayloadTransmitChannel connect(IByteBufferCache bufCache, WritableByteChannel chan,
-                                          int srcId) throws IOException {
+    public OutputChannel connect(IByteBufferCache bufCache, WritableByteChannel chan,
+                                 int srcId) throws IOException {
         return addDataChannel(chan, new SourceID4B(srcId));
     }
 
-    public PayloadTransmitChannel addDataChannel(WritableByteChannel channel, ISourceID sourceID){
+    public OutputChannel addDataChannel(WritableByteChannel channel, ISourceID sourceID){
         // ask payloadOutputEngine to make us a payloadTransmitEngine
-        PayloadTransmitChannel eng = super.addDataChannel(channel, bufMgr);
+        OutputChannel eng = super.addDataChannel(channel, bufMgr);
         // register it locally so that we can find it when we need it
         idRegistry.put(new Integer(sourceID.getSourceID()), eng);
         return eng;

@@ -1,7 +1,7 @@
 /*
  * class: PayloadTransmitChannel
  *
- * Version $Id: PayloadTransmitChannel.java 2268 2007-11-09 16:49:57Z dglo $
+ * Version $Id: PayloadTransmitChannel.java 2271 2007-11-09 17:46:49Z dglo $
  *
  * Date: May 15 2005
  *
@@ -32,9 +32,9 @@ import org.apache.commons.logging.LogFactory;
  * for returning buffers into the buffer cache.
  *
  * @author mcp
- * @version $Id: PayloadTransmitChannel.java 2268 2007-11-09 16:49:57Z dglo $
+ * @version $Id: PayloadTransmitChannel.java 2271 2007-11-09 17:46:49Z dglo $
  */
-public class PayloadTransmitChannel implements IByteBufferReceiver {
+public class PayloadTransmitChannel implements IByteBufferReceiver, OutputChannel {
 
     // Log object for this class
     private static final Log log = LogFactory.getLog(PayloadTransmitChannel.class);

@@ -1,7 +1,7 @@
 /*
  * class: PayloadDestinationOutputEngine
  *
- * Version $Id: PayloadDestinationOutputEngine.java 2125 2007-10-12 18:27:05Z ksb $
+ * Version $Id: PayloadDestinationOutputEngine.java 2271 2007-11-09 17:46:49Z dglo $
  *
  * Date: May 23 2005
  *
@@ -25,7 +25,7 @@ import java.nio.channels.WritableByteChannel;
  * 2. Push buffers in the transmit channel
  *
  * @author mcp
- * @version $Id: PayloadDestinationOutputEngine.java 2125 2007-10-12 18:27:05Z ksb $
+ * @version $Id: PayloadDestinationOutputEngine.java 2271 2007-11-09 17:46:49Z dglo $
  */
 public class PayloadDestinationOutputEngine extends SourceIdPayloadOutputEngine
         implements IPayloadDestinationCollectionController {
@@ -56,8 +56,8 @@ public class PayloadDestinationOutputEngine extends SourceIdPayloadOutputEngine
     }
 
 
-    public PayloadTransmitChannel addDataChannel(WritableByteChannel channel, ISourceID sourceID) {
-        PayloadTransmitChannel eng = super.addDataChannel(channel, sourceID);
+    public OutputChannel addDataChannel(WritableByteChannel channel, ISourceID sourceID) {
+        OutputChannel eng = super.addDataChannel(channel, sourceID);
 
         // add a PayloadDestination to the Collection
         switch (payloadDestinationType) {
