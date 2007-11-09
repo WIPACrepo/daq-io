@@ -1,7 +1,7 @@
 /*
  * class: PayloadOutputEngineTest
  *
- * Version $Id: PayloadOutputEngineTest.java 2228 2007-11-02 16:02:54Z dglo $
+ * Version $Id: PayloadOutputEngineTest.java 2268 2007-11-09 16:49:57Z dglo $
  *
  * Date: May 19 2005
  *
@@ -42,7 +42,7 @@ import junit.textui.TestRunner;
  * This class defines the tests that any PayloadOutputEngine object should pass.
  *
  * @author mcp
- * @version $Id: PayloadOutputEngineTest.java 2228 2007-11-02 16:02:54Z dglo $
+ * @version $Id: PayloadOutputEngineTest.java 2268 2007-11-09 16:49:57Z dglo $
  */
 public class PayloadOutputEngineTest
     extends LoggingCase
@@ -440,15 +440,12 @@ public class PayloadOutputEngineTest
             testOutBuf.position(bufLen);
             testOutBuf.flip();
 
-            transmitEng.outputQueue.put(testOutBuf);
-            transmitEng.flushOutQueue();
-            for (int j = 0; j < 10; j++) {
-                if (!transmitEng.outputQueue.isEmpty()) {
-                    Thread.sleep(20);
-                }
+            transmitEng.receiveByteBuffer(testOutBuf);
+            for (int j = 0; transmitEng.isOutputQueued() && j < 10; j++) {
+                Thread.sleep(20);
             }
-            assertTrue("PayloadTransmitChannel did not send buf#" + i,
-                       transmitEng.outputQueue.isEmpty());
+            assertFalse("PayloadTransmitChannel did not send buf#" + i,
+                        transmitEng.isOutputQueued());
 
             testInBuf.position(0);
             testInBuf.limit(4);

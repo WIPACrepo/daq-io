@@ -1,7 +1,7 @@
 /*
  * class: SystemTestPayloadOutputEngine
  *
- * Version $Id: SourceIdPayloadOutputEngine.java 2125 2007-10-12 18:27:05Z ksb $
+ * Version $Id: SourceIdPayloadOutputEngine.java 2268 2007-11-09 16:49:57Z dglo $
  *
  * Date: May 23 2005
  *
@@ -26,7 +26,7 @@ import org.apache.commons.logging.LogFactory;
  * This class ...does what?
  *
  * @author mcp
- * @version $Id: SourceIdPayloadOutputEngine.java 2125 2007-10-12 18:27:05Z ksb $
+ * @version $Id: SourceIdPayloadOutputEngine.java 2268 2007-11-09 16:49:57Z dglo $
  */
 public class SourceIdPayloadOutputEngine extends PayloadOutputEngine {
 
@@ -97,13 +97,7 @@ public class SourceIdPayloadOutputEngine extends PayloadOutputEngine {
             throw new RuntimeException("SourceID " + id.getSourceID() + "not registered");
         } else {
             PayloadTransmitChannel eng = (PayloadTransmitChannel) idRegistry.get(id);
-            try {
-                eng.outputQueue.put(payload);
-            }catch(InterruptedException ie){
-                log.error(ie);
-                throw new RuntimeException(ie);
-            }
-            eng.flushOutQueue();
+            eng.receiveByteBuffer(payload);
             messagesSent++;
         }
     }
