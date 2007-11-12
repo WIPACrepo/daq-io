@@ -1,7 +1,7 @@
 /*
  * class: PayloadOutputEngine
  *
- * Version $Id: PayloadOutputEngine.java 2271 2007-11-09 17:46:49Z dglo $
+ * Version $Id: PayloadOutputEngine.java 2273 2007-11-12 15:27:01Z dglo $
  *
  * Date: May 19 2005
  *
@@ -36,7 +36,7 @@ import org.apache.commons.logging.LogFactory;
  * a collection a PayloadTransmitChannels
  *
  * @author mcp
- * @version $Id: PayloadOutputEngine.java 2271 2007-11-09 17:46:49Z dglo $
+ * @version $Id: PayloadOutputEngine.java 2273 2007-11-12 15:27:01Z dglo $
  */
 public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOutputProcess, Runnable {
 
@@ -113,8 +113,6 @@ public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOu
     private String payloadApplicationErrorNotificationID = "";
     // error flag used internally to drive stop call back status
     private boolean stopNotificiationStatus = true;
-    // base name to use for payload engine call backs
-    private String payloadEngineBase = "payloadOutputEngine:";
     // base numerical ID for payload engine
     private int payloadEngineNum = 0;
     // thread for this instance
@@ -441,7 +439,7 @@ public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOu
 
         String xmitName;
         if (componentType == null) {
-            xmitName = payloadEngineBase + payloadEngineNum;
+            xmitName = "payloadOutputEngine:" + payloadEngineNum;
         } else {
             xmitName = componentType + ":" + componentFcn + ":" +
                     payloadEngineNum;
