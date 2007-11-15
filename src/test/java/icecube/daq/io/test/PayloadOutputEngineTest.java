@@ -1,7 +1,7 @@
 /*
  * class: PayloadOutputEngineTest
  *
- * Version $Id: PayloadOutputEngineTest.java 2271 2007-11-09 17:46:49Z dglo $
+ * Version $Id: PayloadOutputEngineTest.java 2281 2007-11-15 20:17:56Z dglo $
  *
  * Date: May 19 2005
  *
@@ -43,7 +43,7 @@ import junit.textui.TestRunner;
  * This class defines the tests that any PayloadOutputEngine object should pass.
  *
  * @author mcp
- * @version $Id: PayloadOutputEngineTest.java 2271 2007-11-09 17:46:49Z dglo $
+ * @version $Id: PayloadOutputEngineTest.java 2281 2007-11-15 20:17:56Z dglo $
  */
 public class PayloadOutputEngineTest
     extends LoggingCase
@@ -120,7 +120,7 @@ public class PayloadOutputEngineTest
                     } else if (notificationId.equals(DAQCmdInterface.SINK) ||
                                notificationId.equals(sinkNotificationId))
                     {
-                        sourceStopNotificationCalled = true;
+                        sinkErrorNotificationCalled = true;
                     } else {
                         throw new Error("Unexpected error notification \"" +
                                         notificationId + "\"");
@@ -408,7 +408,7 @@ public class PayloadOutputEngineTest
         final String notificationId = "OutputLoop";
 
         Observer xmitObserver = new Observer();
-        xmitObserver.setSinkNotificationId(notificationId);
+        xmitObserver.setSourceNotificationId(notificationId);
 
         OutputChannel transmitEng =
             engine.addDataChannel(testPipe.sink(), cacheMgr);
@@ -471,6 +471,14 @@ public class PayloadOutputEngineTest
         }
         assertTrue("Failure on sendLastAndStop command.",
                    observer.gotSourceStop());
+        assertFalse("Got sinkStop notification",
+                   observer.gotSinkStop());
+        assertFalse("Got sourceError notification",
+                   observer.gotSourceError());
+        assertFalse("Got sinkError notification",
+                   observer.gotSinkError());
+
+        assertTrue("ByteBufferCache is not balanced", cacheMgr.isBalanced());
     }
 
     public void testServerOutput() throws Exception {
@@ -497,7 +505,7 @@ public class PayloadOutputEngineTest
         final String notificationId = "ServerOutput";
 
         Observer xmitObserver = new Observer();
-        xmitObserver.setSinkNotificationId(notificationId);
+        xmitObserver.setSourceNotificationId(notificationId);
 
         OutputChannel transmitEng = engine.connect(cacheMgr, sock, 1);
         transmitEng.registerComponentObserver(xmitObserver, notificationId);
@@ -540,7 +548,7 @@ public class PayloadOutputEngineTest
                 Thread.sleep(100);
             }
             assertFalse("PayloadTransmitChannel did not send buf#" + i,
-                       transmitEng.isOutputQueued());
+                        transmitEng.isOutputQueued());
 
             testInBuf.position(0);
             testInBuf.limit(4);
@@ -559,8 +567,17 @@ public class PayloadOutputEngineTest
         engine.sendLastAndStop();
         transmitEng.flushOutQueue();
         Thread.sleep(10);
+
         assertTrue("Failure on sendLastAndStop command.",
                    observer.gotSourceStop());
+        assertFalse("Got sinkStop notification",
+                   observer.gotSinkStop());
+        assertFalse("Got sourceError notification",
+                   observer.gotSourceError());
+        assertFalse("Got sinkError notification",
+                   observer.gotSinkError());
+
+        assertTrue("ByteBufferCache is not balanced", cacheMgr.isBalanced());
     }
 
     /**
