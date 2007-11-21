@@ -40,6 +40,7 @@ public class FileDispatcher implements Dispatcher {
     private long totalDispatchedEvents;
     private int runNumber;
     private long maxFileSize = 10000000;
+    private long currFileSize;
     private File tempFile;
     private String dispatchDestStorage;
     private int fileIndex;
@@ -81,7 +82,7 @@ public class FileDispatcher implements Dispatcher {
         this.bufferCache = bufferCache;
 
         tempFile = getTempFile(dispatchDestStorage, baseFileName);
-
+        currFileSize = tempFile.length();
     }
 
     /**
@@ -158,6 +159,7 @@ public class FileDispatcher implements Dispatcher {
         if (!tempExists || outChannel == null || !outChannel.isOpen()) {
             try {
                 FileOutputStream out = new FileOutputStream(tempFile.getPath());
+                currFileSize = tempFile.length();
                 outChannel = out.getChannel();
             } catch (IOException ioe) {
                 LOG.error("couldn't initiate temp dispatch file ", ioe);
@@ -180,8 +182,9 @@ public class FileDispatcher implements Dispatcher {
         }
 
         ++totalDispatchedEvents;
+        currFileSize += buffer.limit();
 
-        if (tempFile.length() > maxFileSize) {
+        if (currFileSize > maxFileSize) {
             moveToDest();
         }
     }
