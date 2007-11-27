@@ -24,7 +24,7 @@ public abstract class PushPayloadReader
     {
         private PushPayloadReader reader;
 
-        PushInputChannel(InputChannelParent parent, SelectableChannel channel,
+        PushInputChannel(IOChannelParent parent, SelectableChannel channel,
                          IByteBufferCache bufMgr, int bufSize)
             throws IOException
         {
@@ -44,6 +44,18 @@ public abstract class PushPayloadReader
         {
             dequeuedMessages++;
             reader.pushBuffer(payBuf);
+        }
+
+        /**
+         * Unimplemented.
+         *
+         * @param compObserver component observer
+         * @param notificationID ID string
+         */
+        public void registerComponentObserver(DAQComponentObserver compObserver,
+                                              String notificationID)
+        {
+            throw new Error("Unimplemented");
         }
     }
 
@@ -71,6 +83,8 @@ public abstract class PushPayloadReader
             stopMessagesPropagated++;
             totStops++;
         }
+
+        super.channelStopped(chan);
     }
 
     public InputChannel createChannel(SelectableChannel channel,

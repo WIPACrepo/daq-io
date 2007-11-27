@@ -37,7 +37,7 @@ class SimpleReader
     class TestChannel
         extends InputChannel
     {
-        TestChannel(InputChannelParent parent, SelectableChannel channel,
+        TestChannel(IOChannelParent parent, SelectableChannel channel,
                     IByteBufferCache bufMgr, int bufSize)
             throws IOException
         {
@@ -49,6 +49,12 @@ class SimpleReader
             synchronized (inputData) {
                 inputData.add(buf);
             }
+        }
+
+        public void registerComponentObserver(DAQComponentObserver compObserver,
+                                              String notificationID)
+        {
+            throw new Error("Unimplemented");
         }
     }
 

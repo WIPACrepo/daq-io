@@ -8,6 +8,8 @@ import java.io.IOException;
 
 import java.net.InetSocketAddress;
 
+import java.nio.ByteBuffer;
+
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
@@ -23,7 +25,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 public abstract class PayloadReader
-    implements DAQComponentInputProcessor, InputChannelParent, Runnable
+    implements DAQComponentInputProcessor, IOChannelParent, Runnable
 {
     class Flag
     {
@@ -211,7 +213,25 @@ if(DEBUG_NEW)System.err.println("ANend");
         return addDataChannel(chan, bufCache, bufferSize);
     }
 
-    public void channelStopped()
+    /**
+     * Channel encountered an error.
+     *
+     * @param chan channel
+     * @param buf ByteBuffer which caused the error (may ne <tt>null</tt>)
+     * @ex exception (may be null)
+     */
+    public void channelError(IOChannel chan, ByteBuffer buf,
+                             Exception ex)
+    {
+        throw new Error("Unimplemented");
+    }
+
+    /**
+     * Channel has stopped.
+     *
+     * @param chan channel
+     */
+    public void channelStopped(IOChannel chan)
     {
         channelStopFlag.set();
         if (selector != null) {

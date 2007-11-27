@@ -21,15 +21,23 @@ public class InputChannelTest
     extends LoggingCase
 {
     class MockParent
-        implements InputChannelParent
+        implements IOChannelParent
     {
-        public void channelStopped() { }
+        public void channelError(IOChannel chan, ByteBuffer buf, Exception ex)
+        {
+            throw new Error("Unimplemented");
+        }
+
+        public void channelStopped(IOChannel chan)
+        {
+            throw new Error("Unimplemented");
+        }
     }
 
     class MockChannel
         extends InputChannel
     {
-        public MockChannel(InputChannelParent parent, SelectableChannel channel,
+        public MockChannel(IOChannelParent parent, SelectableChannel channel,
                          IByteBufferCache bufMgr, int bufSize)
             throws IOException
         {
@@ -38,6 +46,12 @@ public class InputChannelTest
 
         public void pushPayload(ByteBuffer payBuf)
             throws IOException
+        {
+            throw new Error("Unimplemented");
+        }
+
+        public void registerComponentObserver(DAQComponentObserver compObserver,
+                                              String notificationID)
         {
             throw new Error("Unimplemented");
         }

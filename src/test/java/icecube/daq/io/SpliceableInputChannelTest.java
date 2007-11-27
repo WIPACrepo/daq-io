@@ -35,9 +35,16 @@ public class SpliceableInputChannelTest
     extends LoggingCase
 {
     class MockParent
-        implements InputChannelParent
+        implements IOChannelParent
     {
-        public void channelStopped() { }
+        public void channelError(IOChannel chan, ByteBuffer buf, Exception ex)
+        {
+            throw new Error("Unimplemented");
+        }
+
+        public void channelStopped(IOChannel chan)
+        {
+        }
     }
 
     class MockStrandTail

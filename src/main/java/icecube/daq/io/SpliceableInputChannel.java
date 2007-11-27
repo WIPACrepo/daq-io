@@ -39,7 +39,7 @@ public class SpliceableInputChannel
     private Thread thread;
     private ArrayList<Spliceable> queue;
 
-    SpliceableInputChannel(InputChannelParent parent, SelectableChannel channel,
+    SpliceableInputChannel(IOChannelParent parent, SelectableChannel channel,
                            IByteBufferCache bufMgr, int bufSize,
                            SpliceableFactory factory)
         throws IOException
@@ -122,6 +122,18 @@ public class SpliceableInputChannel
             queue.add(spliceable);
             queue.notifyAll();
         }
+    }
+
+    /**
+     * Unimplemented.
+     *
+     * @param compObserver component observer
+     * @param notificationID ID string
+     */
+    public void registerComponentObserver(DAQComponentObserver compObserver,
+                                          String notificationID)
+    {
+        throw new Error("Unimplemented");
     }
 
     public void run()

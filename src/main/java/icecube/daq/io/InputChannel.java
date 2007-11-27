@@ -18,6 +18,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 public abstract class InputChannel
+    implements IOChannel
 {
     public static final long DEFAULT_MAX_BYTES_ALLOCATION_LIMIT = 200000000;
 
@@ -30,7 +31,7 @@ public abstract class InputChannel
     /** size of initial integer payload length */
     private static final int INT_SIZE = 4;
 
-    private InputChannelParent parent;
+    private IOChannelParent parent;
     private SelectableChannel channel;
     private IByteBufferCache bufMgr;
     private ByteBuffer inputBuf;
@@ -51,7 +52,7 @@ public abstract class InputChannel
     private static int nextId = 1;
     final int id = nextId++;
 
-    public InputChannel(InputChannelParent parent, SelectableChannel channel,
+    public InputChannel(IOChannelParent parent, SelectableChannel channel,
                         IByteBufferCache bufMgr, int bufSize)
         throws IOException
     {
@@ -187,7 +188,7 @@ if(DEBUG_FILL)System.err.println("FillEnd "+inputBuf+" bufPos "+bufPos+" payBuf 
     public void notifyOnStop()
     {
         if (parent != null) {
-            parent.channelStopped();
+            parent.channelStopped(this);
         }
     }
 
