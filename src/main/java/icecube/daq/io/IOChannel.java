@@ -1,9 +1,5 @@
 package icecube.daq.io;
 
-import icecube.daq.payload.IByteBufferCache;
-
-import java.nio.channels.WritableByteChannel;
-
 /**
  * input/output channel.
  */
