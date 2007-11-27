@@ -19,7 +19,7 @@ import org.apache.commons.logging.LogFactory;
  * Manage output to a single channel.
  */
 public class SingleOutputEngine
-    implements DAQComponentOutputProcess, IChannelParent, IPayloadOutput
+    implements DAQComponentOutputProcess, IOChannelParent, IPayloadOutput
 {
     private static final Log LOG = LogFactory.getLog(SingleOutputEngine.class);
 
@@ -91,7 +91,7 @@ public class SingleOutputEngine
      * @param buf buffer which caused the error (may be <tt>null</tt>)
      * @param ex exception
      */
-    public void channelError(OutputChannel chan, ByteBuffer buf, Exception ex)
+    public void channelError(IOChannel chan, ByteBuffer buf, Exception ex)
     {
         LOG.error("Channel " + chan + " couldn't send buffer", ex);
     }
@@ -101,7 +101,7 @@ public class SingleOutputEngine
      *
      * @param chan data channel which is finished
      */
-    public void channelStopped(OutputChannel chan)
+    public void channelStopped(IOChannel chan)
     {
         if (outChan != null) {
             if (chan != outChan) {

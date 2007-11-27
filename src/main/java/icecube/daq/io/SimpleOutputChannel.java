@@ -26,7 +26,7 @@ public class SimpleOutputChannel
 
     static final int STOP_MESSAGE_SIZE = 4;
 
-    private IChannelParent parent;
+    private IOChannelParent parent;
     private String name;
     private WritableByteChannel channel;
     private IByteBufferCache bufferMgr;
@@ -47,7 +47,7 @@ public class SimpleOutputChannel
      * @param channel actual channel
      * @param bufferMgr ByteBuffer allocation manager
      */
-    SimpleOutputChannel(IChannelParent parent, String name,
+    SimpleOutputChannel(IOChannelParent parent, String name,
                         WritableByteChannel channel, IByteBufferCache bufferMgr)
     {
         this.parent = parent;
