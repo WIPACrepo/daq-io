@@ -11,6 +11,7 @@ import icecube.daq.io.OutputChannel;
 import icecube.daq.io.PayloadTransmitChannel;
 import icecube.daq.io.SingleOutputEngine;
 
+import icecube.daq.io.test.IOTestUtil;
 import icecube.daq.io.test.LoggingCase;
 import icecube.daq.io.test.MockWriteableChannel;
 
@@ -252,82 +253,52 @@ public class SingleOutputEngineTest
     {
         engine = new SingleOutputEngine("StartStop", 0, "test");
         engine.start();
-
-        assertTrue("SingleOutputEngine in " + engine.getPresentState() +
-                   ", not Idle after creation", engine.isStopped());
+        IOTestUtil.waitUntilStopped(engine, "creation");
 
         engine.addDataChannel(new MockWriteableChannel(), null);
         engine.startProcessing();
+        IOTestUtil.waitUntilRunning(engine);
 
-        for (int i = 0; i < 5 && !engine.isRunning(); i++) {
-            Thread.sleep(100);
-        }
-        assertTrue("SingleOutputEngine in " + engine.getPresentState() +
-                   ", not Running after StartSig", engine.isRunning());
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
 
         engine.forcedStopProcessing();
+        IOTestUtil.waitUntilStopped(engine, "forced stop");
 
-        for (int i = 0; i < 5 && !engine.isStopped(); i++) {
-            Thread.sleep(100);
-        }
-        assertTrue("SingleOutputEngine in " + engine.getPresentState() +
-                   ", not Idle after StopSig", engine.isStopped());
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
 
         // try it a second time
         engine.addDataChannel(new MockWriteableChannel(), null);
         engine.startProcessing();
+        IOTestUtil.waitUntilRunning(engine);
 
-        for (int i = 0; i < 5 && !engine.isRunning(); i++) {
-            Thread.sleep(100);
-        }
-        assertTrue("SingleOutputEngine in " + engine.getPresentState() +
-                   ", not Running after StartSig", engine.isRunning());
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
 
         engine.forcedStopProcessing();
+        IOTestUtil.waitUntilStopped(engine, "forced stop");
 
-        for (int i = 0; i < 5 && !engine.isStopped(); i++) {
-            Thread.sleep(100);
-        }
-        assertTrue("SingleOutputEngine in " + engine.getPresentState() +
-                   ", not Idle after StopSig", engine.isStopped());
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
 
         // now try a stop message
         engine.addDataChannel(new MockWriteableChannel(), null);
         engine.startProcessing();
+        IOTestUtil.waitUntilRunning(engine);
 
-        for (int i = 0; i < 5 && !engine.isRunning(); i++) {
-            Thread.sleep(100);
-        }
-        assertTrue("SingleOutputEngine in " + engine.getPresentState() +
-                   ", not Running after StartSig", engine.isRunning());
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
 
         engine.sendLastAndStop();
+        IOTestUtil.waitUntilStopped(engine, "send last");
 
-        for (int i = 0; i < 5 && !engine.isStopped(); i++) {
-            Thread.sleep(100);
-        }
-        assertTrue("SingleOutputEngine in " + engine.getPresentState() +
-                   ", not Idle after StopSig", engine.isStopped());
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
 
         engine.destroyProcessor();
+        IOTestUtil.waitUntilDestroyed(engine);
 
-        for (int i = 0; i < 5 && !engine.isDestroyed(); i++) {
-            Thread.sleep(100);
-        }
-        assertTrue("SingleOutputEngine did not die after kill request",
-                   engine.isDestroyed());
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
 
@@ -358,6 +329,7 @@ public class SingleOutputEngineTest
         engine = new SingleOutputEngine("OutputLoop", 0, "test");
         engine.registerComponentObserver(observer);
         engine.start();
+        IOTestUtil.waitUntilStopped(engine, "creation");
 
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
@@ -368,9 +340,7 @@ public class SingleOutputEngineTest
         assertTrue("SingleOutputEngine in " + engine.getPresentState() +
                    ", not Idle after StopSig", engine.isStopped());
         engine.startProcessing();
-
-        assertTrue("SingleOutputEngine in " + engine.getPresentState() +
-                   ", not Running after StartSig", engine.isRunning());
+        IOTestUtil.waitUntilRunning(engine);
 
         final int bufLen = 4096;
 
@@ -415,9 +385,7 @@ public class SingleOutputEngineTest
         Thread.sleep(10);
         transmitEng.flushOutQueue();
 
-        for (int i = 0; i < 5 && !engine.isStopped(); i++) {
-            Thread.sleep(100);
-        }
+        IOTestUtil.waitUntilStopped(engine, "send last");
 
         assertTrue("Failure on sendLastAndStop command.",
                    observer.gotSourceStop());
@@ -446,9 +414,7 @@ public class SingleOutputEngineTest
         engine = new SingleOutputEngine("ServerDisconnect", 0, "test");
         //engine.registerComponentObserver(observer);
         engine.start();
-
-        assertTrue("SingleOutputEngine in " + engine.getPresentState() +
-                   ", not Idle", engine.isStopped());
+        IOTestUtil.waitUntilStopped(engine, "creation");
 
         SocketChannel sock =
             SocketChannel.open(new InetSocketAddress("localhost", port));
@@ -468,9 +434,7 @@ public class SingleOutputEngineTest
                    ", not Idle", engine.isStopped());
 
         engine.startProcessing();
-
-        assertTrue("SingleOutputEngine in " + engine.getPresentState() +
-                   ", not Running after StartSig", engine.isRunning());
+        IOTestUtil.waitUntilRunning(engine);
 
         engine.disconnect();
         assertTrue("SingleOutputEngine is still connected",
@@ -494,6 +458,7 @@ public class SingleOutputEngineTest
         engine = new SingleOutputEngine("ServerOutput", 0, "test");
         engine.registerComponentObserver(observer);
         engine.start();
+        IOTestUtil.waitUntilStopped(engine, "creation");
 
         SocketChannel sock =
             SocketChannel.open(new InetSocketAddress("localhost", port));
@@ -509,9 +474,7 @@ public class SingleOutputEngineTest
         assertTrue("SingleOutputEngine in " + engine.getPresentState() +
                    ", not Idle after StopSig", engine.isStopped());
         engine.startProcessing();
-
-        assertTrue("SingleOutputEngine in " + engine.getPresentState() +
-                   ", not Running after StartSig", engine.isRunning());
+        IOTestUtil.waitUntilRunning(engine);
 
         final int bufLen = 40;
 
@@ -554,9 +517,7 @@ public class SingleOutputEngineTest
 
         engine.sendLastAndStop();
         transmitEng.flushOutQueue();
-        for (int i = 0; i < 5 && !engine.isStopped(); i++) {
-            Thread.sleep(100);
-        }
+        IOTestUtil.waitUntilStopped(engine, "send last");
 
         assertTrue("Failure on sendLastAndStop command.",
                    observer.gotSourceStop());

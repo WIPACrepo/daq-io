@@ -2,6 +2,7 @@ package icecube.daq.io;
 
 import icecube.daq.common.DAQCmdInterface;
 
+import icecube.daq.io.test.IOTestUtil;
 import icecube.daq.io.test.LoggingCase;
 
 import icecube.daq.payload.IByteBufferCache;
@@ -18,7 +19,6 @@ import java.nio.channels.Selector;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.nio.channels.WritableByteChannel;
 
 import java.util.Iterator;
 
@@ -154,8 +154,6 @@ public class PushPayloadReaderTest
     private static final int BUFFER_LEN = 5000;
     private static final int INPUT_OUTPUT_LOOP_CNT = 5;
 
-    private static ByteBuffer stopMsg;
-
     private MockPushReader tstRdr;
 
     /**
@@ -166,19 +164,6 @@ public class PushPayloadReaderTest
     public PushPayloadReaderTest(String name)
     {
         super(name);
-    }
-
-    private static final void sendStopMsg(WritableByteChannel sinkChannel)
-        throws IOException
-    {
-        if (stopMsg == null) {
-            stopMsg = ByteBuffer.allocate(4);
-            stopMsg.putInt(0, 4);
-            stopMsg.limit(4);
-        }
-
-        stopMsg.position(0);
-        sinkChannel.write(stopMsg);
     }
 
     protected void setUp()
@@ -220,39 +205,33 @@ public class PushPayloadReaderTest
         tstRdr = new MockPushReader("StartStop", bufMgr);
 
         tstRdr.start();
-        waitUntilStopped(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after creation", tstRdr.isStopped());
+        IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
         tstRdr.startProcessing();
-        waitUntilRunning(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Running after StartSig", tstRdr.isRunning());
+        IOTestUtil.waitUntilRunning(tstRdr);
 
         tstRdr.forcedStopProcessing();
-        waitUntilStopped(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after StopSig", tstRdr.isStopped());
+        IOTestUtil.waitUntilStopped(tstRdr, "forced stop");
+
+        assertEquals("Bad number of log messages",
+                     0, getNumberOfMessages());
 
         // try it a second time
         tstRdr.startProcessing();
-        waitUntilRunning(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Running after StartSig", tstRdr.isRunning());
+        IOTestUtil.waitUntilRunning(tstRdr);
 
         tstRdr.forcedStopProcessing();
-        waitUntilStopped(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after StopSig", tstRdr.isStopped());
+        IOTestUtil.waitUntilStopped(tstRdr, "forced stop");
 
         tstRdr.destroyProcessor();
-        waitUntilDestroyed(tstRdr);
-        assertTrue("PayloadReader did not die after kill request",
-                   tstRdr.isDestroyed());
+        IOTestUtil.waitUntilDestroyed(tstRdr);
+
+        assertEquals("Bad number of log messages",
+                     0, getNumberOfMessages());
 
         try {
             tstRdr.startProcessing();
-            fail("PayloadReader restart after kill succeeded");
+            fail("Reader restart after kill succeeded");
         } catch (Error e) {
             // expect this to fail
         }
@@ -266,20 +245,13 @@ public class PushPayloadReaderTest
         tstRdr = new MockPushReader("StartDisp", bufMgr);
 
         tstRdr.start();
-        waitUntilStopped(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after creation", tstRdr.isStopped());
+        IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
         tstRdr.startProcessing();
-        waitUntilRunning(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Running after StartSig", tstRdr.isRunning());
+        IOTestUtil.waitUntilRunning(tstRdr);
 
         tstRdr.startDisposing();
-        waitUntilRunning(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Running after StartDisposing",
-                   tstRdr.isRunning());
+        IOTestUtil.waitUntilDisposing(tstRdr);
     }
 
     public void testOutputInput()
@@ -302,18 +274,14 @@ public class PushPayloadReaderTest
         tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
-        waitUntilStopped(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after creation", tstRdr.isStopped());
+        IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
         tstRdr.addDataChannel(sourceChannel, bufMgr, 1024);
 
         Thread.sleep(100);
 
         tstRdr.startProcessing();
-        waitUntilRunning(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Running after StartSig", tstRdr.isRunning());
+        IOTestUtil.waitUntilRunning(tstRdr);
 
         // now move some buffers
         ByteBuffer testBuf;
@@ -335,6 +303,7 @@ public class PushPayloadReaderTest
                 sinkChannel.write(testBuf);
 
                 bufMgr.returnBuffer(testBuf);
+
                 xmitCnt++;
             } else {
                 try {
@@ -352,10 +321,9 @@ public class PushPayloadReaderTest
             }
         }
 
-        sendStopMsg(sinkChannel);
-
-        Thread.sleep(100);
-        assertTrue("Failure on sendStopMsg command.", observer.gotSinkStop());
+        IOTestUtil.sendStopMsg(sinkChannel);
+        IOTestUtil.waitUntilStopped(tstRdr, "stop msg");
+        assertTrue("Observer didn't see sinkStop.", observer.gotSinkStop());
     }
 
     public void testMultiOutputInput()
@@ -378,18 +346,14 @@ public class PushPayloadReaderTest
         tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
-        waitUntilStopped(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after creation", tstRdr.isStopped());
+        IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
         tstRdr.addDataChannel(sourceChannel, bufMgr, 1024);
 
         Thread.sleep(100);
 
         tstRdr.startProcessing();
-        waitUntilRunning(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Running after StartSig", tstRdr.isRunning());
+        IOTestUtil.waitUntilRunning(tstRdr);
 
         // now move some buffers
         ByteBuffer testBuf;
@@ -421,6 +385,7 @@ public class PushPayloadReaderTest
                 sinkChannel.write(testBuf);
 
                 bufMgr.returnBuffer(testBuf);
+
                 xmitCnt += groupSize;
             } else {
                 try {
@@ -438,46 +403,9 @@ public class PushPayloadReaderTest
             }
         }
 
-        sendStopMsg(sinkChannel);
-
-        Thread.sleep(100);
-        assertTrue("Failure on sendStopMsg command.", observer.gotSinkStop());
-
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after stop", tstRdr.isStopped());
-    }
-
-    private static final void waitUntilDestroyed(PayloadReader rdr)
-    {
-        for (int i = 0; i < 5 && !rdr.isDestroyed(); i++) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ie) {
-                // ignore interrupts
-            }
-        }
-    }
-
-    private static final void waitUntilRunning(PayloadReader rdr)
-    {
-        for (int i = 0; i < 5 && !rdr.isRunning(); i++) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ie) {
-                // ignore interrupts
-            }
-        }
-    }
-
-    private static final void waitUntilStopped(PayloadReader rdr)
-    {
-        for (int i = 0; i < 5 && !rdr.isStopped(); i++) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ie) {
-                // ignore interrupts
-            }
-        }
+        IOTestUtil.sendStopMsg(sinkChannel);
+        IOTestUtil.waitUntilStopped(tstRdr, "stop msg");
+        assertTrue("Observer didn't see sinkStop.", observer.gotSinkStop());
     }
 
     /**
