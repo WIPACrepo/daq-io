@@ -46,6 +46,11 @@ public class LoggingCase
         BasicConfigurator.configure(appender);
     }
 
+    public void setVerbose(boolean val)
+    {
+        appender.setVerbose(val);
+    }
+
     protected void tearDown()
         throws Exception
     {
