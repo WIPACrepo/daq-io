@@ -132,7 +132,7 @@ public class SpliceableInputChannel
             synchronized (queue) {
                 while (isRunning() && queue.size() == 0) {
                     try {
-                        queue.wait(100);
+                        queue.wait();
                     } catch (InterruptedException ie) {
                         // ignore interrupts
                     }
