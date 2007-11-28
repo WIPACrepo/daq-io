@@ -31,6 +31,8 @@ public class FileDispatcher implements Dispatcher {
         DAQCmdInterface.DAQ_ONLINE_RUNSTART_FLAG;
     private static final String STOP_PREFIX =
         DAQCmdInterface.DAQ_ONLINE_RUNSTOP_FLAG;
+    private static final String SUBRUN_START_PREFIX =
+        DAQCmdInterface.DAQ_ONLINE_SUBRUNSTART_FLAG;
     private static final int KB_IN_MB = 1024;
 
     private String baseFileName;
@@ -136,6 +138,10 @@ public class FileDispatcher implements Dispatcher {
 
                 fileIndex = 0;
                 startingEventNum = 0;
+            }
+        } else if (message.startsWith(SUBRUN_START_PREFIX)) {
+            if (outChannel != null && outChannel.isOpen()) {
+                moveToDest();
             }
         } else {
             throw new DispatchException("Unknown dispatcher message: " +
