@@ -1,6 +1,5 @@
 package icecube.daq.io;
 
-import icecube.daq.io.test.IOTestUtil;
 import icecube.daq.io.test.LoggingCase;
 import icecube.daq.io.test.MockObserver;
 
@@ -19,6 +18,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.nio.channels.WritableByteChannel;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -29,19 +29,20 @@ import junit.framework.TestSuite;
 
 import junit.textui.TestRunner;
 
-class SimplePayloadReader
-    extends PayloadReader
+class SimpleTestReader
+    extends SimpleReader
 {
     private ArrayList<ByteBuffer> inputData = new ArrayList<ByteBuffer>();
 
     class TestChannel
-        extends InputChannel
+        extends SimpleChannel
     {
-        TestChannel(IOChannelParent parent, SelectableChannel channel,
-                    IByteBufferCache bufMgr, int bufSize)
+        TestChannel(IOChannelParent parent, String name,
+                    SelectableChannel channel, IByteBufferCache bufMgr,
+                    int bufSize)
             throws IOException
         {
-            super(parent, channel, bufMgr, bufSize);
+            super(parent, name, channel, bufMgr, bufSize);
         }
 
         public void pushPayload(ByteBuffer buf)
@@ -50,25 +51,19 @@ class SimplePayloadReader
                 inputData.add(buf);
             }
         }
-
-        public void registerComponentObserver(DAQComponentObserver compObserver,
-                                              String notificationID)
-        {
-            throw new Error("Unimplemented");
-        }
     }
 
-    SimplePayloadReader(String name)
+    SimpleTestReader(String name)
         throws IOException
     {
         super(name);
     }
 
-    public InputChannel createChannel(SelectableChannel channel,
-                                      IByteBufferCache bufMgr, int bufSize)
+    public SimpleChannel createChannel(String name, SelectableChannel channel,
+                                       IByteBufferCache bufMgr, int bufSize)
         throws IOException
     {
-        return new TestChannel(this, channel, bufMgr, bufSize);
+        return new TestChannel(this, name, channel, bufMgr, bufSize);
     }
 
     boolean hasPayloads()
@@ -89,20 +84,22 @@ class SimplePayloadReader
     }
 }
 
-public class PayloadReaderTest
+public class SimpleReaderTest
     extends LoggingCase
 {
     private static final int BUFFER_LEN = 5000;
     private static final int INPUT_OUTPUT_LOOP_CNT = 5;
 
-    private SimplePayloadReader tstRdr;
+    private static ByteBuffer stopMsg;
+
+    private SimpleTestReader tstRdr;
 
     /**
      * Constructs an instance of this test.
      *
      * @param name the name of the test.
      */
-    public PayloadReaderTest(String name)
+    public SimpleReaderTest(String name)
     {
         super(name);
     }
@@ -148,24 +145,27 @@ public class PayloadReaderTest
         return chan;
     }
 
-    private static final void checkGetters(PayloadReader rdr,
+    private static final void checkGetters(SimpleReader rdr,
+                                           IByteBufferCache bufMgr,
                                            int numReceiveChans,
                                            long bufsAcquired,
                                            long bytesAcquired,
                                            long bytesRcvd, long recsRcvd,
                                            long stopsRcvd)
     {
-        Boolean[] allocStopped = rdr.getAllocationStopped();
+        boolean[] allocStopped = rdr.getAllocationStopped();
         assertNotNull("Got null allocationStopped array", allocStopped);
         assertEquals("Bad allocationStopped length",
                      numReceiveChans, allocStopped.length);
         if (numReceiveChans > 0) {
             assertFalse("allocationStopped[0] was not false",
-                        allocStopped[0].booleanValue());
+                        allocStopped[0]);
         }
 
-        for (int i = 0; i < 7; i++) {
-            Long[] data;
+        long[] bufArray = new long[1];
+
+        for (int i = 0; i < 3; i++) {
+            long[] data;
             String name;
             long val;
 
@@ -176,35 +176,39 @@ public class PayloadReaderTest
                 val = bytesRcvd;
                 break;
             case 1:
-                name = "lim2Rest";
-                data = rdr.getLimitToRestartAllocation();
-                val = 100000000;
-                break;
-            case 2:
-                name = "lim2Stop";
-                data = rdr.getLimitToStopAllocation();
-                val = 140000000;
-                break;
-            case 3:
                 name = "recsRcvd";
                 data = rdr.getRecordsReceived();
                 val = recsRcvd;
                 break;
-            case 4:
+            case 2:
                 name = "stopsRcvd";
                 data = rdr.getStopMessagesReceived();
                 val = stopsRcvd;
                 break;
-            case 5:
+            case 3:
                 name = "curAcqBuf";
-                data = rdr.getBufferCurrentAcquiredBuffers();
+                bufArray[0] = bufMgr.getCurrentAquiredBuffers();
+                data = bufArray;
                 val = bufsAcquired;
-                break;
-            case 6:
+            break;
+            case 4:
                 name = "curAcqByt";
-                data = rdr.getBufferCurrentAcquiredBytes();
+                bufArray[0] = bufMgr.getCurrentAquiredBytes();
+                data = bufArray;
                 val = bytesAcquired;
                 break;
+/*
+            case 5:
+                name = "lim2Rest";
+                data = rdr.getLimitToRestartAllocation();
+                val = 100000000;
+                break;
+            case 6:
+                name = "lim2Stop";
+                data = rdr.getLimitToStopAllocation();
+                val = 140000000;
+                break;
+*/
             default:
                 name = "unknown";
                 data = null;
@@ -216,8 +220,7 @@ public class PayloadReaderTest
             assertEquals("Bad " + name + " length",
                          numReceiveChans, data.length);
             if (numReceiveChans > 0) {
-                assertEquals("Bad " + name + "[0] value",
-                             val, data[0].longValue());
+                assertEquals("Bad " + name + "[0] value", val, data[0]);
             }
         }
     }
@@ -236,14 +239,14 @@ public class PayloadReaderTest
         return ssChan.socket().getLocalPort();
     }
 
-    private static final int harvestBuffers(SimplePayloadReader tstRdr,
+    private static final int harvestBuffers(SimpleTestReader tstRdr,
                                             int bufLen,
                                             IByteBufferCache bufMgr)
     {
         return harvestBuffers(tstRdr, bufLen, bufMgr, false, 0);
     }
 
-    private static final int harvestBuffers(SimplePayloadReader tstRdr,
+    private static final int harvestBuffers(SimpleTestReader tstRdr,
                                             int bufLen,
                                             IByteBufferCache bufMgr,
                                             boolean checkId, int prevId)
@@ -280,6 +283,19 @@ public class PayloadReaderTest
         return numHarvested;
     }
 
+    private static final void sendStopMsg(WritableByteChannel sinkChannel)
+        throws IOException
+    {
+        if (stopMsg == null) {
+            stopMsg = ByteBuffer.allocate(4);
+            stopMsg.putInt(0, 4);
+            stopMsg.limit(4);
+        }
+
+        stopMsg.position(0);
+        sinkChannel.write(stopMsg);
+    }
+
     protected void setUp()
         throws Exception
     {
@@ -295,7 +311,7 @@ public class PayloadReaderTest
      */
     public static Test suite()
     {
-        return new TestSuite(PayloadReaderTest.class);
+        return new TestSuite(SimpleReaderTest.class);
     }
 
     protected void tearDown()
@@ -319,15 +335,15 @@ public class PayloadReaderTest
 
         Pipe.SourceChannel sourceChannel = testPipe.source();
 
-        tstRdr = new SimplePayloadReader("Basic");
+        tstRdr = new SimpleTestReader("Basic");
 
         tstRdr.start();
-        IOTestUtil.waitUntilStopped(tstRdr, "creation");
+        waitUntilStopped(tstRdr, "creation");
 
         tstRdr.addDataChannel(sourceChannel, bufMgr, 256);
 
         tstRdr.startProcessing();
-        IOTestUtil.waitUntilRunning(tstRdr);
+        waitUntilRunning(tstRdr);
 
         // now move some buffers
         ByteBuffer testBuf;
@@ -370,29 +386,29 @@ public class PayloadReaderTest
     public void testStartStop()
         throws Exception
     {
-        tstRdr = new SimplePayloadReader("StartStop");
+        tstRdr = new SimpleTestReader("StartStop");
 
         tstRdr.start();
-        IOTestUtil.waitUntilStopped(tstRdr, "creation");
+        waitUntilStopped(tstRdr, "creation");
 
         tstRdr.startProcessing();
-        IOTestUtil.waitUntilRunning(tstRdr);
+        waitUntilRunning(tstRdr);
 
         tstRdr.forcedStopProcessing();
-        IOTestUtil.waitUntilStopped(tstRdr, "forced stop");
+        waitUntilStopped(tstRdr, "forced stop");
 
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
 
         // try it a second time
         tstRdr.startProcessing();
-        IOTestUtil.waitUntilRunning(tstRdr);
+        waitUntilRunning(tstRdr);
 
         tstRdr.forcedStopProcessing();
-        IOTestUtil.waitUntilStopped(tstRdr, "forced stop");
+        waitUntilStopped(tstRdr, "forced stop");
 
         tstRdr.destroyProcessor();
-        IOTestUtil.waitUntilDestroyed(tstRdr);
+        waitUntilDestroyed(tstRdr);
 
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
@@ -421,16 +437,16 @@ public class PayloadReaderTest
 
         MockObserver observer = new MockObserver();
 
-        tstRdr = new SimplePayloadReader("OutputInput");
+        tstRdr = new SimpleTestReader("OutputInput");
         tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
-        IOTestUtil.waitUntilStopped(tstRdr, "creation");
+        waitUntilStopped(tstRdr, "creation");
 
         tstRdr.addDataChannel(sourceChannel, bufMgr);
 
         tstRdr.startProcessing();
-        IOTestUtil.waitUntilRunning(tstRdr);
+        waitUntilRunning(tstRdr);
 
         // now move some buffers
         ByteBuffer testBuf;
@@ -466,8 +482,8 @@ public class PayloadReaderTest
             }
         }
 
-        IOTestUtil.sendStopMsg(sinkChannel);
-        IOTestUtil.waitUntilStopped(tstRdr, "stop msg");
+        sendStopMsg(sinkChannel);
+        waitUntilStopped(tstRdr, "stop msg");
         assertTrue("Observer didn't see sinkStop", observer.gotSinkStop());
     }
 
@@ -487,16 +503,16 @@ public class PayloadReaderTest
 
         MockObserver observer = new MockObserver();
 
-        tstRdr = new SimplePayloadReader("MultiOutputInput");
+        tstRdr = new SimpleTestReader("MultiOutputInput");
         tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
-        IOTestUtil.waitUntilStopped(tstRdr, "creation");
+        waitUntilStopped(tstRdr, "creation");
 
         tstRdr.addDataChannel(sourceChannel, bufMgr, 1024);
 
         tstRdr.startProcessing();
-        IOTestUtil.waitUntilRunning(tstRdr);
+        waitUntilRunning(tstRdr);
 
         // now move some buffers
         ByteBuffer testBuf;
@@ -552,24 +568,26 @@ public class PayloadReaderTest
             }
         }
 
-        IOTestUtil.sendStopMsg(sinkChannel);
-        IOTestUtil.waitUntilStopped(tstRdr, "stop msg");
+        sendStopMsg(sinkChannel);
+        waitUntilStopped(tstRdr, "stop msg");
         assertTrue("Observer didn't see sinkStop", observer.gotSinkStop());
     }
 
     public void testMultiSizeOutputInput()
         throws Exception
     {
+        setVerbose(true);
+
         // buffer caching manager
         IByteBufferCache bufMgr = new VitreousBufferCache();
 
         MockObserver observer = new MockObserver();
 
-        tstRdr = new SimplePayloadReader("MultiSize");
+        tstRdr = new SimpleTestReader("MultiSize");
         tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
-        IOTestUtil.waitUntilStopped(tstRdr, "creation");
+        waitUntilStopped(tstRdr, "creation");
 
         // avoid a Sun race condition
         try {
@@ -591,8 +609,8 @@ public class PayloadReaderTest
                 tstRdr.addDataChannel(sourceChannel, bufMgr, bufLen);
 
                 tstRdr.startProcessing();
-                IOTestUtil.waitUntilRunning(tstRdr, " (msgSize " + msgSize +
-                                            ", bufLen " + bufLen + ")");
+                waitUntilRunning(tstRdr, " (msgSize " + msgSize +
+                                 ", bufLen " + bufLen + ")");
 
                 assertEquals("There are acquired byte buffers before start" +
                              " (msgSize " + msgSize + ", bufLen " + bufLen +
@@ -651,8 +669,8 @@ public class PayloadReaderTest
                     }
                 }
 
-                IOTestUtil.sendStopMsg(sinkChannel);
-                IOTestUtil.waitUntilStopped(tstRdr, "stop msg");
+                sendStopMsg(sinkChannel);
+                waitUntilStopped(tstRdr, "stop msg");
                 assertTrue("Observer didn't see sinkStop",
                            observer.gotSinkStop());
 
@@ -678,16 +696,16 @@ public class PayloadReaderTest
 
         MockObserver observer = new MockObserver();
 
-        tstRdr = new SimplePayloadReader("Disposing");
+        tstRdr = new SimpleTestReader("Disposing");
         tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
-        IOTestUtil.waitUntilStopped(tstRdr, "creation");
+        waitUntilStopped(tstRdr, "creation");
 
         tstRdr.addDataChannel(sourceChannel, bufMgr);
 
         tstRdr.startProcessing();
-        IOTestUtil.waitUntilRunning(tstRdr);
+        waitUntilRunning(tstRdr);
 
         // now move some buffers
         ByteBuffer testBuf;
@@ -709,14 +727,14 @@ public class PayloadReaderTest
 
             if (i == 1) {
                 tstRdr.startDisposing();
-                IOTestUtil.waitUntilDisposing(tstRdr);
+                waitUntilDisposing(tstRdr);
             }
 
             harvestBuffers(tstRdr, bufLen, bufMgr);
         }
 
-        IOTestUtil.sendStopMsg(sinkChannel);
-        IOTestUtil.waitUntilStopped(tstRdr, "stop msg");
+        sendStopMsg(sinkChannel);
+        waitUntilStopped(tstRdr, "stop msg");
         assertTrue("Observer didn't see sinkStop", observer.gotSinkStop());
     }
 
@@ -736,18 +754,18 @@ public class PayloadReaderTest
 
         MockObserver observer = new MockObserver();
 
-        tstRdr = new SimplePayloadReader("Getters");
+        tstRdr = new SimpleTestReader("Getters");
         tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
-        IOTestUtil.waitUntilStopped(tstRdr, "creation");
+        waitUntilStopped(tstRdr, "creation");
 
         tstRdr.addDataChannel(sourceChannel, bufMgr);
 
         tstRdr.startProcessing();
-        IOTestUtil.waitUntilRunning(tstRdr);
+        waitUntilRunning(tstRdr);
 
-        checkGetters(tstRdr, 1, 0, 0, 0, 0, 0);
+        checkGetters(tstRdr, bufMgr, 1, 0, 0, 0, 0, 0);
 
         // now move some buffers
         ByteBuffer testBuf;
@@ -758,7 +776,7 @@ public class PayloadReaderTest
         testBuf = bufMgr.acquireBuffer(acquireLen);
         assertNotNull("Unable to acquire transmit buffer", testBuf);
 
-        checkGetters(tstRdr, 1, 1, acquireLen, 0, 0, 0);
+        checkGetters(tstRdr, bufMgr, 1, 1, acquireLen, 0, 0, 0);
 
         testBuf.putInt(0, bufLen);
         testBuf.limit(bufLen);
@@ -769,24 +787,21 @@ public class PayloadReaderTest
 
         bufMgr.returnBuffer(testBuf);
 
-        // wait for buffer to be received
-        for (int i = 0;
-             tstRdr.getRecordsReceived()[0].longValue() == 0 && i < 10; i++)
-        {
+        for (int i = 0; !tstRdr.isError() && i < 10; i++) {
             Thread.sleep(100);
         }
 
-        checkGetters(tstRdr, 1, 1, acquireLen, bufLen, 1, 0);
+        checkGetters(tstRdr, bufMgr, 1, 1, acquireLen, bufLen, 1, 0);
 
         assertFalse("Reader in Error state after ErrorSig",
                     tstRdr.isError());
         assertFalse("Observer saw sinkError", observer.gotSinkError());
 
-        IOTestUtil.sendStopMsg(sinkChannel);
-        IOTestUtil.waitUntilStopped(tstRdr, "stop msg");
+        sendStopMsg(sinkChannel);
+        waitUntilStopped(tstRdr, "stop msg");
         assertTrue("Observer didn't see sinkStop", observer.gotSinkStop());
 
-        checkGetters(tstRdr, 0, 0, BUFFER_LEN, bufLen, 1, 1);
+        checkGetters(tstRdr, bufMgr, 0, 0, BUFFER_LEN, bufLen, 1, 1);
     }
 
     /**
@@ -797,15 +812,13 @@ public class PayloadReaderTest
     {
         IByteBufferCache bufMgr = new VitreousBufferCache();
 
-        tstRdr = new SimplePayloadReader("InetServer");
+        tstRdr = new SimpleTestReader("InetServer");
 
         tstRdr.start();
-        IOTestUtil.waitUntilStopped(tstRdr, "creation");
+        waitUntilStopped(tstRdr, "creation");
 
         tstRdr.startServer(bufMgr);
-
-        assertTrue("Reader in " + tstRdr.getPresentState() +
-                   ", not Idle after server start", tstRdr.isStopped());
+        waitUntilServerStarted(tstRdr);
 
         InetSocketAddress addr =
             new InetSocketAddress("localhost", tstRdr.getServerPort());
@@ -820,7 +833,7 @@ public class PayloadReaderTest
         Thread.sleep(100);
 
         tstRdr.startProcessing();
-        IOTestUtil.waitUntilRunning(tstRdr);
+        waitUntilRunning(tstRdr);
 
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
@@ -860,28 +873,21 @@ public class PayloadReaderTest
         }
 
 
-        assertEquals("Bad number of log messages",
-                     1, getNumberOfMessages());
-        assertEquals("Unexpected log message 0",
-                     "Closed InetServer socket channel, 1 channels remain",
-                     getMessage(0));
-        clearMessages();
-
         tstRdr.forcedStopProcessing();
-        IOTestUtil.waitUntilStopped(tstRdr, "forced stop");
+        waitUntilStopped(tstRdr, "forced stop");
 
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
 
         // try it a second time
         tstRdr.startProcessing();
-        IOTestUtil.waitUntilRunning(tstRdr);
+        waitUntilRunning(tstRdr);
 
         tstRdr.forcedStopProcessing();
-        IOTestUtil.waitUntilStopped(tstRdr, "forced stop");
+        waitUntilStopped(tstRdr, "forced stop");
 
         tstRdr.destroyProcessor();
-        IOTestUtil.waitUntilDestroyed(tstRdr);
+        waitUntilDestroyed(tstRdr);
 
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
@@ -904,23 +910,20 @@ public class PayloadReaderTest
 
         final int numTstRdrs = 4;
 
-        PayloadReader[] tstRdrs = new SimplePayloadReader[numTstRdrs];
+        SimpleReader[] tstRdrs = new SimpleTestReader[numTstRdrs];
 
         // create a bunch of engines
         for (int i = 0; i < numTstRdrs; i++) {
-            tstRdrs[i] = new SimplePayloadReader("MultiServer");
+            tstRdrs[i] = new SimpleTestReader("MultiServer");
 
             tstRdrs[i].start();
-            IOTestUtil.waitUntilStopped(tstRdrs[i], "creation",
-                                        " (#" + i + ")");
+            waitUntilStopped(tstRdrs[i], "creation", " (#" + i + ")");
         }
 
         // start all the servers
         for (int i = 0; i < numTstRdrs; i++) {
             tstRdrs[i].startServer(bufMgr);
-
-            assertTrue("Reader in " + tstRdrs[i].getPresentState() +
-                       ", not Idle after server start", tstRdrs[i].isStopped());
+            waitUntilServerStarted(tstRdrs[i], " (#" + i + ")");
         }
 
         SocketChannel[] chans = new SocketChannel[numTstRdrs];
@@ -938,8 +941,12 @@ public class PayloadReaderTest
         for (int i = 0; i < numTstRdrs; i++) {
             tstRdrs[i].startProcessing();
         }
+
+        Thread.sleep(100);
+
+        // make sure they're all running
         for (int i = 0; i < numTstRdrs; i++) {
-            IOTestUtil.waitUntilRunning(tstRdrs[i], " (#" + i + ")");
+            waitUntilRunning(tstRdrs[i], " (#" + i + ")");
         }
 
         ByteBuffer testBuf;
@@ -969,12 +976,12 @@ public class PayloadReaderTest
         for (int i = 0; !gotAll && i < numTries; i++) {
             boolean rcvdData = true;
             for (int j = 0; rcvdData && j < numTstRdrs; j++) {
-                Long[] rcvd = tstRdrs[j].getBytesReceived();
+                long[] rcvd = tstRdrs[j].getBytesReceived();
                 assertNotNull("Got null byteRcvd array from engine#" + j,
                               rcvd);
                 assertEquals("Unexpected number of connections for tstRdr#" + j,
                              1, rcvd.length);
-                if (rcvd[0].longValue() < bufLen) {
+                if (rcvd[0] < bufLen) {
                     rcvdData = false;
                 }
             }
@@ -992,8 +999,7 @@ public class PayloadReaderTest
             tstRdrs[i].forcedStopProcessing();
         }
         for (int i = 0; i < numTstRdrs; i++) {
-            IOTestUtil.waitUntilStopped(tstRdrs[i], "forced stop",
-                                        " (#" + i + ")");
+            waitUntilStopped(tstRdrs[i], "forced stop", " (#" + i + ")");
         }
 
         // destroy everything
@@ -1001,7 +1007,7 @@ public class PayloadReaderTest
             tstRdrs[i].destroyProcessor();
         }
         for (int i = 0; i < numTstRdrs; i++) {
-            IOTestUtil.waitUntilDestroyed(tstRdrs[i], " (#" + i + ")");
+            waitUntilDestroyed(tstRdrs[i], " (#" + i + ")");
         }
     }
 
@@ -1015,18 +1021,18 @@ public class PayloadReaderTest
 
         int port = createServer(sel);
 
-        tstRdr = new SimplePayloadReader("ServerInput");
+        tstRdr = new SimpleTestReader("ServerInput");
         tstRdr.start();
-        IOTestUtil.waitUntilStopped(tstRdr, "creation");
+        waitUntilStopped(tstRdr, "creation");
 
         tstRdr.addReverseConnection("localhost", port, bufMgr);
-        IOTestUtil.waitUntilStopped(tstRdr, "reverse connection");
+        waitUntilStopped(tstRdr, "reverse connection");
 
         ByteBuffer testBuf;
 
         for (int i = 0; i < 2; i++) {
             tstRdr.startProcessing();
-            IOTestUtil.waitUntilRunning(tstRdr);
+            waitUntilRunning(tstRdr);
 
             SocketChannel chan = acceptChannel(sel);
 
@@ -1047,11 +1053,11 @@ public class PayloadReaderTest
             final int numTries = 5;
             for (int t = 0; !gotAll && t < numTries; t++) {
                 boolean rcvdData = true;
-                Long[] rcvd = tstRdr.getBytesReceived();
+                long[] rcvd = tstRdr.getBytesReceived();
                 assertNotNull("Got null byteRcvd array from engine", rcvd);
                 assertEquals("Unexpected number of connections for engine",
                              1, rcvd.length);
-                if (rcvd[0].longValue() < bufLen) {
+                if (rcvd[0] < bufLen) {
                     rcvdData = false;
                 }
 
@@ -1063,11 +1069,11 @@ public class PayloadReaderTest
                 }
             }
 
-            Long[] totRcvd = tstRdr.getBytesReceived();
+            long[] totRcvd = tstRdr.getBytesReceived();
             assertNotNull("Got null byteRcvd array from engine", totRcvd);
             assertEquals("Unexpected number of connections for engine",
                          1, totRcvd.length);
-            assertEquals("Bad number of bytes", bufLen, totRcvd[0].longValue());
+            assertEquals("Bad number of bytes", bufLen, totRcvd[0]);
 
             testBuf = bufMgr.acquireBuffer(4);
             assertNotNull("Unable to acquire stop buffer", testBuf);
@@ -1081,17 +1087,205 @@ public class PayloadReaderTest
 
             bufMgr.returnBuffer(testBuf);
 
-            IOTestUtil.waitUntilStopped(tstRdr, "stop msg");
+            waitUntilStopped(tstRdr, "stop msg");
 
             // make sure receive engines have been detatched
-            Long[] postRcvd = tstRdr.getBytesReceived();
+            long[] postRcvd = tstRdr.getBytesReceived();
             assertNotNull("Got null byteRcvd array from engine", postRcvd);
             assertEquals("Unexpected number of connections for engine",
                          0, postRcvd.length);
         }
 
         tstRdr.destroyProcessor();
-        IOTestUtil.waitUntilDestroyed(tstRdr);
+        waitUntilDestroyed(tstRdr);
+    }
+
+    public void testAllocRestart()
+        throws Exception
+    {
+        final int bufLen = 64;
+        final int maxLoopCnt = 15;
+
+        // buffer caching manager
+        IByteBufferCache bufMgr =
+            new VitreousBufferCache((long) (bufLen * 4));
+
+        // create a pipe for use in testing
+        Pipe testPipe = Pipe.open();
+        Pipe.SinkChannel sinkChannel = testPipe.sink();
+        sinkChannel.configureBlocking(false);
+
+        Pipe.SourceChannel sourceChannel = testPipe.source();
+        sourceChannel.configureBlocking(false);
+
+        MockObserver observer = new MockObserver();
+
+        tstRdr = new SimpleTestReader("OutputInput");
+        tstRdr.registerComponentObserver(observer);
+
+        tstRdr.start();
+        waitUntilStopped(tstRdr, "creation");
+
+        tstRdr.addDataChannel(sourceChannel, bufMgr);
+
+        tstRdr.startProcessing();
+        waitUntilRunning(tstRdr);
+
+        // now move some buffers
+        ByteBuffer testBuf;
+
+        int id = 0;
+
+        int xmitCnt = 0;
+        int recvCnt = 0;
+        int loopCnt = 0;
+        while (recvCnt < maxLoopCnt) {
+            if (xmitCnt < maxLoopCnt) {
+                final int acquireLen = bufLen;
+                testBuf = bufMgr.acquireBuffer(acquireLen);
+                assertNotNull("Unable to acquire transmit buffer on " +
+                              xmitCnt + " try", testBuf);
+
+                testBuf.putInt(0, bufLen);
+                testBuf.putInt(4, ++id);
+                testBuf.limit(bufLen);
+                testBuf.position(0);
+                sinkChannel.write(testBuf);
+
+                bufMgr.returnBuffer(testBuf);
+
+                xmitCnt++;
+            }
+
+            boolean allocStopped = tstRdr.getAllocationStopped()[0];
+            if (allocStopped || (xmitCnt - recvCnt) > (maxLoopCnt / 2) ||
+                (xmitCnt == maxLoopCnt))
+            {
+                recvCnt += harvestBuffers(tstRdr, bufLen, bufMgr,
+                                          true, recvCnt);
+
+                if (allocStopped || xmitCnt == maxLoopCnt) {
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException ie) {
+                        // ignore interrupts
+                    }
+                }
+            }
+
+            loopCnt++;
+            if (loopCnt == recvCnt + maxLoopCnt) {
+                fail("Received " + recvCnt + " payloads after " + xmitCnt +
+                     " buffers were transmitted");
+            }
+        }
+
+        sendStopMsg(sinkChannel);
+        waitUntilStopped(tstRdr, "stop msg");
+        assertTrue("Observer didn't see sinkStop", observer.gotSinkStop());
+
+        // don't even bother checking stop/restart log msgs
+        clearMessages();
+    }
+
+    private static final void waitUntilDestroyed(SimpleReader rdr)
+    {
+        waitUntilDestroyed(rdr, "");
+    }
+
+    private static final void waitUntilDestroyed(SimpleReader rdr,
+                                                 String extra)
+    {
+        for (int i = 0; i < 5 && !rdr.isDestroyed(); i++) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ie) {
+                // ignore interrupts
+            }
+        }
+
+        assertTrue("Reader did not die after kill request" + extra,
+                   rdr.isDestroyed());
+    }
+
+    private static final void waitUntilDisposing(SimpleReader rdr)
+    {
+        waitUntilDisposing(rdr, "");
+    }
+
+    private static final void waitUntilDisposing(SimpleReader rdr,
+                                                 String extra)
+    {
+        for (int i = 0; i < 5 && !rdr.isDisposing(); i++) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ie) {
+                // ignore interrupts
+            }
+        }
+
+        assertTrue("Reader in " + rdr.getPresentState() +
+                   ", not Disposing after DisposeSig" + extra,
+                   rdr.isDisposing());
+    }
+
+    private static final void waitUntilRunning(SimpleReader rdr)
+    {
+        waitUntilRunning(rdr, "");
+    }
+
+    private static final void waitUntilRunning(SimpleReader rdr, String extra)
+    {
+        for (int i = 0; i < 5 && !rdr.isRunning(); i++) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ie) {
+                // ignore interrupts
+            }
+        }
+
+        assertTrue("Reader in " + rdr.getPresentState() +
+                   ", not Running after StartSig" + extra, rdr.isRunning());
+    }
+
+    private static final void waitUntilServerStarted(SimpleReader rdr)
+    {
+        waitUntilServerStarted(rdr, "");
+    }
+
+    private static final void waitUntilServerStarted(SimpleReader rdr,
+                                                     String extra)
+    {
+        for (int i = 0; i < 5 && !rdr.isServerStarted(); i++) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ie) {
+                // ignore interrupts
+            }
+        }
+
+        assertTrue("Server thread has not started" + extra,
+                   rdr.isServerStarted());
+    }
+
+    private static final void waitUntilStopped(SimpleReader rdr, String action)
+    {
+        waitUntilStopped(rdr, action, "");
+    }
+
+    private static final void waitUntilStopped(SimpleReader rdr, String action,
+                                               String extra)
+    {
+        for (int i = 0; i < 5 && !rdr.isStopped(); i++) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ie) {
+                // ignore interrupts
+            }
+        }
+
+        assertTrue("Reader in " + rdr.getPresentState() +
+                   ", not Idle after " + action + extra, rdr.isStopped());
     }
 
     /**
