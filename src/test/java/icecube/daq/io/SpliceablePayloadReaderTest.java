@@ -151,9 +151,6 @@ public class SpliceablePayloadReaderTest
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
-
         // try it a second time
         tstRdr.startProcessing();
         IOTestUtil.waitUntilRunning(tstRdr);
@@ -305,6 +302,7 @@ public class SpliceablePayloadReaderTest
         final int groupSize = 3;
 
         final int numToSend = INPUT_OUTPUT_LOOP_CNT * groupSize;
+
         int id = 1;
         int recvId = 0;
 

@@ -2,6 +2,7 @@ package icecube.daq.io;
 
 import icecube.daq.common.DAQCmdInterface;
 
+import icecube.daq.io.test.IOTestUtil;
 import icecube.daq.io.test.LoggingCase;
 import icecube.daq.io.test.MockSpliceableFactory;
 import icecube.daq.io.test.MockSplicer;
@@ -12,8 +13,6 @@ import icecube.daq.payload.VitreousBufferCache;
 
 import icecube.daq.splicer.Splicer;
 
-import java.io.IOException;
-
 import java.net.InetSocketAddress;
 
 import java.nio.ByteBuffer;
@@ -23,7 +22,6 @@ import java.nio.channels.Selector;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.nio.channels.WritableByteChannel;
 
 import java.util.Iterator;
 
@@ -78,8 +76,6 @@ public class SpliceableSimpleReaderTest
     private static final int BUFFER_LEN = 5000;
     private static final int INPUT_OUTPUT_LOOP_CNT = 5;
 
-    private static ByteBuffer stopMsg;
-
     private SpliceableSimpleReader tstRdr;
 
     /**
@@ -102,19 +98,6 @@ public class SpliceableSimpleReaderTest
         }
 
         return numReturned;
-    }
-
-    private static final void sendStopMsg(WritableByteChannel sinkChannel)
-        throws IOException
-    {
-        if (stopMsg == null) {
-            stopMsg = ByteBuffer.allocate(4);
-            stopMsg.putInt(0, 4);
-            stopMsg.limit(4);
-        }
-
-        stopMsg.position(0);
-        sinkChannel.write(stopMsg);
     }
 
     protected void setUp()
@@ -157,20 +140,20 @@ public class SpliceableSimpleReaderTest
         tstRdr = new SpliceableSimpleReader("StartStop", splicer, factory);
 
         tstRdr.start();
-        waitUntilStopped(tstRdr, "creation");
+        IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
         tstRdr.startProcessing();
-        waitUntilRunning(tstRdr);
+        IOTestUtil.waitUntilRunning(tstRdr);
 
         tstRdr.forcedStopProcessing();
-        waitUntilStopped(tstRdr, "forced stop");
+        IOTestUtil.waitUntilStopped(tstRdr, "forced stop");
 
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
 
         // try it a second time
         tstRdr.startProcessing();
-        waitUntilRunning(tstRdr);
+        IOTestUtil.waitUntilRunning(tstRdr);
 
         assertEquals("Bad number of log messages",
                      1, getNumberOfMessages());
@@ -181,10 +164,10 @@ public class SpliceableSimpleReaderTest
         clearMessages();
 
         tstRdr.forcedStopProcessing();
-        waitUntilStopped(tstRdr, "forced stop");
+        IOTestUtil.waitUntilStopped(tstRdr, "forced stop");
 
         tstRdr.destroyProcessor();
-        waitUntilDestroyed(tstRdr);
+        IOTestUtil.waitUntilDestroyed(tstRdr);
 
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
@@ -228,14 +211,14 @@ public class SpliceableSimpleReaderTest
         tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
-        waitUntilStopped(tstRdr, "creation");
+        IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
         tstRdr.addDataChannel(sourceChannel, bufMgr, 1024);
 
         Thread.sleep(100);
 
         tstRdr.startProcessing();
-        waitUntilRunning(tstRdr);
+        IOTestUtil.waitUntilRunning(tstRdr);
 
         // now move some buffers
         ByteBuffer testBuf;
@@ -275,10 +258,9 @@ public class SpliceableSimpleReaderTest
             }
         }
 
-        sendStopMsg(sinkChannel);
-
-        Thread.sleep(100);
-        assertTrue("Observer didn't see stop.", observer.gotStop());
+        IOTestUtil.sendStopMsg(sinkChannel);
+        IOTestUtil.waitUntilStopped(tstRdr, "stop msg");
+        assertTrue("Observer didn't see sinkStop.", observer.gotStop());
     }
 
     public void testMultiOutputInput()
@@ -304,14 +286,14 @@ public class SpliceableSimpleReaderTest
         tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
-        waitUntilStopped(tstRdr, "creation");
+        IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
         tstRdr.addDataChannel(sourceChannel, bufMgr, 1024);
 
         Thread.sleep(100);
 
         tstRdr.startProcessing();
-        waitUntilRunning(tstRdr);
+        IOTestUtil.waitUntilRunning(tstRdr);
 
         // now move some buffers
         ByteBuffer testBuf;
@@ -367,109 +349,9 @@ public class SpliceableSimpleReaderTest
             }
         }
 
-        sendStopMsg(sinkChannel);
-        waitUntilStopped(tstRdr, "stop msg");
-        assertTrue("Observer didn't see stop.", observer.gotStop());
-    }
-
-    private static final void waitUntilDestroyed(SimpleReader rdr)
-    {
-        waitUntilDestroyed(rdr, "");
-    }
-
-    private static final void waitUntilDestroyed(SimpleReader rdr,
-                                                 String extra)
-    {
-        for (int i = 0; i < 5 && !rdr.isDestroyed(); i++) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ie) {
-                // ignore interrupts
-            }
-        }
-
-        assertTrue("Reader did not die after kill request" + extra,
-                   rdr.isDestroyed());
-    }
-
-    private static final void waitUntilDisposing(SimpleReader rdr)
-    {
-        waitUntilDisposing(rdr, "");
-    }
-
-    private static final void waitUntilDisposing(SimpleReader rdr,
-                                                 String extra)
-    {
-        for (int i = 0; i < 5 && !rdr.isDisposing(); i++) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ie) {
-                // ignore interrupts
-            }
-        }
-
-        assertTrue("Reader in " + rdr.getPresentState() +
-                   ", not Disposing after DisposeSig" + extra,
-                   rdr.isDisposing());
-    }
-
-    private static final void waitUntilRunning(SimpleReader rdr)
-    {
-        waitUntilRunning(rdr, "");
-    }
-
-    private static final void waitUntilRunning(SimpleReader rdr, String extra)
-    {
-        for (int i = 0; i < 5 && !rdr.isRunning(); i++) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ie) {
-                // ignore interrupts
-            }
-        }
-
-        assertTrue("Reader in " + rdr.getPresentState() +
-                   ", not Running after StartSig" + extra, rdr.isRunning());
-    }
-
-    private static final void waitUntilServerStarted(SimpleReader rdr)
-    {
-        waitUntilServerStarted(rdr, "");
-    }
-
-    private static final void waitUntilServerStarted(SimpleReader rdr,
-                                                     String extra)
-    {
-        for (int i = 0; i < 5 && !rdr.isServerStarted(); i++) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ie) {
-                // ignore interrupts
-            }
-        }
-
-        assertTrue("Server thread has not started" + extra,
-                   rdr.isServerStarted());
-    }
-
-    private static final void waitUntilStopped(SimpleReader rdr, String action)
-    {
-        waitUntilStopped(rdr, action, "");
-    }
-
-    private static final void waitUntilStopped(SimpleReader rdr, String action,
-                                               String extra)
-    {
-        for (int i = 0; i < 5 && !rdr.isStopped(); i++) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ie) {
-                // ignore interrupts
-            }
-        }
-
-        assertTrue("Reader in " + rdr.getPresentState() +
-                   ", not Idle after " + action + extra, rdr.isStopped());
+        IOTestUtil.sendStopMsg(sinkChannel);
+        IOTestUtil.waitUntilStopped(tstRdr, "stop msg");
+        assertTrue("Observer didn't see sinkStop.", observer.gotStop());
     }
 
     /**

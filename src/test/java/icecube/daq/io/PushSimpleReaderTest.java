@@ -2,6 +2,7 @@ package icecube.daq.io;
 
 import icecube.daq.common.DAQCmdInterface;
 
+import icecube.daq.io.test.IOTestUtil;
 import icecube.daq.io.test.LoggingCase;
 
 import icecube.daq.payload.IByteBufferCache;
@@ -18,7 +19,6 @@ import java.nio.channels.Selector;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.nio.channels.WritableByteChannel;
 
 import java.util.Iterator;
 
@@ -154,8 +154,6 @@ public class PushSimpleReaderTest
     private static final int BUFFER_LEN = 5000;
     private static final int INPUT_OUTPUT_LOOP_CNT = 5;
 
-    private static ByteBuffer stopMsg;
-
     private MockPushSimpleRdr tstRdr;
 
     /**
@@ -166,19 +164,6 @@ public class PushSimpleReaderTest
     public PushSimpleReaderTest(String name)
     {
         super(name);
-    }
-
-    private static final void sendStopMsg(WritableByteChannel sinkChannel)
-        throws IOException
-    {
-        if (stopMsg == null) {
-            stopMsg = ByteBuffer.allocate(4);
-            stopMsg.putInt(0, 4);
-            stopMsg.limit(4);
-        }
-
-        stopMsg.position(0);
-        sinkChannel.write(stopMsg);
     }
 
     protected void setUp()
@@ -220,28 +205,26 @@ public class PushSimpleReaderTest
         tstRdr = new MockPushSimpleRdr("StartStop", bufMgr);
 
         tstRdr.start();
-        waitUntilStopped(tstRdr, "creation");
+        IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
         tstRdr.startProcessing();
-        waitUntilRunning(tstRdr);
+        IOTestUtil.waitUntilRunning(tstRdr);
 
         tstRdr.forcedStopProcessing();
-        waitUntilStopped(tstRdr, "forced stop");
+        IOTestUtil.waitUntilStopped(tstRdr, "forced stop");
 
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
 
         // try it a second time
         tstRdr.startProcessing();
-        waitUntilRunning(tstRdr);
+        IOTestUtil.waitUntilRunning(tstRdr);
 
         tstRdr.forcedStopProcessing();
-        waitUntilStopped(tstRdr, "forced stop");
+        IOTestUtil.waitUntilStopped(tstRdr, "forced stop");
 
         tstRdr.destroyProcessor();
-        waitUntilDestroyed(tstRdr);
-        assertTrue("Reader did not die after kill request",
-                   tstRdr.isDestroyed());
+        IOTestUtil.waitUntilDestroyed(tstRdr);
 
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
@@ -262,13 +245,13 @@ public class PushSimpleReaderTest
         tstRdr = new MockPushSimpleRdr("StartDisp", bufMgr);
 
         tstRdr.start();
-        waitUntilStopped(tstRdr, "creation");
+        IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
         tstRdr.startProcessing();
-        waitUntilRunning(tstRdr);
+        IOTestUtil.waitUntilRunning(tstRdr);
 
         tstRdr.startDisposing();
-        waitUntilDisposing(tstRdr);
+        IOTestUtil.waitUntilDisposing(tstRdr);
     }
 
     public void testOutputInput()
@@ -291,14 +274,14 @@ public class PushSimpleReaderTest
         tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
-        waitUntilStopped(tstRdr, "creation");
+        IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
         tstRdr.addDataChannel(sourceChannel, bufMgr, 1024);
 
         Thread.sleep(100);
 
         tstRdr.startProcessing();
-        waitUntilRunning(tstRdr);
+        IOTestUtil.waitUntilRunning(tstRdr);
 
         // now move some buffers
         ByteBuffer testBuf;
@@ -338,9 +321,9 @@ public class PushSimpleReaderTest
             }
         }
 
-        sendStopMsg(sinkChannel);
-        waitUntilStopped(tstRdr, "stop msg");
-        assertTrue("Failure on sendStopMsg command.", observer.gotSinkStop());
+        IOTestUtil.sendStopMsg(sinkChannel);
+        IOTestUtil.waitUntilStopped(tstRdr, "stop msg");
+        assertTrue("Observer didn't see sinkStop.", observer.gotSinkStop());
     }
 
     public void testMultiOutputInput()
@@ -363,14 +346,14 @@ public class PushSimpleReaderTest
         tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
-        waitUntilStopped(tstRdr, "creation");
+        IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
         tstRdr.addDataChannel(sourceChannel, bufMgr, 1024);
 
         Thread.sleep(100);
 
         tstRdr.startProcessing();
-        waitUntilRunning(tstRdr);
+        IOTestUtil.waitUntilRunning(tstRdr);
 
         // now move some buffers
         ByteBuffer testBuf;
@@ -420,109 +403,9 @@ public class PushSimpleReaderTest
             }
         }
 
-        sendStopMsg(sinkChannel);
-        waitUntilStopped(tstRdr, "stop msg");
-        assertTrue("Failure on sendStopMsg command.", observer.gotSinkStop());
-    }
-
-    private static final void waitUntilDestroyed(SimpleReader rdr)
-    {
-        waitUntilDestroyed(rdr, "");
-    }
-
-    private static final void waitUntilDestroyed(SimpleReader rdr,
-                                                 String extra)
-    {
-        for (int i = 0; i < 5 && !rdr.isDestroyed(); i++) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ie) {
-                // ignore interrupts
-            }
-        }
-
-        assertTrue("Reader did not die after kill request" + extra,
-                   rdr.isDestroyed());
-    }
-
-    private static final void waitUntilDisposing(SimpleReader rdr)
-    {
-        waitUntilDisposing(rdr, "");
-    }
-
-    private static final void waitUntilDisposing(SimpleReader rdr,
-                                                 String extra)
-    {
-        for (int i = 0; i < 5 && !rdr.isDisposing(); i++) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ie) {
-                // ignore interrupts
-            }
-        }
-
-        assertTrue("Reader in " + rdr.getPresentState() +
-                   ", not Disposing after DisposeSig" + extra,
-                   rdr.isDisposing());
-    }
-
-    private static final void waitUntilRunning(SimpleReader rdr)
-    {
-        waitUntilRunning(rdr, "");
-    }
-
-    private static final void waitUntilRunning(SimpleReader rdr, String extra)
-    {
-        for (int i = 0; i < 5 && !rdr.isRunning(); i++) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ie) {
-                // ignore interrupts
-            }
-        }
-
-        assertTrue("Reader in " + rdr.getPresentState() +
-                   ", not Running after StartSig" + extra, rdr.isRunning());
-    }
-
-    private static final void waitUntilServerStarted(SimpleReader rdr)
-    {
-        waitUntilServerStarted(rdr, "");
-    }
-
-    private static final void waitUntilServerStarted(SimpleReader rdr,
-                                                     String extra)
-    {
-        for (int i = 0; i < 5 && !rdr.isServerStarted(); i++) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ie) {
-                // ignore interrupts
-            }
-        }
-
-        assertTrue("Server thread has not started" + extra,
-                   rdr.isServerStarted());
-    }
-
-    private static final void waitUntilStopped(SimpleReader rdr, String action)
-    {
-        waitUntilStopped(rdr, action, "");
-    }
-
-    private static final void waitUntilStopped(SimpleReader rdr, String action,
-                                               String extra)
-    {
-        for (int i = 0; i < 5 && !rdr.isStopped(); i++) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ie) {
-                // ignore interrupts
-            }
-        }
-
-        assertTrue("Reader in " + rdr.getPresentState() +
-                   ", not Idle after " + action + extra, rdr.isStopped());
+        IOTestUtil.sendStopMsg(sinkChannel);
+        IOTestUtil.waitUntilStopped(tstRdr, "stop msg");
+        assertTrue("Observer didn't see sinkStop.", observer.gotSinkStop());
     }
 
     /**
