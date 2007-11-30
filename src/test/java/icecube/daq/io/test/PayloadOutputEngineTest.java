@@ -1,7 +1,7 @@
 /*
  * class: PayloadOutputEngineTest
  *
- * Version $Id: PayloadOutputEngineTest.java 2281 2007-11-15 20:17:56Z dglo $
+ * Version $Id: PayloadOutputEngineTest.java 2347 2007-11-30 20:20:40Z dglo $
  *
  * Date: May 19 2005
  *
@@ -43,7 +43,7 @@ import junit.textui.TestRunner;
  * This class defines the tests that any PayloadOutputEngine object should pass.
  *
  * @author mcp
- * @version $Id: PayloadOutputEngineTest.java 2281 2007-11-15 20:17:56Z dglo $
+ * @version $Id: PayloadOutputEngineTest.java 2347 2007-11-30 20:20:40Z dglo $
  */
 public class PayloadOutputEngineTest
     extends LoggingCase
@@ -255,67 +255,30 @@ public class PayloadOutputEngineTest
     {
         engine = new PayloadOutputEngine("StartStop", 0, "test");
         engine.start();
-
-        assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
-                   ", not Idle after creation", engine.isStopped());
+        IOTestUtil.waitUntilStopped(engine, "creation");
 
         engine.startProcessing();
-
-        for (int i = 0; i < 5 && !engine.isRunning(); i++) {
-            Thread.sleep(100);
-        }
-        assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
-                   ", not Running after StartSig", engine.isRunning());
+        IOTestUtil.waitUntilRunning(engine);
 
         engine.forcedStopProcessing();
-
-        for (int i = 0; i < 5 && !engine.isStopped(); i++) {
-            Thread.sleep(100);
-        }
-        assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
-                   ", not Idle after StopSig", engine.isStopped());
+        IOTestUtil.waitUntilStopped(engine, "forced stop");
 
         // try it a second time
         engine.startProcessing();
-
-        for (int i = 0; i < 5 && !engine.isRunning(); i++) {
-            Thread.sleep(100);
-        }
-        assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
-                   ", not Running after StartSig", engine.isRunning());
+        IOTestUtil.waitUntilRunning(engine);
 
         engine.forcedStopProcessing();
-
-        for (int i = 0; i < 5 && !engine.isStopped(); i++) {
-            Thread.sleep(100);
-        }
-        assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
-                   ", not Idle after StopSig", engine.isStopped());
+        IOTestUtil.waitUntilStopped(engine, "forced stop");
 
         // now try a stop message
         engine.startProcessing();
-
-        for (int i = 0; i < 5 && !engine.isRunning(); i++) {
-            Thread.sleep(100);
-        }
-        assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
-                   ", not Running after StartSig", engine.isRunning());
+        IOTestUtil.waitUntilRunning(engine);
 
         engine.sendLastAndStop();
-
-        for (int i = 0; i < 5 && !engine.isStopped(); i++) {
-            Thread.sleep(100);
-        }
-        assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
-                   ", not Idle after StopSig", engine.isStopped());
+        IOTestUtil.waitUntilStopped(engine, "send last");
 
         engine.destroyProcessor();
-
-        for (int i = 0; i < 5 && !engine.isDestroyed(); i++) {
-            Thread.sleep(100);
-        }
-        assertTrue("PayloadOutputEngine did not die after kill request",
-                   engine.isDestroyed());
+        IOTestUtil.waitUntilDestroyed(engine, "send last");
 
         try {
             engine.startProcessing();
@@ -325,20 +288,29 @@ public class PayloadOutputEngineTest
         }
     }
 
-    public void testInjectError() throws Exception {
+    public void testInjectError()
+        throws Exception
+    {
         Observer observer = new Observer();
 
         engine = new PayloadOutputEngine("InjectError", 0, "test");
         engine.registerComponentObserver(observer);
 
         engine.start();
-        assertTrue("PayloadOutputEngine not in Idle state after creation", engine.isStopped());
-        engine.startProcessing();
+        IOTestUtil.waitUntilStopped(engine, "creation");
 
+        engine.startProcessing();
+        IOTestUtil.waitUntilRunning(engine);
 
         // inject an error
         engine.injectError();
-        Thread.sleep(500);
+        for (int i = 0; i < 100 && !engine.isError(); i++) {
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException ie) {
+                // ignore interrupts
+            }
+        }
 
         // make sure it was found
         assertTrue("PayloadOutputEngine in " +
@@ -352,24 +324,29 @@ public class PayloadOutputEngineTest
                     " called", observer.gotSourceStop());
     }
 
-    public void testInjectLowLevelError() throws Exception {
-
+    public void testInjectLowLevelError()
+        throws Exception
+    {
         Observer observer = new Observer();
 
         engine = new PayloadOutputEngine("LowLevel", 0, "test");
         engine.registerComponentObserver(observer);
 
         engine.start();
+        IOTestUtil.waitUntilStopped(engine, "creation");
 
-        assertTrue("PayloadOutputEngine not in Idle state after creation", engine.isStopped());
         engine.startProcessing();
-
-        assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
-                   ", not Running after StartSig", engine.isRunning());
+        IOTestUtil.waitUntilRunning(engine);
 
         // inject an error
         engine.injectLowLevelError();
-        Thread.sleep(500);
+        for (int i = 0; i < 100 && !engine.isError(); i++) {
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException ie) {
+                // ignore interrupts
+            }
+        }
 
         // make sure it was found
         assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
@@ -382,12 +359,11 @@ public class PayloadOutputEngineTest
                     observer.gotSourceStop());
 
         engine.forcedStopProcessing();
-        Thread.sleep(500);
-        assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
-                   ", not Error after StopSig", engine.isError());
     }
 
-    public void testOutputLoop() throws Exception {
+    public void testOutputLoop()
+        throws Exception
+    {
         // buffer caching manager
         IByteBufferCache cacheMgr = new VitreousBufferCache();
 
@@ -401,6 +377,7 @@ public class PayloadOutputEngineTest
         engine = new PayloadOutputEngine("OutputLoop", 0, "test");
         engine.registerComponentObserver(observer);
         engine.start();
+        IOTestUtil.waitUntilStopped(engine, "creation");
 
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
@@ -423,9 +400,7 @@ public class PayloadOutputEngineTest
         assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
                    ", not Idle after StopSig", engine.isStopped());
         engine.startProcessing();
-
-        assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
-                   ", not Running after StartSig", engine.isRunning());
+        IOTestUtil.waitUntilRunning(engine);
 
         final int bufLen = 4096;
 
@@ -442,8 +417,12 @@ public class PayloadOutputEngineTest
             testOutBuf.flip();
 
             transmitEng.receiveByteBuffer(testOutBuf);
-            for (int j = 0; transmitEng.isOutputQueued() && j < 10; j++) {
-                Thread.sleep(20);
+            for (int j = 0; j < 100; j++) {
+                if (!transmitEng.isOutputQueued()) {
+                    break;
+                }
+
+                Thread.sleep(10);
             }
             assertFalse("PayloadTransmitChannel did not send buf#" + i,
                         transmitEng.isOutputQueued());
@@ -466,9 +445,6 @@ public class PayloadOutputEngineTest
         Thread.sleep(10);
         transmitEng.flushOutQueue();
 
-        for (int i = 0; i < 5 && !engine.isStopped(); i++) {
-            Thread.sleep(100);
-        }
         assertTrue("Failure on sendLastAndStop command.",
                    observer.gotSourceStop());
         assertFalse("Got sinkStop notification",
@@ -481,7 +457,9 @@ public class PayloadOutputEngineTest
         assertTrue("ByteBufferCache is not balanced", cacheMgr.isBalanced());
     }
 
-    public void testServerOutput() throws Exception {
+    public void testServerOutput()
+        throws Exception
+    {
         // buffer caching manager
         IByteBufferCache cacheMgr = new VitreousBufferCache();
 
@@ -494,6 +472,7 @@ public class PayloadOutputEngineTest
         engine = new PayloadOutputEngine("ServerOutput", 0, "test");
         engine.registerComponentObserver(observer);
         engine.start();
+        IOTestUtil.waitUntilStopped(engine, "creation");
 
         SocketChannel sock =
             SocketChannel.open(new InetSocketAddress("localhost", port));
@@ -521,9 +500,7 @@ public class PayloadOutputEngineTest
         assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
                    ", not Idle after StopSig", engine.isStopped());
         engine.startProcessing();
-
-        assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
-                   ", not Running after StartSig", engine.isRunning());
+        IOTestUtil.waitUntilRunning(engine);
 
         final int bufLen = 40;
 
@@ -540,12 +517,12 @@ public class PayloadOutputEngineTest
             testOutBuf.flip();
 
             transmitEng.receiveByteBuffer(testOutBuf);
-            for (int j = 0; j < 10; j++) {
+            for (int j = 0; j < 100; j++) {
                 if (!transmitEng.isOutputQueued()) {
                     break;
                 }
 
-                Thread.sleep(100);
+                Thread.sleep(10);
             }
             assertFalse("PayloadTransmitChannel did not send buf#" + i,
                         transmitEng.isOutputQueued());
@@ -565,8 +542,8 @@ public class PayloadOutputEngineTest
         }
 
         engine.sendLastAndStop();
-        transmitEng.flushOutQueue();
         Thread.sleep(10);
+        transmitEng.flushOutQueue();
 
         assertTrue("Failure on sendLastAndStop command.",
                    observer.gotSourceStop());

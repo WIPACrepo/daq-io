@@ -631,7 +631,7 @@ public class SimpleReaderTest
                         xmitCnt += groupSize;
                     } else {
                         try {
-                            Thread.sleep(100);
+                            Thread.sleep(10);
                         } catch (Exception ex) {
                             // ignore interrupts
                         }
@@ -645,7 +645,7 @@ public class SimpleReaderTest
                     }
 
                     loopCnt++;
-                    if (loopCnt == recvCnt + INPUT_OUTPUT_LOOP_CNT) {
+                    if (loopCnt == (recvCnt + INPUT_OUTPUT_LOOP_CNT) * 10) {
                         fail("Received " + recvCnt + " payloads after " +
                              xmitCnt + " buffers were transmitted (msgSize " +
                              msgSize + ", bufLen " + bufLen + ")");

@@ -1,4 +1,4 @@
-package icecube.daq.io.test;
+package icecube.daq.io;
 
 import EDU.oswego.cs.dl.util.concurrent.LinkedQueue;
 
@@ -357,12 +357,12 @@ public class SingleOutputEngineTest
             testOutBuf.flip();
 
             transmitEng.receiveByteBuffer(testOutBuf);
-            for (int j = 0; j < 10; j++) {
+            for (int j = 0; j < 100; j++) {
                 if (!transmitEng.isOutputQueued()) {
                     break;
                 }
 
-                Thread.sleep(100);
+                Thread.sleep(10);
             }
             assertFalse("PayloadTransmitChannel did not send buf#" + i,
                         transmitEng.isOutputQueued());
@@ -382,19 +382,18 @@ public class SingleOutputEngineTest
         }
 
         engine.sendLastAndStop();
-        Thread.sleep(10);
         transmitEng.flushOutQueue();
 
         IOTestUtil.waitUntilStopped(engine, "send last");
 
         assertTrue("Failure on sendLastAndStop command.",
                    observer.gotSourceStop());
-        assertFalse("Got sourceStop notification",
+        assertFalse("Got sinkStop notification",
                    observer.gotSinkStop());
-        assertFalse("Got sinkError notification",
-                   observer.gotSinkError());
         assertFalse("Got sourceError notification",
                    observer.gotSourceError());
+        assertFalse("Got sinkError notification",
+                   observer.gotSinkError());
 
         assertTrue("ByteBufferCache is not balanced", cacheMgr.isBalanced());
     }
@@ -491,15 +490,15 @@ public class SingleOutputEngineTest
             testOutBuf.flip();
 
             transmitEng.receiveByteBuffer(testOutBuf);
-            for (int j = 0; j < 10; j++) {
+            for (int j = 0; j < 100; j++) {
                 if (!transmitEng.isOutputQueued()) {
                     break;
                 }
 
-                Thread.sleep(100);
+                Thread.sleep(10);
             }
             assertFalse("PayloadTransmitChannel did not send buf#" + i,
-                       transmitEng.isOutputQueued());
+                        transmitEng.isOutputQueued());
 
             testInBuf.position(0);
             testInBuf.limit(4);
@@ -521,12 +520,12 @@ public class SingleOutputEngineTest
 
         assertTrue("Failure on sendLastAndStop command.",
                    observer.gotSourceStop());
-        assertFalse("Got sourceStop notification",
+        assertFalse("Got sinkStop notification",
                    observer.gotSinkStop());
-        assertFalse("Got sinkError notification",
-                   observer.gotSinkError());
         assertFalse("Got sourceError notification",
                    observer.gotSourceError());
+        assertFalse("Got sinkError notification",
+                   observer.gotSinkError());
 
         assertTrue("ByteBufferCache is not balanced", cacheMgr.isBalanced());
     }

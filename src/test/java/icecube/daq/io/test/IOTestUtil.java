@@ -15,6 +15,9 @@ import junit.framework.Assert;
 public final class IOTestUtil
     extends Assert
 {
+    private static final int REPS = 50;
+    private static final int SLEEP_TIME = 10;
+
     private static ByteBuffer stopMsg;
 
     public static final void sendStopMsg(WritableByteChannel sinkChannel)
@@ -38,9 +41,9 @@ public final class IOTestUtil
     public static final void waitUntilConnected(DAQComponentOutputProcess proc,
                                                 String extra)
     {
-        for (int i = 0; i < 5 && !proc.isConnected(); i++) {
+        for (int i = 0; i < REPS && !proc.isConnected(); i++) {
             try {
-                Thread.sleep(100);
+                Thread.sleep(SLEEP_TIME);
             } catch (InterruptedException ie) {
                 // ignore interrupts
             }
@@ -58,9 +61,9 @@ public final class IOTestUtil
     public static final void waitUntilDestroyed(DAQComponentIOProcess proc,
                                                 String extra)
     {
-        for (int i = 0; i < 5 && !proc.isDestroyed(); i++) {
+        for (int i = 0; i < REPS && !proc.isDestroyed(); i++) {
             try {
-                Thread.sleep(100);
+                Thread.sleep(SLEEP_TIME);
             } catch (InterruptedException ie) {
                 // ignore interrupts
             }
@@ -78,9 +81,9 @@ public final class IOTestUtil
     public static final void waitUntilDisposing(DAQComponentInputProcessor proc,
                                                 String extra)
     {
-        for (int i = 0; i < 5 && !proc.isDisposing(); i++) {
+        for (int i = 0; i < REPS && !proc.isDisposing(); i++) {
             try {
-                Thread.sleep(100);
+                Thread.sleep(SLEEP_TIME);
             } catch (InterruptedException ie) {
                 // ignore interrupts
             }
@@ -99,9 +102,9 @@ public final class IOTestUtil
     public static final void waitUntilRunning(DAQComponentIOProcess proc,
                                               String extra)
     {
-        for (int i = 0; i < 5 && !proc.isRunning(); i++) {
+        for (int i = 0; i < REPS && !proc.isRunning(); i++) {
             try {
-                Thread.sleep(100);
+                Thread.sleep(SLEEP_TIME);
             } catch (InterruptedException ie) {
                 // ignore interrupts
             }
@@ -121,9 +124,9 @@ public final class IOTestUtil
                                               String action,
                                               String extra)
     {
-        for (int i = 0; i < 5 && !proc.isStopped(); i++) {
+        for (int i = 0; i < REPS && !proc.isStopped(); i++) {
             try {
-                Thread.sleep(100);
+                Thread.sleep(SLEEP_TIME);
             } catch (InterruptedException ie) {
                 // ignore interrupts
             }

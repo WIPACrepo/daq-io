@@ -9,7 +9,7 @@ import java.io.IOException;
 /**
  * Mock WriteableChannel
  */
-class MockWriteableChannel
+public class MockWriteableChannel
     implements WritableByteChannel
 {
     /**
