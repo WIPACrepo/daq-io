@@ -377,12 +377,16 @@ if(DEBUG_NEW)System.err.println("ANend");
     void makeReverseConnections()
         throws IOException
     {
-        final int MAX_RETRIES = 10;
-
         if (!madeReverseConnections) {
+            final int MAX_RETRIES = 10;
+
             ArrayList<ReverseConnection> retries =
                 new ArrayList<ReverseConnection>(reverseConnList);
-            for (int i = 1; i <= MAX_RETRIES; i++) {
+
+            int numRetries = 0;
+            IOException ex = null;
+
+            for ( ; numRetries < MAX_RETRIES; numRetries++) {
                 boolean failed = false;
 
                 Iterator<ReverseConnection> iter = retries.iterator();
@@ -393,31 +397,32 @@ if(DEBUG_NEW)System.err.println("ANend");
                         rc.connect();
                         iter.remove();
                     } catch (IOException ioe) {
-                        if (i == MAX_RETRIES) {
-                            LOG.error("Could not connect " + rc, ioe);
-                        }
-                        failed = true;
+                        ex = ioe;
                     }
                 }
 
-                if (failed) {
+                if (retries.size() > 0) {
                     try {
-                        Thread.sleep(1000);
+                        Thread.sleep(10);
                     } catch (InterruptedException ie) {
                         // ignore interrupts
                     }
                 }
             }
             madeReverseConnections = true;
-        }
 
-        // wait for new connections to be noticed
-        synchronized (newChanList) {
-            while (newChanList.size() > 0) {
-                try {
-                    newChanList.wait();
-                } catch (InterruptedException ie) {
-                    // ignore interrupts
+            if (retries.size() > 0) {
+                LOG.error("Could not connect " + retries.get(0), ex);
+            } else {
+                // wait for new connections to be noticed
+                synchronized (newChanList) {
+                    while (newChanList.size() > 0) {
+                        try {
+                            newChanList.wait();
+                        } catch (InterruptedException ie) {
+                            // ignore interrupts
+                        }
+                    }
                 }
             }
         }
@@ -670,10 +675,13 @@ if(DEBUG_SET)System.err.println("SSTend");
 
     public void startProcessing()
     {
-        try {
-            makeReverseConnections();
-        } catch (IOException ioe) {
-            throw new RuntimeException("Cannot make reverse connections", ioe);
+        if (reverseConnList.size() > 0) {
+            try {
+                makeReverseConnections();
+            } catch (IOException ioe) {
+                throw new RuntimeException("Cannot make reverse connections",
+                                           ioe);
+            }
         }
 
         synchronized (stateLock) {

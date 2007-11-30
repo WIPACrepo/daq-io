@@ -332,14 +332,18 @@ public abstract class SimpleReader
     void makeReverseConnections()
         throws IOException
     {
-        final int numChan = channelList.size();
-
-        final int MAX_RETRIES = 10;
-
         if (!madeReverseConnections) {
+            final int MAX_RETRIES = 10;
+
+            final int numChan = channelList.size();
+
             ArrayList<ReverseConnection> retries =
                 new ArrayList<ReverseConnection>(reverseConnList);
-            for (int i = 1; i <= MAX_RETRIES; i++) {
+
+            int numRetries = 0;
+            IOException ex = null;
+
+            for ( ; numRetries < MAX_RETRIES; numRetries++) {
                 boolean failed = false;
 
                 Iterator<ReverseConnection> iter = retries.iterator();
@@ -350,31 +354,32 @@ public abstract class SimpleReader
                         rc.connect();
                         iter.remove();
                     } catch (IOException ioe) {
-                        if (i == MAX_RETRIES) {
-                            LOG.error("Could not connect " + rc, ioe);
-                        }
-                        failed = true;
+                        ex = ioe;
                     }
                 }
 
-                if (failed) {
+                if (retries.size() > 0) {
                     try {
-                        Thread.sleep(1000);
+                        Thread.sleep(10);
                     } catch (InterruptedException ie) {
                         // ignore interrupts
                     }
                 }
             }
             madeReverseConnections = true;
-        }
 
-        // wait for new connections to be noticed
-        for (int i = 0; i < 10; i++) {
-            if (channelList.size() == numChan) {
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException ie) {
-                    // ignore interrupts
+            if (retries.size() > 0) {
+                LOG.error("Could not connect " + retries.get(0), ex);
+            } else {
+                // wait for new connections to be noticed
+                for (int i = 0; i < 100; i++) {
+                    if (channelList.size() == numChan) {
+                        try {
+                            Thread.sleep(10);
+                        } catch (InterruptedException ie) {
+                            // ignore interrupts
+                        }
+                    }
                 }
             }
         }
@@ -504,10 +509,12 @@ public abstract class SimpleReader
             throw new Error(errMsg);
         }
 
-        try {
-            makeReverseConnections();
-        } catch (IOException ioe) {
-            throw new Error("Cannot make reverse connections", ioe);
+        if (reverseConnList.size() > 0) {
+            try {
+                makeReverseConnections();
+            } catch (IOException ioe) {
+                throw new Error("Cannot make reverse connections", ioe);
+            }
         }
 
         synchronized (channelList) {
