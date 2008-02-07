@@ -18,7 +18,7 @@ public class MockWriteableChannel
     public void close()
         throws IOException
     {
-        throw new IOException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 
     /**

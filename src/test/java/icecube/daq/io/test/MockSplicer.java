@@ -52,7 +52,7 @@ n
         throws IOException
     {
 try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
-        throw new IOException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 
     /**
@@ -390,7 +390,7 @@ try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
         throws OrderingException
     {
 try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
-        throw new OrderingException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 
     /**

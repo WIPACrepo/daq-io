@@ -168,7 +168,7 @@ public class SpliceableInputChannelTest
         public void loadPayload()
             throws IOException, DataFormatException
         {
-            throw new IOException("Unimplemented");
+            throw new Error("Unimplemented");
         }
 
         public void recycle()

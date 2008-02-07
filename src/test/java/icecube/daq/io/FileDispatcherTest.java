@@ -109,31 +109,31 @@ class AdjustablePayload
     public void initialize(int i0, ByteBuffer x1, PayloadFactory x2)
         throws IOException, DataFormatException
     {
-        throw new IOException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 
     protected void loadEnvelope()
         throws IOException, DataFormatException
     {
-        throw new IOException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 
     public void loadPayload()
         throws IOException, DataFormatException
     {
-        throw new IOException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 
     public void loadSpliceablePayload()
         throws IOException, DataFormatException
     {
-        throw new IOException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 
     public int readSpliceableLength(int i0, ByteBuffer x1)
         throws IOException, DataFormatException
     {
-        throw new IOException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 
     public void recycle()
@@ -144,7 +144,7 @@ class AdjustablePayload
     public void setPayloadBuffer(int i0, ByteBuffer x1)
         throws IOException, DataFormatException
     {
-        throw new IOException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 
     public void setPayloadTimeUTC(IUTCTime x0)
@@ -160,13 +160,13 @@ class AdjustablePayload
     public int writePayload(PayloadDestination x0)
         throws IOException
     {
-        throw new IOException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 
     public int writePayload(boolean b0, PayloadDestination x1)
         throws IOException
     {
-        throw new IOException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 
     public int writePayload(boolean writeLoaded, int offset, ByteBuffer buf)
@@ -192,7 +192,7 @@ class AdjustablePayload
     public int writePayload(int i0, ByteBuffer x1)
         throws IOException
     {
-        throw new IOException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 }
 
