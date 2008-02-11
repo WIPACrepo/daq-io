@@ -3,11 +3,8 @@ package icecube.daq.io;
 import icecube.daq.payload.IByteBufferCache;
 
 import java.io.IOException;
-
 import java.nio.ByteBuffer;
-
 import java.nio.channels.SelectableChannel;
-
 import java.util.ArrayList;
 
 public abstract class PushSimpleReader

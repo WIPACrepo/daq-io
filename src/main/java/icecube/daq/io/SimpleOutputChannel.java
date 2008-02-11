@@ -3,14 +3,11 @@ package icecube.daq.io;
 import icecube.daq.payload.IByteBufferCache;
 
 import java.io.IOException;
-
 import java.nio.ByteBuffer;
-
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.WritableByteChannel;
-
 import java.util.ArrayList;
 
 import org.apache.commons.logging.Log;

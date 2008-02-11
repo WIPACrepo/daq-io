@@ -4,7 +4,6 @@ import icecube.daq.splicer.Spliceable;
 import icecube.daq.splicer.SpliceableFactory;
 
 import java.nio.ByteBuffer;
-
 import java.util.List;
 
 public class MockSpliceableFactory

@@ -1,15 +1,12 @@
 package icecube.daq.io;
 
 import icecube.daq.common.DAQCmdInterface;
-
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IPayloadOutput;
 import icecube.daq.payload.IWriteablePayload;
 
 import java.io.IOException;
-
 import java.nio.ByteBuffer;
-
 import java.nio.channels.WritableByteChannel;
 
 import org.apache.commons.logging.Log;

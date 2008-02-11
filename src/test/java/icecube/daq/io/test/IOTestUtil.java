@@ -5,9 +5,7 @@ import icecube.daq.io.DAQComponentInputProcessor;
 import icecube.daq.io.DAQComponentOutputProcess;
 
 import java.io.IOException;
-
 import java.nio.ByteBuffer;
-
 import java.nio.channels.WritableByteChannel;
 
 import junit.framework.Assert;

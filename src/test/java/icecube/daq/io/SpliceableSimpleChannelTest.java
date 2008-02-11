@@ -1,14 +1,11 @@
 package icecube.daq.io;
 
 import icecube.daq.io.test.LoggingCase;
-
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.ILoadablePayload;
 import icecube.daq.payload.IUTCTime;
 import icecube.daq.payload.VitreousBufferCache;
-
 import icecube.daq.payload.impl.UTCTime8B;
-
 import icecube.daq.splicer.ClosedStrandException;
 import icecube.daq.splicer.OrderingException;
 import icecube.daq.splicer.Spliceable;
@@ -16,19 +13,14 @@ import icecube.daq.splicer.SpliceableFactory;
 import icecube.daq.splicer.StrandTail;
 
 import java.io.IOException;
-
 import java.nio.ByteBuffer;
-
 import java.nio.channels.Pipe;
 import java.nio.channels.SelectableChannel;
-
 import java.util.List;
-
 import java.util.zip.DataFormatException;
 
 import junit.framework.Test;
 import junit.framework.TestSuite;
-
 import junit.textui.TestRunner;
 
 public class SpliceableSimpleChannelTest

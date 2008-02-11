@@ -1,14 +1,11 @@
 package icecube.daq.io;
 
 import icecube.daq.payload.IByteBufferCache;
-
 import icecube.daq.splicer.SpliceableFactory;
 import icecube.daq.splicer.Splicer;
 
 import java.io.IOException;
-
 import java.nio.channels.SelectableChannel;
-
 import java.util.ArrayList;
 
 import org.apache.commons.logging.Log;

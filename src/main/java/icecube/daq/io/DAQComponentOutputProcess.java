@@ -1,7 +1,7 @@
 /*
  * class: DAQComponentOutputProcess
  *
- * Version $Id: DAQComponentOutputProcess.java 2629 2008-02-11 05:48:36Z dglo $
+ * Version $Id: DAQComponentOutputProcess.java 2631 2008-02-11 06:27:31Z dglo $
  *
  * Date: March 24 2005
  *
@@ -13,13 +13,12 @@ package icecube.daq.io;
 import icecube.daq.payload.IByteBufferCache;
 
 import java.io.IOException;
-
 import java.nio.channels.WritableByteChannel;
 
 /**
  * This represents the engine for the transmit channels.
  *
- * @version $Id: DAQComponentOutputProcess.java 2629 2008-02-11 05:48:36Z dglo $
+ * @version $Id: DAQComponentOutputProcess.java 2631 2008-02-11 06:27:31Z dglo $
  * @author mcp
  */
 public interface DAQComponentOutputProcess extends DAQComponentIOProcess {

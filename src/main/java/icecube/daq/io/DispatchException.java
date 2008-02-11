@@ -1,7 +1,7 @@
 /*
  * class: DispatchException
  *
- * Version $Id: DispatchException.java 2125 2007-10-12 18:27:05Z ksb $
+ * Version $Id: DispatchException.java 2631 2008-02-11 06:27:31Z dglo $
  *
  * Date: March 31 2004
  *
@@ -14,7 +14,7 @@ package icecube.daq.io;
  * This class is thrown when there is a problem with the Dispatch system.
  *
  * @author patton
- * @version $Id: DispatchException.java 2125 2007-10-12 18:27:05Z ksb $
+ * @version $Id: DispatchException.java 2631 2008-02-11 06:27:31Z dglo $
  */
 public class DispatchException
         extends Exception
