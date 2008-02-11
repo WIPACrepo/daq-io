@@ -1,20 +1,18 @@
 package icecube.daq.io;
 
+//import java.util.*;
+
 import icecube.daq.common.DAQCmdInterface;
-import icecube.daq.payload.splicer.Payload;
 import icecube.daq.payload.IByteBufferCache;
+import icecube.daq.payload.splicer.Payload;
 import icecube.icebucket.util.DiskUsage;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
-
 import java.nio.ByteBuffer;
-
 import java.nio.channels.WritableByteChannel;
-import java.util.*;
-import java.text.SimpleDateFormat;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

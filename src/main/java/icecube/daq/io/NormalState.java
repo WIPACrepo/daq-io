@@ -1,7 +1,7 @@
 /**
- * 
+ *
  * Date: Nov 13, 2006 4:23:25 PM
- * 
+ *
  * (c) 2005 IceCube Collaboration
  */
 package icecube.daq.io;
@@ -10,7 +10,7 @@ package icecube.daq.io;
  * @author artur
  * @version : , v 1.1, Nov 13, 2006 4:23:25 PM artur $
  */
-public class NormalState {
+public final class NormalState {
 
     // TODO: Add more states here as needed
     public static final NormalState IDLE = new NormalState("IDLE");

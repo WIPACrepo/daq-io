@@ -1,10 +1,8 @@
 package icecube.daq.io.test;
 
-import java.nio.ByteBuffer;
-
-import java.nio.channels.WritableByteChannel;
-
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.WritableByteChannel;
 
 /**
  * Mock WriteableChannel

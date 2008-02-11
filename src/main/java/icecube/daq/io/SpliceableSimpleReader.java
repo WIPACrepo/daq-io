@@ -20,9 +20,6 @@ public class SpliceableSimpleReader
     private static final Log LOG =
         LogFactory.getLog(SpliceableSimpleReader.class);
 
-    // default maximum size of strand queue
-    private static final int DEFAULT_STRAND_QUEUE_MAX = 40000;
-
     // maximum number of stop attempts
     private static final int MAX_STOP_TRIES = 10;
 

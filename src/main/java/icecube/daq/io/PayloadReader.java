@@ -80,7 +80,7 @@ public abstract class PayloadReader
     /** worker thread */
     private Thread thread;
     /** input socket selector */
-    protected Selector selector;
+    private Selector selector;
     /** current state */
     private RunState state;
     /** new state */
@@ -102,7 +102,7 @@ public abstract class PayloadReader
     // server port
     private int port = Integer.MIN_VALUE;
     // hack around a Linux bug -- see startServer() for explanation
-    protected Flag pauseThread = new Flag("pauseThread");
+    private Flag pauseThread = new Flag("pauseThread");
     // server byte buffer
     private IByteBufferCache serverCache;
 
@@ -387,8 +387,6 @@ if(DEBUG_NEW)System.err.println("ANend");
             IOException ex = null;
 
             for ( ; numRetries < MAX_RETRIES; numRetries++) {
-                boolean failed = false;
-
                 Iterator<ReverseConnection> iter = retries.iterator();
                 while (iter.hasNext()) {
                     ReverseConnection rc = iter.next();

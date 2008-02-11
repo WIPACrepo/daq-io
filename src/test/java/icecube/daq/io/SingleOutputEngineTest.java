@@ -3,41 +3,27 @@ package icecube.daq.io;
 import EDU.oswego.cs.dl.util.concurrent.LinkedQueue;
 
 import icecube.daq.common.DAQCmdInterface;
-
-import icecube.daq.io.DAQComponentObserver;
-import icecube.daq.io.ErrorState;
-import icecube.daq.io.NormalState;
-import icecube.daq.io.OutputChannel;
-import icecube.daq.io.PayloadTransmitChannel;
-import icecube.daq.io.SingleOutputEngine;
-
 import icecube.daq.io.test.IOTestUtil;
 import icecube.daq.io.test.LoggingCase;
 import icecube.daq.io.test.MockWriteableChannel;
-
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.VitreousBufferCache;
 
 import java.io.IOException;
-
 import java.net.BindException;
 import java.net.InetSocketAddress;
-
 import java.nio.ByteBuffer;
-
 import java.nio.channels.Pipe;
 import java.nio.channels.SelectableChannel;
-import java.nio.channels.Selector;
 import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.WritableByteChannel;
-
 import java.util.Iterator;
 
 import junit.framework.Test;
 import junit.framework.TestSuite;
-
 import junit.textui.TestRunner;
 
 /**

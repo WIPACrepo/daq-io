@@ -1,14 +1,9 @@
 package icecube.daq.io;
 
-import icecube.daq.io.IOChannelParent;
-
 import icecube.daq.payload.IByteBufferCache;
 
 import java.io.IOException;
-
 import java.nio.ByteBuffer;
-
-import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
@@ -357,8 +352,6 @@ public abstract class SimpleChannel
             parent.channelError(this, null, ioe);
             return;
         }
-
-        boolean sentSelError = false;
 
         while (isRunning()) {
             try {

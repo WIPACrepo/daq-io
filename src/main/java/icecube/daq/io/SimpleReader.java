@@ -51,7 +51,7 @@ public abstract class SimpleReader
     /** external observer */
     private DAQComponentObserver observer;
 
-    /** Numeric ID used for next added channel */ 
+    /** Numeric ID used for next added channel */
     private int nextChannelNum;
     /** List of active channels */
     private ArrayList<SimpleChannel> channelList =
@@ -106,9 +106,10 @@ public abstract class SimpleReader
 
         int chanNum = nextChannelNum++;
 
-        String name = "SimpleReader#" + chanNum;
+        String chanName = "SimpleReader#" + chanNum;
 
-        SimpleChannel chanData = createChannel(name, channel, bufMgr, bufSize);
+        SimpleChannel chanData =
+            createChannel(chanName, channel, bufMgr, bufSize);
         synchronized (channelList) {
             channelList.add(chanData);
         }
@@ -281,7 +282,6 @@ public abstract class SimpleReader
     public long getTotalRecordsReceived() {
         long total = 0;
         synchronized (channelList) {
-            int idx = 0;
             for (SimpleChannel chan : channelList) {
                 total += chan.getRecordsReceived();
             }
@@ -344,8 +344,6 @@ public abstract class SimpleReader
             IOException ex = null;
 
             for ( ; numRetries < MAX_RETRIES; numRetries++) {
-                boolean failed = false;
-
                 Iterator<ReverseConnection> iter = retries.iterator();
                 while (iter.hasNext()) {
                     ReverseConnection rc = iter.next();
@@ -545,7 +543,7 @@ public abstract class SimpleReader
         }
 
         serverCache = bufMgr;
- 
+
         thread = new Thread(this);
         thread.setName(name);
         thread.start();

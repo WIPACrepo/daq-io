@@ -1,7 +1,7 @@
 /*
  * class: PayloadReceiveChannel
  *
- * Version $Id: PayloadReceiveChannel.java 2271 2007-11-09 17:46:49Z dglo $
+ * Version $Id: PayloadReceiveChannel.java 2629 2008-02-11 05:48:36Z dglo $
  *
  * Date: May 15 2005
  *
@@ -10,12 +10,11 @@
 
 package icecube.daq.io;
 
-import EDU.oswego.cs.dl.util.concurrent.Mutex;
 import EDU.oswego.cs.dl.util.concurrent.LinkedQueue;
+import EDU.oswego.cs.dl.util.concurrent.Mutex;
 import EDU.oswego.cs.dl.util.concurrent.Semaphore;
+
 import icecube.daq.payload.IByteBufferCache;
-import icecube.daq.payload.VitreousBufferCache;
-import icecube.daq.common.DAQCmdInterface;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -34,7 +33,7 @@ import org.apache.commons.logging.LogFactory;
  * for acquiring buffers into the buffer cache and managing the flow control.
  *
  * @author mcp
- * @version $Id: PayloadReceiveChannel.java 2271 2007-11-09 17:46:49Z dglo $
+ * @version $Id: PayloadReceiveChannel.java 2629 2008-02-11 05:48:36Z dglo $
  */
 public class PayloadReceiveChannel implements IOChannel {
 
@@ -78,7 +77,6 @@ public class PayloadReceiveChannel implements IOChannel {
                                                     STATE_SPLICER_WAIT_NAME};
 
     private static final long DISPOSE_TIME_MSEC = 500;
-    private static final int BYTE_COUNT_LEN = 4;
     protected static final int INT_SIZE = 4;
     private static final long DEFAULT_PERCENT_STOP_ALLOCATION = 70;
     private static final long DEFAULT_PERCENT_RESTART_ALLOCATION = 50;
@@ -95,8 +93,6 @@ public class PayloadReceiveChannel implements IOChannel {
     private Mutex stateMachineMUTEX = new Mutex();
     // our internal state
     private int presState;
-    // our last state
-    private int prevState;
     // data channel mbean
     private ReadableByteChannel channel = null;
     // local copy of selector
@@ -104,42 +100,39 @@ public class PayloadReceiveChannel implements IOChannel {
     // local copy of selector key
     private SelectionKey selectionKey = null;
 
-    // flag for end of data notification
-    private boolean receivedLastMsg;
     // counters for timer implemetation
     private long startTimeMsec;
     // buffer cache manager that is source of receive buffers
     private IByteBufferCache bufferMgr;
     // receive buffer in use
-    protected ByteBuffer inputBuf;
-    protected int bufPos;
-    protected ByteBuffer payloadBuf;
+    private ByteBuffer inputBuf;
+    private int bufPos;
+    private ByteBuffer payloadBuf;
     private int neededBufBlen;
     // output buffer queue
     public LinkedQueue inputQueue;
     // my ID used for callback identification
-    protected String id;
+    private String id;
     // local boolean to synchronize selector cancels and
     // prevent cancelled selector key exceptions
     private boolean cancelSelectorOnExit;
     // semaphore to indicate some completed receive activity
-    protected Semaphore inputAvailable;
+    private Semaphore inputAvailable;
     // local transmit counters
-    protected long bytesReceived = 0;
-    protected long recordsReceived = 0;
-    protected long stopMsgReceived = 0;
+    private long bytesReceived = 0;
+    private long recordsReceived = 0;
+    private long stopMsgReceived = 0;
     // set up logging channel for this component
     private Log log = LogFactory.getLog(PayloadReceiveChannel.class);
     // buffer manager limits....receive engines only
-    protected long limitToStopAllocation = 0;
-    protected long limitToRestartAllocation = 0;
-    protected boolean allocationStopped = false;
-    protected long percentOfMaxStopAllocation = DEFAULT_PERCENT_STOP_ALLOCATION;
-    protected long percentOfMaxRestartAllocation = DEFAULT_PERCENT_RESTART_ALLOCATION;
-    protected boolean isStopped = true;
+    private long limitToStopAllocation = 0;
+    private long limitToRestartAllocation = 0;
+    private boolean allocationStopped = false;
+    private long percentOfMaxStopAllocation = DEFAULT_PERCENT_STOP_ALLOCATION;
+    private long percentOfMaxRestartAllocation = DEFAULT_PERCENT_RESTART_ALLOCATION;
 
-    protected DAQComponentObserver compObserver;
-    protected String notificationID;
+    private DAQComponentObserver compObserver;
+    private String notificationID;
 
     private boolean debug = false;
 
@@ -156,7 +149,6 @@ public class PayloadReceiveChannel implements IOChannel {
     {
         id = myID;
         presState = STATE_IDLE;
-        prevState = presState;
         selector = sel;
         cancelSelectorOnExit = false;
         bufferMgr = bufMgr;
@@ -235,7 +227,7 @@ public class PayloadReceiveChannel implements IOChannel {
     }
 
     protected void exitRecvBody()
-    { 
+    {
        if (payloadBuf.getInt(0) == INT_SIZE) {
             log.info("PayloadReceiveChannel " + id + " received STOP msg");
             // count stop message tokens
@@ -775,7 +767,6 @@ public class PayloadReceiveChannel implements IOChannel {
 
     private void getBuffer()
     {
-        prevState = presState;
         presState = STATE_GETBUFFER;
 
         // received header, check for illegal length and allocate buffer
@@ -831,7 +822,6 @@ public class PayloadReceiveChannel implements IOChannel {
                     inputBuf.getInt(bufPos) == INT_SIZE)
                 {
                     notifyOnStop();
-                    receivedLastMsg = false;
                 } else {
                     restart();
                     presState = STATE_RECVHEADER;
@@ -842,7 +832,6 @@ public class PayloadReceiveChannel implements IOChannel {
 
     private void restart()
     {
-        isStopped = false;
         try {
             selectionKey =
                 ((SelectableChannel) channel).register(selector,
@@ -859,7 +848,6 @@ public class PayloadReceiveChannel implements IOChannel {
     }
 
     protected void doTransition(int signal, int nextState) {
-        prevState = presState;
         presState = nextState;
 
         switch (nextState) {
@@ -887,7 +875,6 @@ public class PayloadReceiveChannel implements IOChannel {
             if (signal == SIG_FORCED_STOP || signal == SIG_LAST_MSG) {
                 notifyOnStop();
             }
-            receivedLastMsg = false;
             break;
         case STATE_RECVBODY:
             break;
@@ -912,7 +899,7 @@ public class PayloadReceiveChannel implements IOChannel {
         }
     }
 
-    private static final String getStateName(int state)
+    private static String getStateName(int state)
     {
         final String name;
         switch (state) {
@@ -947,7 +934,7 @@ public class PayloadReceiveChannel implements IOChannel {
         return name;
     }
 
-    private static final String getSignalName(int signal)
+    private static String getSignalName(int signal)
     {
         final String name;
         switch (signal) {
@@ -989,28 +976,6 @@ public class PayloadReceiveChannel implements IOChannel {
             break;
         }
         return name;
-    }
-
-    private void logIllegalTransition(int signal)
-    {
-/*
-        if (log.isInfoEnabled()) {
-            final String errMsg =
-                "PayloadReceiveChannel " + id +
-                " illegal transition for state " + getStateName(presState) +
-                " signal " + getSignalName(signal);
-
-            if (!TRACE_STATE) {
-                log.info(errMsg);
-            } else {
-                try {
-                    throw new IllegalStateException("Bad state");
-                } catch (Exception ex) {
-                    log.info(errMsg, ex);
-                }
-            }
-        }
-*/
     }
 
     public String toString()

@@ -1,7 +1,7 @@
 /*
  * class: PayloadOutputEngineTest
  *
- * Version $Id: PayloadOutputEngineTest.java 2347 2007-11-30 20:20:40Z dglo $
+ * Version $Id: PayloadOutputEngineTest.java 2629 2008-02-11 05:48:36Z dglo $
  *
  * Date: May 19 2005
  *
@@ -13,26 +13,24 @@ package icecube.daq.io.test;
 import EDU.oswego.cs.dl.util.concurrent.LinkedQueue;
 
 import icecube.daq.common.DAQCmdInterface;
-
 import icecube.daq.io.DAQComponentObserver;
 import icecube.daq.io.ErrorState;
 import icecube.daq.io.NormalState;
 import icecube.daq.io.OutputChannel;
 import icecube.daq.io.PayloadOutputEngine;
 import icecube.daq.io.PayloadTransmitChannel;
-import icecube.daq.io.test.LoggingCase;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.VitreousBufferCache;
 
 import java.io.IOException;
 import java.net.BindException;
 import java.net.InetSocketAddress;
-import java.nio.channels.Selector;
+import java.nio.ByteBuffer;
+import java.nio.channels.Pipe;
 import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.nio.channels.Pipe;
-import java.nio.ByteBuffer;
 import java.util.Iterator;
 
 import junit.framework.Test;
@@ -43,7 +41,7 @@ import junit.textui.TestRunner;
  * This class defines the tests that any PayloadOutputEngine object should pass.
  *
  * @author mcp
- * @version $Id: PayloadOutputEngineTest.java 2347 2007-11-30 20:20:40Z dglo $
+ * @version $Id: PayloadOutputEngineTest.java 2629 2008-02-11 05:48:36Z dglo $
  */
 public class PayloadOutputEngineTest
     extends LoggingCase

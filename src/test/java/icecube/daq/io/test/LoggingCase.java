@@ -1,7 +1,5 @@
 package icecube.daq.io.test;
 
-import icecube.daq.io.test.MockAppender;
-
 import junit.framework.TestCase;
 
 import org.apache.log4j.BasicConfigurator;

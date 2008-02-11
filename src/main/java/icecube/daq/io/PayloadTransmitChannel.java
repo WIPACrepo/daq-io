@@ -1,7 +1,7 @@
 /*
  * class: PayloadTransmitChannel
  *
- * Version $Id: PayloadTransmitChannel.java 2271 2007-11-09 17:46:49Z dglo $
+ * Version $Id: PayloadTransmitChannel.java 2629 2008-02-11 05:48:36Z dglo $
  *
  * Date: May 15 2005
  *
@@ -11,9 +11,7 @@
 package icecube.daq.io;
 
 import EDU.oswego.cs.dl.util.concurrent.Mutex;
-import EDU.oswego.cs.dl.util.concurrent.LinkedQueue;
 
-import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IByteBufferReceiver;
 
@@ -32,7 +30,7 @@ import org.apache.commons.logging.LogFactory;
  * for returning buffers into the buffer cache.
  *
  * @author mcp
- * @version $Id: PayloadTransmitChannel.java 2271 2007-11-09 17:46:49Z dglo $
+ * @version $Id: PayloadTransmitChannel.java 2629 2008-02-11 05:48:36Z dglo $
  */
 public class PayloadTransmitChannel implements IByteBufferReceiver, OutputChannel {
 
@@ -70,7 +68,6 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, OutputChanne
                                                     STATE_ERROR_NAME,
                                                     STATE_CLOSED_NAME};
 
-    private static final long DISPOSE_TIME_MSEC = 500;
     private static final int INT_SIZE = 4;
 
     // print log messages with state change information?
@@ -83,12 +80,6 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, OutputChanne
     private Mutex stateMachineMUTEX = new Mutex();
     // our internal state
     private int presState;
-    // our last state
-    private int prevState;
-    // count transitions
-    private int transitionCnt = 0;
-    // count illeagal transition requests
-    private int illegalTransitionCnt = 0;
 
     private WritableByteChannel channel = null;
     // local copy of selector
@@ -97,8 +88,6 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, OutputChanne
     private SelectionKey selectionKey = null;
     // flag for end of data notification
     private boolean lastMsgAndStop;
-    // counters for timer implemetation
-    private long startTimeMsec;
     // buffer cache manager that is source of receive buffers
     private IByteBufferCache bufferMgr;
     // receive buffer in use
@@ -134,7 +123,6 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, OutputChanne
                                   IByteBufferCache bufMgr) {
         id = myID;
         presState = STATE_IDLE;
-        prevState = presState;
         cancelSelectorOnExit = false;
         selector = sel;
         bufferMgr = bufMgr;
@@ -425,7 +413,6 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, OutputChanne
                                 break;
                             }
                         default:
-                            illegalTransitionCnt++;
                             break;
                     }
                     break;
@@ -464,7 +451,6 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, OutputChanne
                                 break;
                             }
                         default:
-                            illegalTransitionCnt++;
                             break;
                     }
                     break;
@@ -503,7 +489,6 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, OutputChanne
                                 break;
                             }
                         default:
-                            illegalTransitionCnt++;
                             break;
                     }
                     break;
@@ -542,7 +527,6 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, OutputChanne
                                 break;
                             }
                         default:
-                            illegalTransitionCnt++;
                             break;
                     }
                     break;
@@ -565,7 +549,6 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, OutputChanne
                                 break;
                             }
                         default:
-                            illegalTransitionCnt++;
                             break;
                     }
                     break;
@@ -579,23 +562,19 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, OutputChanne
                                 break;
                             }
                         default:
-                            illegalTransitionCnt++;
                             break;
                     }
                     break;
                 }
             default:
                 {
-                    illegalTransitionCnt++;
                     break;
                 }
         }
     }
 
     private void doTransition(int nextState) {
-        prevState = presState;
         presState = nextState;
-        transitionCnt++;
     }
 
     /**
@@ -628,7 +607,7 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, OutputChanne
         return !outputQueue.isEmpty();
     }
 
-    private static final String getStateName(int state) {
+    private static String getStateName(int state) {
         final String name;
         switch (state) {
             case STATE_IDLE:
@@ -656,7 +635,7 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, OutputChanne
         return name;
     }
 
-    private static final String getSignalName(int signal) {
+    private static String getSignalName(int signal) {
         final String name;
         switch (signal) {
             case SIG_IDLE:

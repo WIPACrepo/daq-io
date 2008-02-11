@@ -1,7 +1,7 @@
 /*
  * class: PayloadOutputEngine
  *
- * Version $Id: PayloadOutputEngine.java 2273 2007-11-12 15:27:01Z dglo $
+ * Version $Id: PayloadOutputEngine.java 2629 2008-02-11 05:48:36Z dglo $
  *
  * Date: May 19 2005
  *
@@ -12,18 +12,16 @@ package icecube.daq.io;
 
 import EDU.oswego.cs.dl.util.concurrent.Mutex;
 import EDU.oswego.cs.dl.util.concurrent.Semaphore;
-import EDU.oswego.cs.dl.util.concurrent.SynchronizedBoolean;
 import EDU.oswego.cs.dl.util.concurrent.SyncCollection;
+import EDU.oswego.cs.dl.util.concurrent.SynchronizedBoolean;
 
 import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.payload.IByteBufferCache;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.channels.Selector;
 import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.nio.channels.WritableByteChannel;
-import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Set;
@@ -36,7 +34,7 @@ import org.apache.commons.logging.LogFactory;
  * a collection a PayloadTransmitChannels
  *
  * @author mcp
- * @version $Id: PayloadOutputEngine.java 2273 2007-11-12 15:27:01Z dglo $
+ * @version $Id: PayloadOutputEngine.java 2629 2008-02-11 05:48:36Z dglo $
  */
 public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOutputProcess, Runnable {
 
@@ -77,12 +75,6 @@ public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOu
     private Mutex stateMachineMUTEX = new Mutex();
     // our internal state
     private int presState;
-    // our last state
-    private int prevState;
-    // count transitions
-    private int transitionCnt = 0;
-    // count illeagal transition requests
-    private int illegalTransitionCnt = 0;
     // component type of creator
     private String componentType;
     // component ID of creator
@@ -102,17 +94,11 @@ public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOu
     private boolean simulatedError;
     // collection of individual payload engines
     private ArrayList payloadEngineList = new ArrayList();
-    // selector timeout
-    private long selectorTimeoutMsec = DEFAULT_SELECTOR_TIMEOUT_MSEC;
     // ID to differentiate this notification from all others
     private String payloadApplicationStopNotificationID = "";
     // stop notification counter
     private int stopNotificationCounter;
 
-    // ID to differentiate this notification from all others
-    private String payloadApplicationErrorNotificationID = "";
-    // error flag used internally to drive stop call back status
-    private boolean stopNotificiationStatus = true;
     // base numerical ID for payload engine
     private int payloadEngineNum = 0;
     // thread for this instance
@@ -163,7 +149,6 @@ public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOu
                 new Semaphore(1));
         // create new state info
         presState = STATE_IDLE;
-        prevState = presState;
 
         // create selector
         try {
@@ -213,8 +198,6 @@ public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOu
     }
 
     protected void exitIdle() {
-        // errors will indicate otherwise.
-        stopNotificiationStatus = true;
     }
 
     protected void enterRunning() {
@@ -271,7 +254,6 @@ public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOu
             log.error(ie);
         }
         // forced stop is always succussful
-        stopNotificiationStatus = true;
         transition(SIG_FORCED_STOP);
         stateMachineMUTEX.release();
     }
@@ -464,7 +446,6 @@ public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOu
     }
 
     public void registerErrorNotificationCallback(String notificationID) {
-        payloadApplicationErrorNotificationID = notificationID;
     }
 
     public void sendLastAndStop() {
@@ -518,7 +499,6 @@ public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOu
     public void trafficErrorNotification(String notificationID) {
         try {
             stateMachineMUTEX.acquire();
-            stopNotificiationStatus = false;
             transition(SIG_ERROR);
             stateMachineMUTEX.release();
         } catch (InterruptedException e) {
@@ -580,7 +560,6 @@ public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOu
             }
             // do a simulated error?
             if (simulatedError) {
-                stopNotificiationStatus = false;
                 transition(SIG_ERROR);
                 simulatedError = false;
                 isRunningFlag.set(false);
@@ -641,7 +620,6 @@ public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOu
                                 break;
                             }
                         default:
-                            illegalTransitionCnt++;
                             break;
                     }
                     break;
@@ -680,7 +658,6 @@ public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOu
                                 break;
                             }
                         default:
-                            illegalTransitionCnt++;
                             break;
                     }
                     break;
@@ -720,7 +697,6 @@ public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOu
                                 break;
                             }
                         default:
-                            illegalTransitionCnt++;
                             break;
                     }
                     break;
@@ -729,7 +705,6 @@ public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOu
                 {
                     switch (signal) {
                         default:
-                            illegalTransitionCnt++;
                             break;
                     }
                     break;
@@ -745,23 +720,19 @@ public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOu
                                 break;
                             }
                         default:
-                            illegalTransitionCnt++;
                             break;
                     }
                     break;
                 }
             default:
                 {
-                    illegalTransitionCnt++;
                     break;
                 }
         }
     }
 
     private void doTransition(int nextState) {
-        prevState = presState;
         presState = nextState;
-        transitionCnt++;
     }
 
     public void update(Object object, String notificationID)
@@ -773,7 +744,7 @@ public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOu
         }
     }
 
-    private static final String getStateName(int state){
+    private static String getStateName(int state){
         final String name;
         switch (state) {
         case STATE_IDLE:
@@ -798,7 +769,7 @@ public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOu
         return name;
     }
 
-    private static final String getSignalName(int signal){
+    private static String getSignalName(int signal){
         final String name;
         switch (signal) {
         case SIG_IDLE:

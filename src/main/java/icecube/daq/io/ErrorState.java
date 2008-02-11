@@ -1,7 +1,7 @@
 /**
  * ErrorState.java
  * Date: Nov 13, 2006 4:02:27 PM
- * 
+ *
  * (c) 2005 IceCube Collaboration
  */
 package icecube.daq.io;
@@ -10,9 +10,9 @@ package icecube.daq.io;
  * This class is an enumeration of DAQ error types.
  *
  * @author artur
- * @version $Id: ErrorState.java 2228 2007-11-02 16:02:54Z dglo $
+ * @version $Id: ErrorState.java 2629 2008-02-11 05:48:36Z dglo $
  */
-public class ErrorState {
+public final class ErrorState {
 
     // TODO: Add more state errors here as needed
     public static final ErrorState SELECTOR_ERROR = new ErrorState("SELECTOR_ERROR");

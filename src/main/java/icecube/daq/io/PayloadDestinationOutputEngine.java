@@ -1,7 +1,7 @@
 /*
  * class: PayloadDestinationOutputEngine
  *
- * Version $Id: PayloadDestinationOutputEngine.java 2271 2007-11-09 17:46:49Z dglo $
+ * Version $Id: PayloadDestinationOutputEngine.java 2629 2008-02-11 05:48:36Z dglo $
  *
  * Date: May 23 2005
  *
@@ -10,11 +10,11 @@
 
 package icecube.daq.io;
 
-import icecube.daq.payload.ISourceID;
-import icecube.daq.payload.IPayloadDestinationCollectionController;
-import icecube.daq.payload.IPayloadDestinationCollection;
-import icecube.daq.payload.PayloadDestinationCollection;
 import icecube.daq.payload.ByteBufferPayloadDestination;
+import icecube.daq.payload.IPayloadDestinationCollection;
+import icecube.daq.payload.IPayloadDestinationCollectionController;
+import icecube.daq.payload.ISourceID;
+import icecube.daq.payload.PayloadDestinationCollection;
 import icecube.daq.payload.SinkPayloadDestination;
 
 import java.nio.channels.WritableByteChannel;
@@ -25,7 +25,7 @@ import java.nio.channels.WritableByteChannel;
  * 2. Push buffers in the transmit channel
  *
  * @author mcp
- * @version $Id: PayloadDestinationOutputEngine.java 2271 2007-11-09 17:46:49Z dglo $
+ * @version $Id: PayloadDestinationOutputEngine.java 2629 2008-02-11 05:48:36Z dglo $
  */
 public class PayloadDestinationOutputEngine extends SourceIdPayloadOutputEngine
         implements IPayloadDestinationCollectionController {

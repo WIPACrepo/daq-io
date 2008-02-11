@@ -2,9 +2,6 @@ package icecube.daq.io;
 
 import icecube.daq.payload.IByteBufferCache;
 
-import icecube.daq.splicer.SpliceableFactory;
-import icecube.daq.splicer.Splicer;
-
 import java.io.IOException;
 
 import java.nio.ByteBuffer;
@@ -12,9 +9,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
 
 import java.util.ArrayList;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 public abstract class PushSimpleReader
     extends SimpleReader
@@ -59,8 +53,6 @@ public abstract class PushSimpleReader
             throw new Error("Unimplemented");
         }
     }
-
-    private static final Log LOG = LogFactory.getLog(PushSimpleReader.class);
 
     private ArrayList<SimpleChannel> pushChanList =
         new ArrayList<SimpleChannel>();

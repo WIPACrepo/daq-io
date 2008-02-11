@@ -1,7 +1,7 @@
 /*
  * class: SystemTestPayloadOutputEngine
  *
- * Version $Id: SourceIdPayloadOutputEngine.java 2271 2007-11-09 17:46:49Z dglo $
+ * Version $Id: SourceIdPayloadOutputEngine.java 2629 2008-02-11 05:48:36Z dglo $
  *
  * Date: May 23 2005
  *
@@ -10,8 +10,8 @@
 
 package icecube.daq.io;
 
-import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.IByteBufferCache;
+import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.impl.SourceID4B;
 
 import java.io.IOException;
@@ -19,41 +19,23 @@ import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 import java.util.HashMap;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 /**
  * This class ...does what?
  *
  * @author mcp
- * @version $Id: SourceIdPayloadOutputEngine.java 2271 2007-11-09 17:46:49Z dglo $
+ * @version $Id: SourceIdPayloadOutputEngine.java 2629 2008-02-11 05:48:36Z dglo $
  */
 public class SourceIdPayloadOutputEngine extends PayloadOutputEngine {
 
-    // component name of creator
-    private String componentType;
-    // component ID of creator
-    private int componentID;
-    // component fcn
-    private String componentFcn;
     private IByteBufferCache bufMgr;
     private HashMap idRegistry = new HashMap();
     private long messagesSent = 0;
-    private Log log = LogFactory.getLog(SourceIdPayloadOutputEngine.class);
 
-    /**
-     * Create an instance of this class.
-     * Default constructor is declared, but private, to stop accidental
-     * creation of an instance of the class.
-     */
     public SourceIdPayloadOutputEngine(String type,
                                        int id,
                                        String fcn) {
         // parent constructor wants same args
         super(type, id, fcn);
-        componentType = type;
-        componentID = id;
-        componentFcn = fcn;
     }
 
     // instance member method (alphabetic)

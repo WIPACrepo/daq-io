@@ -2,21 +2,16 @@ package icecube.daq.io;
 
 import EDU.oswego.cs.dl.util.concurrent.Semaphore;
 
-import icecube.daq.io.PayloadReceiveChannel;
-
 import icecube.daq.io.test.LoggingCase;
-
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.VitreousBufferCache;
 
 import java.io.IOException;
-
 import java.nio.channels.Pipe;
 import java.nio.channels.Selector;
 
 import junit.framework.Test;
 import junit.framework.TestSuite;
-
 import junit.textui.TestRunner;
 
 import org.apache.commons.logging.Log;

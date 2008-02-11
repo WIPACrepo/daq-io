@@ -1,11 +1,8 @@
 package icecube.daq.io;
 
-import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IByteBufferReceiver;
 
 import java.nio.ByteBuffer;
-
-import java.nio.channels.WritableByteChannel;
 
 /**
  * Output channel.

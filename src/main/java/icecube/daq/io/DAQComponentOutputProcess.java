@@ -1,7 +1,7 @@
 /*
  * class: DAQComponentOutputProcess
  *
- * Version $Id: DAQComponentOutputProcess.java 2271 2007-11-09 17:46:49Z dglo $
+ * Version $Id: DAQComponentOutputProcess.java 2629 2008-02-11 05:48:36Z dglo $
  *
  * Date: March 24 2005
  *
@@ -19,21 +19,21 @@ import java.nio.channels.WritableByteChannel;
 /**
  * This represents the engine for the transmit channels.
  *
- * @version $Id: DAQComponentOutputProcess.java 2271 2007-11-09 17:46:49Z dglo $
+ * @version $Id: DAQComponentOutputProcess.java 2629 2008-02-11 05:48:36Z dglo $
  * @author mcp
  */
 public interface DAQComponentOutputProcess extends DAQComponentIOProcess {
 
-    public OutputChannel addDataChannel(WritableByteChannel channel, IByteBufferCache bufMgr);
+    OutputChannel addDataChannel(WritableByteChannel channel, IByteBufferCache bufMgr);
 
-    public OutputChannel connect(IByteBufferCache bufMgr, WritableByteChannel chan, int srcId)
+    OutputChannel connect(IByteBufferCache bufMgr, WritableByteChannel chan, int srcId)
         throws IOException;
 
-    public void disconnect()
+    void disconnect()
         throws IOException;
 
-    public boolean isConnected();
+    boolean isConnected();
 
-    public void sendLastAndStop();
-    
+    void sendLastAndStop();
+
 }
