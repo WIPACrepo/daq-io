@@ -10,13 +10,17 @@ import java.nio.channels.WritableByteChannel;
 public class MockWriteableChannel
     implements WritableByteChannel
 {
+    private IOException closeException;
+
     /**
      * Unimplemented.
      */
     public void close()
         throws IOException
     {
-        throw new Error("Unimplemented");
+        if (closeException != null) {
+            throw closeException;
+        }
     }
 
     /**
@@ -25,6 +29,16 @@ public class MockWriteableChannel
     public boolean isOpen()
     {
         throw new Error("Unimplemented");
+    }
+
+    /**
+     * Set the exception to be thrown when this channel is closed.
+     *
+     * @param ioe exception to be thrown
+     */
+    public void setCloseException(IOException ioe)
+    {
+        closeException = ioe;
     }
 
     /**
