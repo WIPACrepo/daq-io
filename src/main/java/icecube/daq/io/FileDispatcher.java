@@ -4,7 +4,7 @@ package icecube.daq.io;
 
 import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.payload.IByteBufferCache;
-import icecube.daq.payload.splicer.Payload;
+import icecube.daq.payload.IWriteablePayload;
 import icecube.icebucket.util.DiskUsage;
 
 import java.io.File;
@@ -199,7 +199,8 @@ public class FileDispatcher implements Dispatcher {
      * @param event A payload object.
      * @throws DispatchException is there is a problem in the Dispatch system.
      */
-    public void dispatchEvent(Payload event) throws DispatchException {
+    public void dispatchEvent(IWriteablePayload event)
+        throws DispatchException {
         if (bufferCache == null) {
             final String errMsg =
                 "Buffer cache is null! Cannot dispatch events!";
