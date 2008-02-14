@@ -3,8 +3,8 @@ package icecube.daq.io;
 import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.io.test.LoggingCase;
 import icecube.daq.payload.IByteBufferCache;
+import icecube.daq.payload.IPayloadDestination;
 import icecube.daq.payload.IUTCTime;
-import icecube.daq.payload.PayloadDestination;
 import icecube.daq.payload.VitreousBufferCache;
 import icecube.daq.payload.splicer.Payload;
 import icecube.daq.payload.splicer.PayloadFactory;
@@ -150,13 +150,13 @@ class AdjustablePayload
         throw new Error("Unimplemented");
     }
 
-    public int writePayload(PayloadDestination x0)
+    public int writePayload(IPayloadDestination x0)
         throws IOException
     {
         throw new Error("Unimplemented");
     }
 
-    public int writePayload(boolean b0, PayloadDestination x1)
+    public int writePayload(boolean b0, IPayloadDestination x1)
         throws IOException
     {
         throw new Error("Unimplemented");
