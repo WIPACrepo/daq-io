@@ -1,7 +1,7 @@
 /*
  * class: PayloadReceiveChannel
  *
- * Version $Id: PayloadReceiveChannel.java 2629 2008-02-11 05:48:36Z dglo $
+ * Version $Id: PayloadReceiveChannel.java 2654 2008-02-15 23:03:26Z dglo $
  *
  * Date: May 15 2005
  *
@@ -33,7 +33,7 @@ import org.apache.commons.logging.LogFactory;
  * for acquiring buffers into the buffer cache and managing the flow control.
  *
  * @author mcp
- * @version $Id: PayloadReceiveChannel.java 2629 2008-02-11 05:48:36Z dglo $
+ * @version $Id: PayloadReceiveChannel.java 2654 2008-02-15 23:03:26Z dglo $
  */
 public class PayloadReceiveChannel implements IOChannel {
 
@@ -233,10 +233,6 @@ public class PayloadReceiveChannel implements IOChannel {
             // count stop message tokens
             stopMsgReceived += 1;
         } else {
-            if (TRACE_DATA && log.isErrorEnabled()) {
-                log.error(id + ":RECV:" +
-                          icecube.daq.payload.DebugDumper.toString(payloadBuf));
-            }
             // queue the output
             try {
                 inputQueue.put(payloadBuf);

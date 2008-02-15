@@ -1,7 +1,7 @@
 /*
  * class: PayloadTransmitChannel
  *
- * Version $Id: PayloadTransmitChannel.java 2629 2008-02-11 05:48:36Z dglo $
+ * Version $Id: PayloadTransmitChannel.java 2654 2008-02-15 23:03:26Z dglo $
  *
  * Date: May 15 2005
  *
@@ -30,7 +30,7 @@ import org.apache.commons.logging.LogFactory;
  * for returning buffers into the buffer cache.
  *
  * @author mcp
- * @version $Id: PayloadTransmitChannel.java 2629 2008-02-11 05:48:36Z dglo $
+ * @version $Id: PayloadTransmitChannel.java 2654 2008-02-15 23:03:26Z dglo $
  */
 public class PayloadTransmitChannel implements IByteBufferReceiver, OutputChannel {
 
@@ -181,13 +181,9 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, OutputChanne
         if (buf.getInt(0) == INT_SIZE) {
             // this is the last message, flag state machine to stop when complete
             lastMsgAndStop = true;
-            if (TRACE_DATADUMP && log.isErrorEnabled()) {
-                log.error(id + ":XMIT:stop");
-            } else if (debug) {
+            if (debug) {
                 log.info(id + ":XMIT:stop");
             }
-        } else if (TRACE_DATADUMP && log.isErrorEnabled()) {
-            log.error(id + ":XMIT:" + icecube.daq.payload.DebugDumper.toString(buf));
         }
         try {
             channel.write(buf);
