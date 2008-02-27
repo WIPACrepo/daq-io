@@ -10,6 +10,7 @@ import java.io.IOException;
 
 import java.nio.ByteBuffer;
 
+import java.nio.channels.SelectableChannel;
 import java.nio.channels.WritableByteChannel;
 
 import java.util.ArrayList;
@@ -183,7 +184,17 @@ class ThreadedOutputChannel
     }
 
     void startProcessing()
+        throws IOException
     {
+        // make sure the channel blocks when it's full
+        if (channel instanceof SelectableChannel) {
+            SelectableChannel selChan = (SelectableChannel) channel;
+            if (!selChan.isBlocking()) {
+                selChan.configureBlocking(true);
+                LOG.error("Configured blocking for " + toString());
+            }
+        }
+
         thread = new Thread(this);
         thread.setName(name);
         thread.start();
@@ -499,7 +510,11 @@ public class MultiOutputEngine
 
         synchronized (channelList) {
             for (ThreadedOutputChannel outChan : channelList) {
-                outChan.startProcessing();
+                try {
+                    outChan.startProcessing();
+                } catch (IOException ioe) {
+                    throw new RuntimeException("Couldn't start " + outChan);
+                }
             }
         }
 
