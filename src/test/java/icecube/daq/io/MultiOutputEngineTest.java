@@ -348,7 +348,7 @@ public class MultiOutputEngineTest
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
-        testPipe.sink().configureBlocking(false);
+        testPipe.sink().configureBlocking(true);
         testPipe.source().configureBlocking(true);
 
         Observer observer = new Observer();
@@ -444,7 +444,7 @@ public class MultiOutputEngineTest
 
         SocketChannel sock =
             SocketChannel.open(new InetSocketAddress("localhost", port));
-        sock.configureBlocking(false);
+        sock.configureBlocking(true);
 
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
@@ -490,7 +490,7 @@ public class MultiOutputEngineTest
 
         SocketChannel sock =
             SocketChannel.open(new InetSocketAddress("localhost", port));
-        sock.configureBlocking(false);
+        sock.configureBlocking(true);
 
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
@@ -578,7 +578,7 @@ public class MultiOutputEngineTest
 
         SocketChannel sock =
             SocketChannel.open(new InetSocketAddress("localhost", port));
-        sock.configureBlocking(false);
+        sock.configureBlocking(true);
 
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
