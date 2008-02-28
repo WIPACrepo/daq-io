@@ -1,157 +1,200 @@
 package icecube.daq.io;
 
+import icecube.daq.payload.IPayload;
 import icecube.daq.payload.MasterPayloadFactory;
-import icecube.daq.payload.impl.PayloadEnvelope;
-import icecube.daq.payload.splicer.Payload;
-import icecube.daq.payload.splicer.PayloadFactory;
 
-import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.ReadableByteChannel;
+import java.util.Iterator;
 import java.util.zip.DataFormatException;
 
 /**
- * Simple Class to read sequential payloads which
- * are contained int PayloadEnvelopes into a ByteBuffer.
+ * Read payloads from a file.
  */
-public class PayloadFileReader {
-    protected PayloadFactory mtPayloadFactory = new MasterPayloadFactory();
-    protected String msFileName;
-    protected DataInputStream mtDataStream;
-    protected File mtFile;
-    protected FileInputStream mtFileInStream;
-    protected boolean mbIsOpen;
+public class PayloadFileReader
+    implements Iterable, Iterator
+{
+    /** Input channel */
+    private ReadableByteChannel chan;
+    /** Factory used to build payloads */
+    private MasterPayloadFactory factory;
+    /** ByteBuffer used to read the payload length */
+    private ByteBuffer lenBuf;
 
-    public PayloadFileReader(String sFileName) {
-        msFileName = ""+sFileName;
+    /** <tt>true</tt> if we've checked for another payload */
+    private boolean gotNext;
+    /** Next available payload */
+    private IPayload nextPayload;
+
+    /**
+     * Open the named file.
+     *
+     * @param name file name
+     *
+     * @throws IOException if the file cannot be opened
+     */
+    public PayloadFileReader(String name)
+        throws IOException
+    {
+        this(new File(name));
     }
 
     /**
-     * Constructor which specifies the PayloadFactory to use for
-     * creating payloads.
-     * @param sFileName the name of the file to create payloads from.
-     * @param tFactory PayloadFactory to use to create payloads.
+     * Open the file.
+     *
+     * @param file payload file
+     *
+     * @throws IOException if the file cannot be opened
      */
-    public PayloadFileReader(String sFileName, PayloadFactory tFactory) {
-        msFileName = ""+sFileName;
-        mtPayloadFactory = tFactory;
+    public PayloadFileReader(File file)
+        throws IOException
+    {
+        this(new FileInputStream(file));
     }
 
     /**
-     * Returns the filename for this PayloadFileReader.
-     * @return the filename.
+     * Use the specified stream to read payloads.
+     *
+     * @param stream payload file stream
      */
-    public String getFileName() {
-        return msFileName;
+    public PayloadFileReader(FileInputStream stream)
+    {
+        this(stream.getChannel());
     }
 
     /**
-     * Opens the file for reading records.
+     * Use the specified channel to read payloads.
+     *
+     * @param chan payload file channel
      */
-    public void open() throws IOException {
-        mtFile = new File(msFileName);
-        mtFileInStream = new FileInputStream(mtFile);
-        mtDataStream = new DataInputStream(mtFileInStream);
-        mbIsOpen = true;
+    public PayloadFileReader(ReadableByteChannel chan)
+    {
+        this.chan = chan;
+
+        factory = new MasterPayloadFactory();
     }
 
     /**
-     * checks to see if already open.
+     * Close the file.
+     *
+     * @throws IOException if there was a problem closing the file
      */
-    public boolean isOpen() {
-        return mbIsOpen;
-    }
-
-
-    /**
-     * Closes any open streams.
-     */
-    public void close() throws IOException {
-        mtDataStream.close();
-        mtFileInStream.close();
-        mbIsOpen = false;
-    }
-
-    /**
-     * Reads the next record into the current position into the ByteBuffer.
-     * @param iOffset the offset from which to start this read.
-     * @param tBuffer ByteBuffer into which the raw record is read.
-     * @return the length of the record read into the buffer.
-     *         -1 if not enough room is left in the ByteBuffer.
-     * NTOE: This method positions the ByteBuffer to the next position
-     *       past the payload that was read (ie startPosition + return value)
-     *       if it is successful. Otherwise buffer position is unchanged.
-     * @throws IOException if an error reading the data has occured
-     *         EOFException if an attempt is made to read past end of stream.
-     */
-    public int readNextPayload(int iOffset, ByteBuffer tBuffer) throws IOException, DataFormatException {
-        PayloadEnvelope tEnvelope = new PayloadEnvelope();
-        int iStartPosition = iOffset;
-        int iLimit = tBuffer.limit();
-        int iBytesLeftInBuffer = iLimit - iStartPosition;
-        if (iBytesLeftInBuffer < PayloadEnvelope.SIZE_ENVELOPE) return -1;
-        //-Read the Envelope into the ByteBuffer first, then parse it
-        for (int ii=0; ii < PayloadEnvelope.SIZE_ENVELOPE; ii++) {
-            tBuffer.put(iStartPosition+ii, mtDataStream.readByte());
-        }
-        //-load the envelope from the ByteBuffer
-        tEnvelope.loadData(iStartPosition, tBuffer);
-        int iRecLen  = tEnvelope.miPayloadLen;
-        if (iBytesLeftInBuffer < iRecLen) return -1;
-
-        //-write the record length to the buffer
-
-        int iPayloadOffset = PayloadEnvelope.SIZE_ENVELOPE;
-        if (tBuffer.hasArray()) {
-            byte[] abBacking = tBuffer.array();
-            mtDataStream.readFully(abBacking, iStartPosition + iPayloadOffset, iRecLen - iPayloadOffset);
-        } else {
-            for (int ii = 0; ii < (iRecLen - iPayloadOffset); ii++) {
-                tBuffer.put((iStartPosition + iPayloadOffset + ii), mtDataStream.readByte());
+    public void close()
+        throws IOException
+    {
+        if (chan != null) {
+            try {
+                chan.close();
+            } finally {
+                chan = null;
             }
         }
-        return iRecLen;
     }
-    /**
-     * Reads the next record into the current position into the ByteBuffer.
-     * @param tBuffer ByteBuffer into which the raw record is read.
-     * @return the length of the record read into the buffer.
-     *                -1 if not enough room is left in the ByteBuffer.
-     * NTOE: This method positions the ByteBuffer to the next position
-     *       past the payload that was read (ie startPosition + return value)
-     *       if it is successful. Otherwise buffer position is unchanged.
-     * @throws IOException if an error reading the data has occured
-     *         EOFException if an attempt is made to read past end of stream.
-     */
-    public int readNextPayload(ByteBuffer tBuffer) throws IOException, DataFormatException {
-        int iStartPosition = tBuffer.position();
 
-        int iBytes = readNextPayload(iStartPosition, tBuffer);
-        //-position ByteBuffer to end of read record
-        tBuffer.position(iStartPosition + iBytes);
-        return iBytes;
-    }
     /**
-     * Create's the next payload from the input stream source.
-     * @param iOffset the offset into which to read and create the payload.
-     * @param tBuffer ByteBuffer into which the next payload is to be read at the given offset.
+     * Read the next payload from the file.
      *
-     * @return  Payload created by PayloadFactory after payload has been read
-     *                     into the buffer starting at the given offset.
-     *                     returns null if there is not enough room in the ByteBuffer to read
-     *                     the payload.
-     * NOTE: The length can be determined by position of buffer after read
-     *       or from the Payload.getPayloadLength() attribute.
-     * @exception EOFException is thrown to indicate that there are no more payloads in this source
-     *                         and should be handled as a normal condition.
-     * @exception IOException if there is an error condition.
-     * @exception DataFormatException if there is an error condition.
+     * @throws IOException if there is a problem with the next payload
+     * @throws IOException if the next payload cannot be read
      */
-    public Payload createNextPayload(int iOffset, ByteBuffer tBuffer) throws IOException, DataFormatException  {
-        readNextPayload(iOffset, tBuffer);
-        return mtPayloadFactory.createPayload(iOffset, tBuffer);
+    private void getNextPayload()
+        throws DataFormatException, IOException
+    {
+        if (lenBuf == null) {
+            lenBuf = ByteBuffer.allocate(4);
+        }
+
+        gotNext = true;
+        nextPayload = null;
+
+        lenBuf.rewind();
+        int numBytes = chan.read(lenBuf);
+        if (numBytes >= 4) {
+            int len = lenBuf.getInt(0);
+            if (len < 4) {
+                throw new DataFormatException("Bad length " + len);
+            }
+
+            ByteBuffer buf = ByteBuffer.allocate(len);
+            buf.putInt(len);
+            chan.read(buf);
+
+            nextPayload = factory.createPayload(0, buf);
+        }
     }
 
+    /**
+     * Is another payload available?
+     *
+     * @return <tt>true</tt> if there is another payload
+     */
+    public boolean hasNext()
+    {
+        if (!gotNext) {
+            try {
+                getNextPayload();
+            } catch (DataFormatException ioe) {
+                nextPayload = null;
+            } catch (IOException ioe) {
+                nextPayload = null;
+            }
+        }
+
+        return nextPayload != null;
+    }
+
+    /**
+     * This object is an iterator for itself.
+     *
+     * @return this object
+     */
+    public Iterator iterator()
+    {
+        return this;
+    }
+
+    /**
+     * Get the next available payload.
+     */
+    public Object next()
+    {
+        try {
+            return nextPayload();
+        } catch (DataFormatException ioe) {
+            return null;
+        } catch (IOException ioe) {
+            return null;
+        }
+    }
+
+    /**
+     * Get the next available payload.
+     *
+     * @return next payload (or <tt>null</tt>)
+     *
+     * @throws IOException if there is a problem with the next payload
+     * @throws IOException if the next payload cannot be read
+     */
+    public IPayload nextPayload()
+        throws DataFormatException, IOException
+    {
+        if (!gotNext) {
+            getNextPayload();
+        }
+
+        gotNext = false;
+
+        return nextPayload;
+    }
+
+    /**
+     * Unimplemented.
+     */
+    public void remove()
+    {
+        throw new Error("Unimplemented");
+    }
 }
