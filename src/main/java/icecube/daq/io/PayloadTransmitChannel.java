@@ -1,7 +1,7 @@
 /*
  * class: PayloadTransmitChannel
  *
- * Version $Id: PayloadTransmitChannel.java 2654 2008-02-15 23:03:26Z dglo $
+ * Version $Id: PayloadTransmitChannel.java 2704 2008-02-28 20:33:23Z dglo $
  *
  * Date: May 15 2005
  *
@@ -30,7 +30,7 @@ import org.apache.commons.logging.LogFactory;
  * for returning buffers into the buffer cache.
  *
  * @author mcp
- * @version $Id: PayloadTransmitChannel.java 2654 2008-02-15 23:03:26Z dglo $
+ * @version $Id: PayloadTransmitChannel.java 2704 2008-02-28 20:33:23Z dglo $
  */
 public class PayloadTransmitChannel implements IByteBufferReceiver, OutputChannel {
 
@@ -130,8 +130,12 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, OutputChanne
         // make up a last message that we can use when we need it
         lastMessage = ByteBuffer.allocate(INT_SIZE);
         lastMessage.putInt(0, INT_SIZE);
-        this.channel = channel;
 
+        if (((SelectableChannel)channel).isBlocking()) {
+            throw new Error("Channel " + channel + " is blocking");
+        }
+
+        this.channel = channel;
     }
 
     protected void enterIdle() {
