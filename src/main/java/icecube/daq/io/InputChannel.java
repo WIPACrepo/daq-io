@@ -235,7 +235,7 @@ if(DEBUG_SELECT)System.err.println("  PayLen "+length);
 if(DEBUG_SELECT)System.err.println("  BadLen");
                 // this really should not happen
                 LOG.error("Huh?  Saw " + length + "-byte payload!?!?");
-                if (length == 0) {
+                if (length <= 0) {
                     length = 4;
                 }
                 bufPos += length;
