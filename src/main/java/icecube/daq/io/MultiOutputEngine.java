@@ -1,3 +1,13 @@
+/*
+ * class: MultiOutputEngine
+ *
+ * Version $Id: PayloadOutputEngine.java 2629 2008-02-11 05:48:36Z dglo $
+ *
+ * Date: Feb 2008
+ *
+ * (c) 2008 IceCube Collaboration
+ */
+
 package icecube.daq.io;
 
 import icecube.daq.common.DAQCmdInterface;
@@ -36,6 +46,7 @@ class ThreadedOutputChannel
 
     private ByteBuffer stopMessage;
 
+    private long bytesSent;
     private long numSent;
 
     ThreadedOutputChannel(MultiOutputEngine parent, String name,
@@ -88,6 +99,11 @@ class ThreadedOutputChannel
     public long getDepth()
     {
         return outputQueue.size();
+    }
+
+    public long getBytesSent()
+    {
+        return bytesSent;
     }
 
     public long getRecordsSent()
@@ -148,7 +164,7 @@ class ThreadedOutputChannel
             }
 
             try {
-                channel.write(outBuf);
+                bytesSent += channel.write(outBuf);
             } catch (IOException ioe) {
                 parent.channelSendError(this, outBuf, ioe);
             }
@@ -415,6 +431,22 @@ public class MultiOutputEngine
         }
 
         return "?Unknown?";
+    }
+
+    public long[] getBytesSent()
+    {
+        long[] sentList;
+
+        synchronized (channelList) {
+            sentList = new long[channelList.size()];
+
+            int idx = 0;
+            for (ThreadedOutputChannel outChan : channelList) {
+                sentList[idx++] = outChan.getBytesSent();
+            }
+        }
+
+        return sentList;
     }
 
     public long[] getRecordsSent()
