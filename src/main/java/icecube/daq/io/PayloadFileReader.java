@@ -136,7 +136,7 @@ public class PayloadFileReader
         if (!gotNext) {
             try {
                 getNextPayload();
-            } catch (DataFormatException ioe) {
+            } catch (DataFormatException dfe) {
                 nextPayload = null;
             } catch (IOException ioe) {
                 nextPayload = null;
