@@ -25,7 +25,7 @@ import java.nio.channels.WritableByteChannel;
 import java.util.HashMap;
 
 public class MultiDestinationOutputEngine extends MultiOutputEngine
-        implements IPayloadDestinationCollectionController {
+        implements DAQSourceIdOutputProcess, IPayloadDestinationCollectionController {
 
     private IByteBufferCache bufMgr;
     private HashMap idRegistry = new HashMap();
