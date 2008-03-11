@@ -1,7 +1,7 @@
 /*
- * class: SystemTestPayloadOutputEngine
+ * class: SourceIdPayloadOutputEngine
  *
- * Version $Id: SourceIdPayloadOutputEngine.java 2629 2008-02-11 05:48:36Z dglo $
+ * Version $Id: SourceIdPayloadOutputEngine.java 2772 2008-03-11 21:26:11Z dglo $
  *
  * Date: May 23 2005
  *
@@ -23,9 +23,12 @@ import java.util.HashMap;
  * This class ...does what?
  *
  * @author mcp
- * @version $Id: SourceIdPayloadOutputEngine.java 2629 2008-02-11 05:48:36Z dglo $
+ * @version $Id: SourceIdPayloadOutputEngine.java 2772 2008-03-11 21:26:11Z dglo $
  */
-public class SourceIdPayloadOutputEngine extends PayloadOutputEngine {
+public class SourceIdPayloadOutputEngine
+    extends PayloadOutputEngine
+    implements DAQSourceIdOutputProcess
+{
 
     private IByteBufferCache bufMgr;
     private HashMap idRegistry = new HashMap();
