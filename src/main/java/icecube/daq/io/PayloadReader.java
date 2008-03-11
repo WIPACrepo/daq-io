@@ -753,6 +753,12 @@ if(DEBUG_SS)System.err.println("SSdone");
         this.serverCache = serverCache;
     }
 
+    public String toString()
+    {
+        return name + "[" + state + "," + chanList.size() + " chan," +
+            getTotalRecordsReceived() + " sent]";
+    }
+
     /**
      * An internet port which input engine needs to connect to in order to
      * receive data.
