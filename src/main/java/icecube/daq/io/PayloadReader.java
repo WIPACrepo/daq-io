@@ -592,7 +592,10 @@ if(DEBUG_RUN)System.err.println("RchkStop "+chanList.size()+" chans "+chanList);
                 {
                     InputChannel chanData = iter.next();
 
-                    if (chanData.isStopped()) {
+                    if (!chanData.isStopped()) {
+if(DEBUG_RUN)System.err.println("RchanRun "+chanData);
+                        running = true;
+                    } else {
 if(DEBUG_RUN)System.err.println("Rkill "+chanData);
                         try {
                             chanData.close();
@@ -602,10 +605,6 @@ if(DEBUG_RUN)System.err.println("Rkill "+chanData);
                         }
 
                         iter.remove();
-                    } else {
-if(DEBUG_RUN)System.err.println("RchanRun "+chanData);
-                        running = true;
-                        break;
                     }
                 }
 
