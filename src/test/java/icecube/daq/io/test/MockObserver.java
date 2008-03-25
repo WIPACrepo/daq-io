@@ -77,7 +77,7 @@ public class MockObserver
                 } else if (notificationId.equals(DAQCmdInterface.SINK) ||
                            notificationId.equals(sinkNotificationId))
                 {
-                    sourceStopNotificationCalled = true;
+                    sinkErrorNotificationCalled = true;
                 } else {
                     throw new Error("Unexpected error notification \"" +
                                     notificationId + "\"");
