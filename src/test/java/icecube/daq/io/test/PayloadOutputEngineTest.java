@@ -1,7 +1,7 @@
 /*
  * class: PayloadOutputEngineTest
  *
- * Version $Id: PayloadOutputEngineTest.java 2629 2008-02-11 05:48:36Z dglo $
+ * Version $Id: PayloadOutputEngineTest.java 2848 2008-03-25 22:03:17Z dglo $
  *
  * Date: May 19 2005
  *
@@ -19,6 +19,7 @@ import icecube.daq.io.NormalState;
 import icecube.daq.io.OutputChannel;
 import icecube.daq.io.PayloadOutputEngine;
 import icecube.daq.io.PayloadTransmitChannel;
+import icecube.daq.io.test.MockObserver;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.VitreousBufferCache;
 
@@ -41,99 +42,11 @@ import junit.textui.TestRunner;
  * This class defines the tests that any PayloadOutputEngine object should pass.
  *
  * @author mcp
- * @version $Id: PayloadOutputEngineTest.java 2629 2008-02-11 05:48:36Z dglo $
+ * @version $Id: PayloadOutputEngineTest.java 2848 2008-03-25 22:03:17Z dglo $
  */
 public class PayloadOutputEngineTest
     extends LoggingCase
 {
-    class Observer
-        implements DAQComponentObserver
-    {
-        private String sinkNotificationId;
-        private boolean sinkStopNotificationCalled;
-        private boolean sinkErrorNotificationCalled;
-
-        private String sourceNotificationId;
-        private boolean sourceStopNotificationCalled;
-        private boolean sourceErrorNotificationCalled;
-
-        boolean gotSinkError()
-        {
-            return sinkErrorNotificationCalled;
-        }
-
-        boolean gotSinkStop()
-        {
-            return sinkStopNotificationCalled;
-        }
-
-        boolean gotSourceError()
-        {
-            return sourceErrorNotificationCalled;
-        }
-
-        boolean gotSourceStop()
-        {
-            return sourceStopNotificationCalled;
-        }
-
-        void setSinkNotificationId(String id)
-        {
-            sinkNotificationId = id;
-        }
-
-        void setSourceNotificationId(String id)
-        {
-            sourceNotificationId = id;
-        }
-
-        public synchronized void update(Object object, String notificationId)
-        {
-            if (object instanceof NormalState) {
-                NormalState state = (NormalState)object;
-                if (state == NormalState.STOPPED) {
-                    if (notificationId.equals(DAQCmdInterface.SOURCE) ||
-                        notificationId.equals(sourceNotificationId))
-                    {
-                        sourceStopNotificationCalled = true;
-                    } else if (notificationId.equals(DAQCmdInterface.SINK) ||
-                               notificationId.equals(sinkNotificationId))
-                    {
-                        sinkStopNotificationCalled = true;
-                    } else {
-                        throw new Error("Unexpected stop notification \"" +
-                                        notificationId + "\"");
-                    }
-                } else {
-                    throw new Error("Unexpected notification state " +
-                                    state);
-                }
-            } else if (object instanceof ErrorState) {
-                ErrorState state = (ErrorState)object;
-                if (state == ErrorState.UNKNOWN_ERROR) {
-                    if (notificationId.equals(DAQCmdInterface.SOURCE) ||
-                        notificationId.equals(sourceNotificationId))
-                    {
-                        sourceErrorNotificationCalled = true;
-                    } else if (notificationId.equals(DAQCmdInterface.SINK) ||
-                               notificationId.equals(sinkNotificationId))
-                    {
-                        sinkErrorNotificationCalled = true;
-                    } else {
-                        throw new Error("Unexpected error notification \"" +
-                                        notificationId + "\"");
-                    }
-                } else {
-                    throw new Error("Unexpected notification state " +
-                                    state);
-                }
-            } else {
-                throw new Error("Unexpected notification object " +
-                                object.getClass().getName());
-            }
-        }
-    }
-
     // private static member data
     private static final int BUFFER_BLEN = 32000;
     private static final String SRC_NOTIFICATION_ID = "SourceID";
@@ -289,7 +202,7 @@ public class PayloadOutputEngineTest
     public void testInjectError()
         throws Exception
     {
-        Observer observer = new Observer();
+        MockObserver observer = new MockObserver();
 
         engine = new PayloadOutputEngine("InjectError", 0, "test");
         engine.registerComponentObserver(observer);
@@ -325,7 +238,7 @@ public class PayloadOutputEngineTest
     public void testInjectLowLevelError()
         throws Exception
     {
-        Observer observer = new Observer();
+        MockObserver observer = new MockObserver();
 
         engine = new PayloadOutputEngine("LowLevel", 0, "test");
         engine.registerComponentObserver(observer);
@@ -370,7 +283,7 @@ public class PayloadOutputEngineTest
         testPipe.sink().configureBlocking(false);
         testPipe.source().configureBlocking(true);
 
-        Observer observer = new Observer();
+        MockObserver observer = new MockObserver();
 
         engine = new PayloadOutputEngine("OutputLoop", 0, "test");
         engine.registerComponentObserver(observer);
@@ -382,7 +295,7 @@ public class PayloadOutputEngineTest
 
         final String notificationId = "OutputLoop";
 
-        Observer xmitObserver = new Observer();
+        MockObserver xmitObserver = new MockObserver();
         xmitObserver.setSourceNotificationId(notificationId);
 
         OutputChannel transmitEng =
@@ -465,7 +378,7 @@ public class PayloadOutputEngineTest
 
         int port = createServer(sel);
 
-        Observer observer = new Observer();
+        MockObserver observer = new MockObserver();
 
         engine = new PayloadOutputEngine("ServerOutput", 0, "test");
         engine.registerComponentObserver(observer);
@@ -481,7 +394,7 @@ public class PayloadOutputEngineTest
 
         final String notificationId = "ServerOutput";
 
-        Observer xmitObserver = new Observer();
+        MockObserver xmitObserver = new MockObserver();
         xmitObserver.setSourceNotificationId(notificationId);
 
         OutputChannel transmitEng = engine.connect(cacheMgr, sock, 1);

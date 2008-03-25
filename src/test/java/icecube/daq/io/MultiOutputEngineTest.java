@@ -5,6 +5,7 @@ import EDU.oswego.cs.dl.util.concurrent.LinkedQueue;
 import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.io.test.IOTestUtil;
 import icecube.daq.io.test.LoggingCase;
+import icecube.daq.io.test.MockObserver;
 import icecube.daq.io.test.MockWriteableChannel;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.VitreousBufferCache;
@@ -32,94 +33,6 @@ import junit.textui.TestRunner;
 public class MultiOutputEngineTest
     extends LoggingCase
 {
-    class Observer
-        implements DAQComponentObserver
-    {
-        private String sinkNotificationId;
-        private boolean sinkStopNotificationCalled;
-        private boolean sinkErrorNotificationCalled;
-
-        private String sourceNotificationId;
-        private boolean sourceStopNotificationCalled;
-        private boolean sourceErrorNotificationCalled;
-
-        boolean gotSinkError()
-        {
-            return sinkErrorNotificationCalled;
-        }
-
-        boolean gotSinkStop()
-        {
-            return sinkStopNotificationCalled;
-        }
-
-        boolean gotSourceError()
-        {
-            return sourceErrorNotificationCalled;
-        }
-
-        boolean gotSourceStop()
-        {
-            return sourceStopNotificationCalled;
-        }
-
-        void setSinkNotificationId(String id)
-        {
-            sinkNotificationId = id;
-        }
-
-        void setSourceNotificationId(String id)
-        {
-            sourceNotificationId = id;
-        }
-
-        public synchronized void update(Object object, String notificationId)
-        {
-            if (object instanceof NormalState) {
-                NormalState state = (NormalState)object;
-                if (state == NormalState.STOPPED) {
-                    if (notificationId.equals(DAQCmdInterface.SOURCE) ||
-                        notificationId.equals(sourceNotificationId))
-                    {
-                        sourceStopNotificationCalled = true;
-                    } else if (notificationId.equals(DAQCmdInterface.SINK) ||
-                               notificationId.equals(sinkNotificationId))
-                    {
-                        sinkStopNotificationCalled = true;
-                    } else {
-                        throw new Error("Unexpected stop notification \"" +
-                                        notificationId + "\"");
-                    }
-                } else {
-                    throw new Error("Unexpected notification state " +
-                                    state);
-                }
-            } else if (object instanceof ErrorState) {
-                ErrorState state = (ErrorState)object;
-                if (state == ErrorState.UNKNOWN_ERROR) {
-                    if (notificationId.equals(DAQCmdInterface.SOURCE) ||
-                        notificationId.equals(sourceNotificationId))
-                    {
-                        sourceErrorNotificationCalled = true;
-                    } else if (notificationId.equals(DAQCmdInterface.SINK) ||
-                               notificationId.equals(sinkNotificationId))
-                    {
-                        sinkErrorNotificationCalled = true;
-                    } else {
-                        throw new Error("Unexpected error notification \"" +
-                                        notificationId + "\"");
-                    }
-                } else {
-                    throw new Error("Unexpected notification state " +
-                                    state);
-                }
-            } else {
-                throw new Error("Unexpected notification object " +
-                                object.getClass().getName());
-            }
-        }
-    }
-
     // private static member data
     private static final int BUFFER_BLEN = 32000;
     private static final String SRC_NOTIFICATION_ID = "SourceID";
@@ -351,7 +264,7 @@ public class MultiOutputEngineTest
         testPipe.sink().configureBlocking(true);
         testPipe.source().configureBlocking(true);
 
-        Observer observer = new Observer();
+        MockObserver observer = new MockObserver();
 
         engine = new MultiOutputEngine("OutputLoop", 0, "test");
         engine.registerComponentObserver(observer);
@@ -435,7 +348,7 @@ public class MultiOutputEngineTest
 
         int port = createServer(sel);
 
-        //Observer observer = new Observer();
+        //MockObserver observer = new MockObserver();
 
         engine = new MultiOutputEngine("ServerDisconnect", 0, "test");
         //engine.registerComponentObserver(observer);
@@ -481,7 +394,7 @@ public class MultiOutputEngineTest
 
         int port = createServer(sel);
 
-        Observer observer = new Observer();
+        MockObserver observer = new MockObserver();
 
         engine = new MultiOutputEngine("ServerOutput", 0, "test");
         engine.registerComponentObserver(observer);
@@ -569,7 +482,7 @@ public class MultiOutputEngineTest
 
         int port = createServer(sel);
 
-        //Observer observer = new Observer();
+        //MockObserver observer = new MockObserver();
 
         engine = new MultiOutputEngine("WriteAndDisconnect", 0, "test");
         //engine.registerComponentObserver(observer);

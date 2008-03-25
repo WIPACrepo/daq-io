@@ -3,6 +3,7 @@ package icecube.daq.io;
 import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.io.test.IOTestUtil;
 import icecube.daq.io.test.LoggingCase;
+import icecube.daq.io.test.MockObserver;
 import icecube.daq.io.test.MockSpliceableFactory;
 import icecube.daq.io.test.MockSplicer;
 import icecube.daq.io.test.MockStrandTail;
@@ -22,46 +23,6 @@ import java.util.Iterator;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 import junit.textui.TestRunner;
-
-class SimpleObserver
-    implements DAQComponentObserver
-{
-    private boolean sinkStopNotificationCalled;
-    private boolean sinkErrorNotificationCalled;
-
-    boolean gotError()
-    {
-        return sinkErrorNotificationCalled;
-    }
-
-    boolean gotStop()
-    {
-        return sinkStopNotificationCalled;
-    }
-
-    public synchronized void update(Object object, String notificationID)
-    {
-        if (object instanceof NormalState){
-            NormalState state = (NormalState)object;
-            if (state == NormalState.STOPPED){
-                if (notificationID.equals(DAQCmdInterface.SINK)){
-                    sinkStopNotificationCalled = true;
-                } else {
-                    throw new Error("Unexpected notification update");
-                }
-            }
-        } else if (object instanceof ErrorState){
-            ErrorState state = (ErrorState)object;
-            if (state == ErrorState.UNKNOWN_ERROR){
-                if (notificationID.equals(DAQCmdInterface.SINK)){
-                    sinkErrorNotificationCalled = true;
-                } else {
-                    throw new Error("Unexpected notification update");
-                }
-            }
-        }
-    }
-}
 
 public class SpliceableSimpleReaderTest
     extends LoggingCase
@@ -198,7 +159,7 @@ public class SpliceableSimpleReaderTest
         MockSplicer splicer = new MockSplicer();
         MockSpliceableFactory factory = new MockSpliceableFactory();
 
-        SimpleObserver observer = new SimpleObserver();
+        MockObserver observer = new MockObserver();
 
         tstRdr = new SpliceableSimpleReader("OutputInput", splicer, factory);
         tstRdr.registerComponentObserver(observer);
@@ -253,7 +214,7 @@ public class SpliceableSimpleReaderTest
 
         IOTestUtil.sendStopMsg(sinkChannel);
         IOTestUtil.waitUntilStopped(tstRdr, "stop msg");
-        assertTrue("Observer didn't see sinkStop.", observer.gotStop());
+        assertTrue("Observer didn't see sinkStop.", observer.gotSinkStop());
     }
 
     public void testMultiOutputInput()
@@ -273,7 +234,7 @@ public class SpliceableSimpleReaderTest
         MockSplicer splicer = new MockSplicer();
         MockSpliceableFactory factory = new MockSpliceableFactory();
 
-        SimpleObserver observer = new SimpleObserver();
+        MockObserver observer = new MockObserver();
 
         tstRdr = new SpliceableSimpleReader("OutputInput", splicer, factory);
         tstRdr.registerComponentObserver(observer);
@@ -344,7 +305,7 @@ public class SpliceableSimpleReaderTest
 
         IOTestUtil.sendStopMsg(sinkChannel);
         IOTestUtil.waitUntilStopped(tstRdr, "stop msg");
-        assertTrue("Observer didn't see sinkStop.", observer.gotStop());
+        assertTrue("Observer didn't see sinkStop.", observer.gotSinkStop());
     }
 
     /**
