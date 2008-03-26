@@ -1,7 +1,7 @@
 /*
  * class: PayloadDestinationOutputEngine
  *
- * Version $Id: PayloadDestinationOutputEngine.java 2629 2008-02-11 05:48:36Z dglo $
+ * Version $Id: PayloadDestinationOutputEngine.java 2852 2008-03-26 10:39:43Z dglo $
  *
  * Date: May 23 2005
  *
@@ -15,17 +15,14 @@ import icecube.daq.payload.IPayloadDestinationCollection;
 import icecube.daq.payload.IPayloadDestinationCollectionController;
 import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.PayloadDestinationCollection;
-import icecube.daq.payload.SinkPayloadDestination;
 
 import java.nio.channels.WritableByteChannel;
 
 /**
- * This class provides two options :
- * 1. Dispose the buffers
- * 2. Push buffers in the transmit channel
+ * This class pushes buffers into the transmit channels
  *
  * @author mcp
- * @version $Id: PayloadDestinationOutputEngine.java 2629 2008-02-11 05:48:36Z dglo $
+ * @version $Id: PayloadDestinationOutputEngine.java 2852 2008-03-26 10:39:43Z dglo $
  */
 public class PayloadDestinationOutputEngine extends SourceIdPayloadOutputEngine
         implements IPayloadDestinationCollectionController {
@@ -34,11 +31,6 @@ public class PayloadDestinationOutputEngine extends SourceIdPayloadOutputEngine
      * Payload destination collection.
      */
     private IPayloadDestinationCollection payloadDestinationCollection;
-
-    /**
-     * Set the default payload destination type.
-     */
-    private int payloadDestinationType = IPayloadDestinationCollectionController.BYTE_BUFFER_PAYLOAD_DESTINATION;
 
     /**
      * Create an instance of this class.
@@ -60,17 +52,7 @@ public class PayloadDestinationOutputEngine extends SourceIdPayloadOutputEngine
         OutputChannel eng = super.addDataChannel(channel, sourceID);
 
         // add a PayloadDestination to the Collection
-        switch (payloadDestinationType) {
-            case IPayloadDestinationCollectionController.SINK_PAYLOAD_DESTINATION:
-                payloadDestinationCollection.addPayloadDestination(sourceID, new SinkPayloadDestination(eng));
-                break;
-            case IPayloadDestinationCollectionController.BYTE_BUFFER_PAYLOAD_DESTINATION:
-                payloadDestinationCollection.addPayloadDestination(sourceID, new ByteBufferPayloadDestination(eng, getBufferManager()));
-                break;
-            default:
-                payloadDestinationCollection.addPayloadDestination(sourceID, new ByteBufferPayloadDestination(eng, getBufferManager()));
-                break;
-        }
+        payloadDestinationCollection.addPayloadDestination(sourceID, new ByteBufferPayloadDestination(eng, getBufferManager()));
 
         return eng;
     }
@@ -99,14 +81,4 @@ public class PayloadDestinationOutputEngine extends SourceIdPayloadOutputEngine
     public void allPayloadDestinationsClosed() {
         sendLastAndStop();
     }
-
-    /**
-     * Set the type of PayloadDestination to use.
-     *
-     * @param type see PayloadDestinationRegistry
-     */
-    public void setPayloadDestinationType(int type) {
-        payloadDestinationType = type;
-    }
-
 }

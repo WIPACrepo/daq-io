@@ -16,7 +16,6 @@ import icecube.daq.payload.IPayloadDestinationCollection;
 import icecube.daq.payload.IPayloadDestinationCollectionController;
 import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.PayloadDestinationCollection;
-import icecube.daq.payload.SinkPayloadDestination;
 import icecube.daq.payload.impl.SourceID4B;
 
 import java.io.IOException;
@@ -35,12 +34,6 @@ public class MultiDestinationOutputEngine extends MultiOutputEngine
      * Payload destination collection.
      */
     private IPayloadDestinationCollection payloadDestinationCollection;
-
-    /**
-     * Set the default payload destination type.
-     */
-    private int payloadDestinationType =
-        IPayloadDestinationCollectionController.BYTE_BUFFER_PAYLOAD_DESTINATION;
 
     /**
      * Create an instance of this class.
@@ -79,17 +72,7 @@ public class MultiDestinationOutputEngine extends MultiOutputEngine
         idRegistry.put(new Integer(sourceID.getSourceID()), eng);
 
         // add a PayloadDestination to the Collection
-        switch (payloadDestinationType) {
-            case IPayloadDestinationCollectionController.SINK_PAYLOAD_DESTINATION:
-                payloadDestinationCollection.addPayloadDestination(sourceID, new SinkPayloadDestination(eng));
-                break;
-            case IPayloadDestinationCollectionController.BYTE_BUFFER_PAYLOAD_DESTINATION:
-                payloadDestinationCollection.addPayloadDestination(sourceID, new ByteBufferPayloadDestination(eng, getBufferManager()));
-                break;
-            default:
-                payloadDestinationCollection.addPayloadDestination(sourceID, new ByteBufferPayloadDestination(eng, getBufferManager()));
-                break;
-        }
+        payloadDestinationCollection.addPayloadDestination(sourceID, new ByteBufferPayloadDestination(eng, getBufferManager()));
 
         return eng;
     }
@@ -141,14 +124,4 @@ public class MultiDestinationOutputEngine extends MultiOutputEngine
     public void allPayloadDestinationsClosed() {
         sendLastAndStop();
     }
-
-    /**
-     * Set the type of PayloadDestination to use.
-     *
-     * @param type see PayloadDestinationRegistry
-     */
-    public void setPayloadDestinationType(int type) {
-        payloadDestinationType = type;
-    }
-
 }
