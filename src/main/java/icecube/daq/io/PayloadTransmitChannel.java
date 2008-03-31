@@ -1,7 +1,7 @@
 /*
  * class: PayloadTransmitChannel
  *
- * Version $Id: PayloadTransmitChannel.java 2704 2008-02-28 20:33:23Z dglo $
+ * Version $Id: PayloadTransmitChannel.java 2867 2008-03-31 16:39:55Z dglo $
  *
  * Date: May 15 2005
  *
@@ -30,7 +30,7 @@ import org.apache.commons.logging.LogFactory;
  * for returning buffers into the buffer cache.
  *
  * @author mcp
- * @version $Id: PayloadTransmitChannel.java 2704 2008-02-28 20:33:23Z dglo $
+ * @version $Id: PayloadTransmitChannel.java 2867 2008-03-31 16:39:55Z dglo $
  */
 public class PayloadTransmitChannel implements IByteBufferReceiver, OutputChannel {
 
@@ -84,8 +84,6 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, OutputChanne
     private WritableByteChannel channel = null;
     // local copy of selector
     private Selector selector;
-    // local copy of selector key
-    private SelectionKey selectionKey = null;
     // flag for end of data notification
     private boolean lastMsgAndStop;
     // buffer cache manager that is source of receive buffers
@@ -327,12 +325,13 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, OutputChanne
     }
 
     public void processSelect(SelectionKey selKey) {
-        selectionKey = selKey;
         if (presState != STATE_TRANSMSG) {
             // should not be getting selects here
-            selectionKey.cancel();
+            selKey.cancel();
         } else {
-            if (buf.hasRemaining()) {
+            if (!buf.hasRemaining()) {
+                transition(SIG_DONE);
+            } else {
                 try {
                     channel.write(buf);
                 } catch (IOException ioe) {
@@ -340,12 +339,10 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, OutputChanne
                     log.error("IOException on channel.write(): ", ioe);
                     throw new RuntimeException(ioe);
                 }
-            } else {
-                transition(SIG_DONE);
             }
             if (cancelSelectorOnExit) {
                 // its ok to do it now.
-                selectionKey.cancel();
+                selKey.cancel();
             }
         }
     }
