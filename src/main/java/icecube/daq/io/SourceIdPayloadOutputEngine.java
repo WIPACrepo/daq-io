@@ -1,7 +1,7 @@
 /*
  * class: SourceIdPayloadOutputEngine
  *
- * Version $Id: SourceIdPayloadOutputEngine.java 2772 2008-03-11 21:26:11Z dglo $
+ * Version $Id: SourceIdPayloadOutputEngine.java 2875 2008-04-01 22:01:27Z dglo $
  *
  * Date: May 23 2005
  *
@@ -23,7 +23,7 @@ import java.util.HashMap;
  * This class ...does what?
  *
  * @author mcp
- * @version $Id: SourceIdPayloadOutputEngine.java 2772 2008-03-11 21:26:11Z dglo $
+ * @version $Id: SourceIdPayloadOutputEngine.java 2875 2008-04-01 22:01:27Z dglo $
  */
 public class SourceIdPayloadOutputEngine
     extends PayloadOutputEngine
@@ -68,10 +68,10 @@ public class SourceIdPayloadOutputEngine
         return eng;
     }
 
-    public PayloadTransmitChannel lookUpEngineBySourceID(ISourceID id) {
+    public OutputChannel lookUpEngineBySourceID(ISourceID id) {
         Integer realID = new Integer(id.getSourceID());
         if (idRegistry.containsKey(realID)) {
-            return (PayloadTransmitChannel) idRegistry.get(realID);
+            return (OutputChannel) idRegistry.get(realID);
         } else {
             return null;
         }
@@ -81,7 +81,7 @@ public class SourceIdPayloadOutputEngine
         if (!idRegistry.containsKey(new Integer(id.getSourceID()))) {
             throw new RuntimeException("SourceID " + id.getSourceID() + "not registered");
         } else {
-            PayloadTransmitChannel eng = (PayloadTransmitChannel) idRegistry.get(id);
+            OutputChannel eng = (OutputChannel) idRegistry.get(id);
             eng.receiveByteBuffer(payload);
             messagesSent++;
         }
