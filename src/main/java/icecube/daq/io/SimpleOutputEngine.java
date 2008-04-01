@@ -278,6 +278,21 @@ public class SimpleOutputEngine
     }
 
     /**
+     * Do necessary clean-up if engine has stopped.
+     */
+    private void handleEngineStop()
+    {
+        if (state == State.RUNNING && channelList.size() == 0) {
+            if (observer != null) {
+                observer.update(NormalState.STOPPED,
+                                DAQCmdInterface.SOURCE);
+            }
+
+            state = State.STOPPED;
+        }
+    }
+
+    /**
      * Has this engine been connected to any output channels?
      *
      * @return <tt>true</tt> if engine has been connected to a channel
@@ -365,14 +380,7 @@ public class SimpleOutputEngine
                 channelList.remove(idx);
             }
 
-            if (channelList.size() == 0) {
-                if (observer != null) {
-                    observer.update(NormalState.STOPPED,
-                                    DAQCmdInterface.SOURCE);
-                }
-
-                state = State.STOPPED;
-            }
+            handleEngineStop();
 
             wakeup();
         }
@@ -406,7 +414,20 @@ public class SimpleOutputEngine
                 }
             }
 
-            if (numSelected != 0) {
+            if (numSelected == 0) {
+                // check for stopped channels
+                synchronized (channelList) {
+                    for (int i = 0; i < channelList.size(); ) {
+                        if (channelList.get(i).isStopped()) {
+                            channelList.remove(i);
+                        } else {
+                            i++;
+                        }
+                    }
+
+                    handleEngineStop();
+                }
+            } else {
                 Iterator<SelectionKey> i = selector.selectedKeys().iterator();
                 while (i.hasNext()) {
                     SelectionKey key = i.next();
