@@ -68,7 +68,8 @@ public class MultiDestinationOutputEngine extends MultiOutputEngine
     }
 
     public QueuedOutputChannel addDataChannel(WritableByteChannel channel,
-                                              ISourceID sourceID) {
+                                              ISourceID sourceID)
+    {
         // ask payloadOutputEngine to make us a payloadTransmitEngine
         QueuedOutputChannel eng = super.addDataChannel(channel, bufMgr);
         // register it locally so that we can find it when we need it

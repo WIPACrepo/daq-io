@@ -44,8 +44,6 @@ class ThreadedOutputChannel
 
     private Thread thread;
 
-    private ByteBuffer stopMessage;
-
     private long bytesSent;
     private long numSent;
 
@@ -59,10 +57,6 @@ class ThreadedOutputChannel
         this.bufferMgr = bufferMgr;
 
         this.outputQueue = new ArrayList<ByteBuffer>();
-
-        // build stop message
-        stopMessage = ByteBuffer.allocate(STOP_MESSAGE_SIZE);
-        stopMessage.putInt(0, STOP_MESSAGE_SIZE);
     }
 
     /**
@@ -196,6 +190,8 @@ class ThreadedOutputChannel
     }
 
     void sendLastAndStop() {
+        ByteBuffer stopMessage = ByteBuffer.allocate(STOP_MESSAGE_SIZE);
+        stopMessage.putInt(0, STOP_MESSAGE_SIZE);
         receiveByteBuffer(stopMessage);
     }
 

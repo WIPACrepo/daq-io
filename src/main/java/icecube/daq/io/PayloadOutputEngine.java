@@ -1,7 +1,7 @@
 /*
  * class: PayloadOutputEngine
  *
- * Version $Id: PayloadOutputEngine.java 2894 2008-04-10 18:57:32Z dglo $
+ * Version $Id: PayloadOutputEngine.java 2896 2008-04-10 20:14:29Z dglo $
  *
  * Date: May 19 2005
  *
@@ -34,7 +34,7 @@ import org.apache.commons.logging.LogFactory;
  * a collection a PayloadTransmitChannels
  *
  * @author mcp
- * @version $Id: PayloadOutputEngine.java 2894 2008-04-10 18:57:32Z dglo $
+ * @version $Id: PayloadOutputEngine.java 2896 2008-04-10 20:14:29Z dglo $
  */
 public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOutputProcess, Runnable {
 
@@ -411,8 +411,8 @@ public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOu
     }
 
     public QueuedOutputChannel addDataChannel(WritableByteChannel channel,
-                                              IByteBufferCache bufMgr) {
-
+                                              IByteBufferCache bufMgr)
+    {
         if (presState != STATE_IDLE) {
             throw new RuntimeException("Cannot add data channel while engine is " +
                     getPresentState());

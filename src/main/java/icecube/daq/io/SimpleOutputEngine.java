@@ -78,8 +78,18 @@ public class SimpleOutputEngine
         try {
             selector = Selector.open();
         } catch (IOException ioe) {
-            throw new Error("Canot create Selector");
+            throw new Error("Cannot create Selector");
         }
+    }
+
+    /**
+     * String representation of output engine.
+     *
+     * @return debugging string
+     */
+    public String toString()
+    {
+        return engineType + "#" + engineId + ":" + engineFunction;
     }
 
     /**
@@ -98,13 +108,7 @@ public class SimpleOutputEngine
 
         int chanNum = nextChannelNum++;
 
-        String name;
-        if (engineType == null) {
-            name = "SimpleOutputEngine:" + chanNum;
-        } else {
-            name = engineType + "#" + engineId + ":" + engineFunction +
-                ":" + chanNum;
-        }
+        String name = toString() + ":" + chanNum;
 
         SimpleOutputChannel outChan =
             new SimpleOutputChannel(this, name, channel, bufMgr);

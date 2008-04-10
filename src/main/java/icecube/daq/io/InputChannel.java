@@ -360,6 +360,6 @@ if(DEBUG_SELECT)System.err.println("  Got "+payBuf);
 
     public String toString()
     {
-        return "InputChannel#" + id;
+        return parent.toString() + "=>InputChannel#" + id;
     }
 }
