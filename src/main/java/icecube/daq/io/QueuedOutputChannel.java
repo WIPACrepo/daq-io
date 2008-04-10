@@ -7,8 +7,8 @@ import java.nio.ByteBuffer;
 /**
  * Output channel.
  */
-public interface OutputChannel
-    extends IByteBufferReceiver, IOChannel
+public interface QueuedOutputChannel
+    extends IByteBufferReceiver, IOChannel, OutputChannel
 {
     /**
      * Try to transmit all output.  This may take some time and is subject
@@ -22,11 +22,4 @@ public interface OutputChannel
      * @return <tt>true</tt> if the output queue is not empty
      */
     boolean isOutputQueued();
-
-    /**
-     * Add data to the output queue.
-     *
-     * @param buf data to be transmitted.
-     */
-    void receiveByteBuffer(ByteBuffer buf);
 }

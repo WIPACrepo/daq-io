@@ -20,7 +20,7 @@ import org.apache.commons.logging.LogFactory;
  * Threaded output channel.
  */
 class SingleOutputChannel
-    implements OutputChannel, Runnable
+    implements QueuedOutputChannel, Runnable
 {
     private static final Log LOG = LogFactory.getLog(SingleOutputChannel.class);
 
@@ -356,8 +356,8 @@ public class SingleOutputEngine
      * @param channel data channel
      * @param bufMgr allocation manager to which completed buffers are returned
      */
-    public OutputChannel addDataChannel(WritableByteChannel channel,
-                                        IByteBufferCache bufMgr)
+    public QueuedOutputChannel addDataChannel(WritableByteChannel channel,
+                                              IByteBufferCache bufMgr)
     {
         if (outChan != null) {
             throw new Error("Channel has already been added");
@@ -440,8 +440,8 @@ public class SingleOutputEngine
      * @param chan data channel
      * @param srcId source ID of remote end
      */
-    public OutputChannel connect(IByteBufferCache bufMgr,
-                                 WritableByteChannel chan, int srcId)
+    public QueuedOutputChannel connect(IByteBufferCache bufMgr,
+                                       WritableByteChannel chan, int srcId)
         throws IOException
     {
         return addDataChannel(chan, bufMgr);

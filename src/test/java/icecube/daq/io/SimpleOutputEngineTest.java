@@ -16,7 +16,7 @@ import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.io.DAQComponentObserver;
 import icecube.daq.io.ErrorState;
 import icecube.daq.io.NormalState;
-import icecube.daq.io.OutputChannel;
+import icecube.daq.io.QueuedOutputChannel;
 import icecube.daq.io.SimpleOutputEngine;
 import icecube.daq.io.PayloadTransmitChannel;
 import icecube.daq.io.test.MockObserver;
@@ -231,7 +231,7 @@ public class SimpleOutputEngineTest
         MockObserver xmitObserver = new MockObserver();
         xmitObserver.setSourceNotificationId(notificationId);
 
-        OutputChannel transmitEng =
+        QueuedOutputChannel transmitEng =
             engine.addDataChannel(testPipe.sink(), cacheMgr);
         transmitEng.registerComponentObserver(xmitObserver, notificationId);
 
@@ -332,7 +332,7 @@ assertEquals("Bad number of log messages", 0, getNumberOfMessages());
         MockObserver xmitObserver = new MockObserver();
         xmitObserver.setSourceNotificationId(notificationId);
 
-        OutputChannel transmitEng = engine.connect(cacheMgr, sock, 1);
+        QueuedOutputChannel transmitEng = engine.connect(cacheMgr, sock, 1);
         transmitEng.registerComponentObserver(xmitObserver, notificationId);
 
 /*
@@ -434,7 +434,7 @@ assertEquals("Bad number of log messages", 0, getNumberOfMessages());
         MockObserver xmitObserver = new MockObserver();
         xmitObserver.setSourceNotificationId(notificationId);
 
-        OutputChannel transmitEng = engine.connect(cacheMgr, sock, 1);
+        QueuedOutputChannel transmitEng = engine.connect(cacheMgr, sock, 1);
         transmitEng.registerComponentObserver(xmitObserver, notificationId);
 
 /*

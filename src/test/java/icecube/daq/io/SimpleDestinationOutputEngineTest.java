@@ -136,7 +136,7 @@ public class SimpleDestinationOutputEngineTest
 
         SourceID4B srcId = new SourceID4B(1234);
 
-        OutputChannel outChan =
+        QueuedOutputChannel outChan =
             engine.connect(cacheMgr, sock, srcId.getSourceID());
         assertTrue("DestinationOutputEngine is not connected",
                    engine.isConnected());
@@ -194,7 +194,7 @@ public class SimpleDestinationOutputEngineTest
 
         SourceID4B srcId = new SourceID4B(1234);
 
-        OutputChannel outChan =
+        QueuedOutputChannel outChan =
             engine.connect(cacheMgr, sock, srcId.getSourceID());
         assertTrue("DestinationOutputEngine is not connected",
                    engine.isConnected());

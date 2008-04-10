@@ -60,14 +60,17 @@ public class MultiDestinationOutputEngine extends MultiOutputEngine
         return bufMgr;
     }
 
-    public OutputChannel connect(IByteBufferCache bufCache, WritableByteChannel chan,
-                                 int srcId) throws IOException {
+    public QueuedOutputChannel connect(IByteBufferCache bufCache,
+                                       WritableByteChannel chan, int srcId)
+        throws IOException
+    {
         return addDataChannel(chan, new SourceID4B(srcId));
     }
 
-    public OutputChannel addDataChannel(WritableByteChannel channel, ISourceID sourceID) {
+    public QueuedOutputChannel addDataChannel(WritableByteChannel channel,
+                                              ISourceID sourceID) {
         // ask payloadOutputEngine to make us a payloadTransmitEngine
-        OutputChannel eng = super.addDataChannel(channel, bufMgr);
+        QueuedOutputChannel eng = super.addDataChannel(channel, bufMgr);
         // register it locally so that we can find it when we need it
         idRegistry.put(new Integer(sourceID.getSourceID()), eng);
 
@@ -77,10 +80,10 @@ public class MultiDestinationOutputEngine extends MultiOutputEngine
         return eng;
     }
 
-    public OutputChannel lookUpEngineBySourceID(ISourceID id) {
+    public QueuedOutputChannel lookUpEngineBySourceID(ISourceID id) {
         Integer realID = new Integer(id.getSourceID());
         if (idRegistry.containsKey(realID)) {
-            return (OutputChannel) idRegistry.get(realID);
+            return (QueuedOutputChannel) idRegistry.get(realID);
         } else {
             return null;
         }

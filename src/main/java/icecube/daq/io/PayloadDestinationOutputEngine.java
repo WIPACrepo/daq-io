@@ -1,7 +1,7 @@
 /*
  * class: PayloadDestinationOutputEngine
  *
- * Version $Id: PayloadDestinationOutputEngine.java 2852 2008-03-26 10:39:43Z dglo $
+ * Version $Id: PayloadDestinationOutputEngine.java 2894 2008-04-10 18:57:32Z dglo $
  *
  * Date: May 23 2005
  *
@@ -22,7 +22,7 @@ import java.nio.channels.WritableByteChannel;
  * This class pushes buffers into the transmit channels
  *
  * @author mcp
- * @version $Id: PayloadDestinationOutputEngine.java 2852 2008-03-26 10:39:43Z dglo $
+ * @version $Id: PayloadDestinationOutputEngine.java 2894 2008-04-10 18:57:32Z dglo $
  */
 public class PayloadDestinationOutputEngine extends SourceIdPayloadOutputEngine
         implements IPayloadDestinationCollectionController {
@@ -48,8 +48,9 @@ public class PayloadDestinationOutputEngine extends SourceIdPayloadOutputEngine
     }
 
 
-    public OutputChannel addDataChannel(WritableByteChannel channel, ISourceID sourceID) {
-        OutputChannel eng = super.addDataChannel(channel, sourceID);
+    public QueuedOutputChannel addDataChannel(WritableByteChannel channel,
+                                              ISourceID sourceID) {
+        QueuedOutputChannel eng = super.addDataChannel(channel, sourceID);
 
         // add a PayloadDestination to the Collection
         payloadDestinationCollection.addPayloadDestination(sourceID, new ByteBufferPayloadDestination(eng, getBufferManager()));

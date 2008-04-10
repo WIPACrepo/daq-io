@@ -1,7 +1,7 @@
 /*
  * class: SourceIdPayloadOutputEngine
  *
- * Version $Id: SourceIdPayloadOutputEngine.java 2893 2008-04-10 18:54:27Z dglo $
+ * Version $Id: SourceIdPayloadOutputEngine.java 2894 2008-04-10 18:57:32Z dglo $
  *
  * Date: May 23 2005
  *
@@ -23,7 +23,7 @@ import java.util.HashMap;
  * This class ...does what?
  *
  * @author mcp
- * @version $Id: SourceIdPayloadOutputEngine.java 2893 2008-04-10 18:54:27Z dglo $
+ * @version $Id: SourceIdPayloadOutputEngine.java 2894 2008-04-10 18:57:32Z dglo $
  */
 public class SourceIdPayloadOutputEngine
     extends PayloadOutputEngine
@@ -55,23 +55,27 @@ public class SourceIdPayloadOutputEngine
         return bufMgr;
     }
 
-    public OutputChannel connect(IByteBufferCache bufCache, WritableByteChannel chan,
-                                 int srcId) throws IOException {
+    public QueuedOutputChannel connect(IByteBufferCache bufCache,
+                                       WritableByteChannel chan, int srcId)
+        throws IOException
+    {
         return addDataChannel(chan, new SourceID4B(srcId));
     }
 
-    public OutputChannel addDataChannel(WritableByteChannel channel, ISourceID sourceID){
+    public QueuedOutputChannel addDataChannel(WritableByteChannel channel,
+                                              ISourceID sourceID)
+    {
         // ask payloadOutputEngine to make us a payloadTransmitEngine
-        OutputChannel eng = super.addDataChannel(channel, bufMgr);
+        QueuedOutputChannel eng = super.addDataChannel(channel, bufMgr);
         // register it locally so that we can find it when we need it
         idRegistry.put(new Integer(sourceID.getSourceID()), eng);
         return eng;
     }
 
-    public OutputChannel lookUpEngineBySourceID(ISourceID id) {
+    public QueuedOutputChannel lookUpEngineBySourceID(ISourceID id) {
         Integer realID = new Integer(id.getSourceID());
         if (idRegistry.containsKey(realID)) {
-            return (OutputChannel) idRegistry.get(realID);
+            return (QueuedOutputChannel) idRegistry.get(realID);
         } else {
             return null;
         }
@@ -81,7 +85,7 @@ public class SourceIdPayloadOutputEngine
         if (!idRegistry.containsKey(new Integer(id.getSourceID()))) {
             throw new RuntimeException("SourceID " + id.getSourceID() + "not registered");
         } else {
-            OutputChannel eng = (OutputChannel) idRegistry.get(id);
+            QueuedOutputChannel eng = (QueuedOutputChannel) idRegistry.get(id);
             eng.receiveByteBuffer(payload);
             messagesSent++;
         }

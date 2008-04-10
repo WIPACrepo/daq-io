@@ -233,7 +233,7 @@ public class SingleOutputEngineTest
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
 
-        OutputChannel transmitEng =
+        QueuedOutputChannel transmitEng =
             engine.addDataChannel(testPipe.sink(), cacheMgr);
 
         assertTrue("SingleOutputEngine in " + engine.getPresentState() +
@@ -321,7 +321,7 @@ public class SingleOutputEngineTest
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
 
-        OutputChannel transmitEng = engine.connect(cacheMgr, sock, 1);
+        QueuedOutputChannel transmitEng = engine.connect(cacheMgr, sock, 1);
         assertTrue("SingleOutputEngine is not connected", engine.isConnected());
         assertTrue("SingleOutputEngine in " + engine.getPresentState() +
                    ", not Idle", engine.isStopped());
@@ -365,7 +365,7 @@ public class SingleOutputEngineTest
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
 
-        OutputChannel transmitEng = engine.connect(cacheMgr, sock, 1);
+        QueuedOutputChannel transmitEng = engine.connect(cacheMgr, sock, 1);
 
         SocketChannel chan = acceptChannel(sel);
 

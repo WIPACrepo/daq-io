@@ -274,7 +274,7 @@ public class MultiOutputEngineTest
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
 
-        OutputChannel outChan =
+        QueuedOutputChannel outChan =
             engine.addDataChannel(testPipe.sink(), cacheMgr);
 
         assertTrue("MultiOutputEngine in " + engine.getPresentState() +
@@ -362,7 +362,7 @@ public class MultiOutputEngineTest
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
 
-        OutputChannel outChan = engine.connect(cacheMgr, sock, 1);
+        QueuedOutputChannel outChan = engine.connect(cacheMgr, sock, 1);
         assertTrue("MultiOutputEngine is not connected", engine.isConnected());
         assertTrue("MultiOutputEngine in " + engine.getPresentState() +
                    ", not Idle", engine.isStopped());
@@ -408,7 +408,7 @@ public class MultiOutputEngineTest
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
 
-        OutputChannel outChan = engine.connect(cacheMgr, sock, 1);
+        QueuedOutputChannel outChan = engine.connect(cacheMgr, sock, 1);
 
         SocketChannel chan = acceptChannel(sel);
 
@@ -496,7 +496,7 @@ public class MultiOutputEngineTest
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
 
-        OutputChannel outChan = engine.connect(cacheMgr, sock, 1);
+        QueuedOutputChannel outChan = engine.connect(cacheMgr, sock, 1);
         assertTrue("MultiOutputEngine is not connected", engine.isConnected());
         assertTrue("MultiOutputEngine in " + engine.getPresentState() +
                    ", not Idle", engine.isStopped());

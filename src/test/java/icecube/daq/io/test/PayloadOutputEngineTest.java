@@ -1,7 +1,7 @@
 /*
  * class: PayloadOutputEngineTest
  *
- * Version $Id: PayloadOutputEngineTest.java 2848 2008-03-25 22:03:17Z dglo $
+ * Version $Id: PayloadOutputEngineTest.java 2894 2008-04-10 18:57:32Z dglo $
  *
  * Date: May 19 2005
  *
@@ -16,7 +16,7 @@ import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.io.DAQComponentObserver;
 import icecube.daq.io.ErrorState;
 import icecube.daq.io.NormalState;
-import icecube.daq.io.OutputChannel;
+import icecube.daq.io.QueuedOutputChannel;
 import icecube.daq.io.PayloadOutputEngine;
 import icecube.daq.io.PayloadTransmitChannel;
 import icecube.daq.io.test.MockObserver;
@@ -42,7 +42,7 @@ import junit.textui.TestRunner;
  * This class defines the tests that any PayloadOutputEngine object should pass.
  *
  * @author mcp
- * @version $Id: PayloadOutputEngineTest.java 2848 2008-03-25 22:03:17Z dglo $
+ * @version $Id: PayloadOutputEngineTest.java 2894 2008-04-10 18:57:32Z dglo $
  */
 public class PayloadOutputEngineTest
     extends LoggingCase
@@ -298,7 +298,7 @@ public class PayloadOutputEngineTest
         MockObserver xmitObserver = new MockObserver();
         xmitObserver.setSourceNotificationId(notificationId);
 
-        OutputChannel transmitEng =
+        QueuedOutputChannel transmitEng =
             engine.addDataChannel(testPipe.sink(), cacheMgr);
         transmitEng.registerComponentObserver(xmitObserver, notificationId);
 
@@ -397,7 +397,7 @@ public class PayloadOutputEngineTest
         MockObserver xmitObserver = new MockObserver();
         xmitObserver.setSourceNotificationId(notificationId);
 
-        OutputChannel transmitEng = engine.connect(cacheMgr, sock, 1);
+        QueuedOutputChannel transmitEng = engine.connect(cacheMgr, sock, 1);
         transmitEng.registerComponentObserver(xmitObserver, notificationId);
 
         assertEquals("Bad number of log messages",

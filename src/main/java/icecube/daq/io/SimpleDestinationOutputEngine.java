@@ -58,11 +58,11 @@ public class SimpleDestinationOutputEngine
      * @param channel output channel
      * @param sourceID source ID for the output channel
      */
-    public OutputChannel addDataChannel(WritableByteChannel channel,
-                                        ISourceID sourceID)
+    public QueuedOutputChannel addDataChannel(WritableByteChannel channel,
+                                              ISourceID sourceID)
     {
         // ask payloadOutputEngine to make us a payloadTransmitEngine
-        OutputChannel eng = super.addDataChannel(channel, bufMgr);
+        QueuedOutputChannel eng = super.addDataChannel(channel, bufMgr);
         // register it locally so that we can find it when we need it
         idRegistry.put(sourceID, eng);
 
@@ -89,8 +89,8 @@ public class SimpleDestinationOutputEngine
      * @param chan output channel
      * @param srcId remote source ID
      */
-    public OutputChannel connect(IByteBufferCache bufCache,
-                                 WritableByteChannel chan, int srcId)
+    public QueuedOutputChannel connect(IByteBufferCache bufCache,
+                                       WritableByteChannel chan, int srcId)
     {
         return addDataChannel(chan, new SourceID4B(srcId));
     }
@@ -128,13 +128,13 @@ public class SimpleDestinationOutputEngine
      *
      * @return <tt>null</tt> if no channel is associated with the source ID
      */
-    public OutputChannel lookUpEngineBySourceID(ISourceID id)
+    public QueuedOutputChannel lookUpEngineBySourceID(ISourceID id)
     {
         if (!idRegistry.containsKey(id)) {
             return null;
         }
 
-        return (OutputChannel) idRegistry.get(id);
+        return (QueuedOutputChannel) idRegistry.get(id);
     }
 
     /**
@@ -170,7 +170,7 @@ public class SimpleDestinationOutputEngine
             throw new RuntimeException("SourceID " + id + "not registered");
         }
 
-        OutputChannel eng = (OutputChannel) idRegistry.get(id);
+        QueuedOutputChannel eng = (QueuedOutputChannel) idRegistry.get(id);
         eng.receiveByteBuffer(payload);
         messagesSent++;
     }

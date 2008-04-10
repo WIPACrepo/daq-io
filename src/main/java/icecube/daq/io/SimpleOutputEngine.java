@@ -88,8 +88,8 @@ public class SimpleOutputEngine
      * @param channel output channel
      * @param bufMgr byte buffer manager
      */
-    public OutputChannel addDataChannel(WritableByteChannel channel,
-                                        IByteBufferCache bufMgr)
+    public QueuedOutputChannel addDataChannel(WritableByteChannel channel,
+                                              IByteBufferCache bufMgr)
     {
         if (state != State.STOPPED) {
             throw new RuntimeException("Engine should be stopped, not " +
@@ -135,8 +135,8 @@ public class SimpleOutputEngine
      *
      * @throws IOException if there is a problem
      */
-    public OutputChannel connect(IByteBufferCache bufMgr,
-                                 WritableByteChannel chan, int srcId)
+    public QueuedOutputChannel connect(IByteBufferCache bufMgr,
+                                       WritableByteChannel chan, int srcId)
         throws IOException
     {
         return addDataChannel(chan, bufMgr);
@@ -525,7 +525,7 @@ public class SimpleOutputEngine
      * Connection to input channel.
      */
     class SimpleOutputChannel
-        implements OutputChannel
+        implements QueuedOutputChannel
     {
         /** Number of bytes in 'stop' message'. */
         private static final int STOP_MESSAGE_SIZE = 4;

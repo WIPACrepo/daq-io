@@ -29,7 +29,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 class ThreadedOutputChannel
-    implements OutputChannel, Runnable
+    implements QueuedOutputChannel, Runnable
 {
     private static final Log LOG =
         LogFactory.getLog(ThreadedOutputChannel.class);
@@ -266,8 +266,8 @@ public class MultiOutputEngine
     }
 
     /** DAQComponentOutputProcess method */
-    public OutputChannel addDataChannel(WritableByteChannel channel,
-                                        IByteBufferCache bufMgr)
+    public QueuedOutputChannel addDataChannel(WritableByteChannel channel,
+                                              IByteBufferCache bufMgr)
     {
         int chanNum = nextChannelNum++;
 
@@ -334,8 +334,8 @@ public class MultiOutputEngine
     }
 
     /** DAQComponentOutputProcess method */
-    public OutputChannel connect(IByteBufferCache bufMgr,
-                                 WritableByteChannel chan, int srcId)
+    public QueuedOutputChannel connect(IByteBufferCache bufMgr,
+                                       WritableByteChannel chan, int srcId)
         throws IOException
     {
         return addDataChannel(chan, bufMgr);
