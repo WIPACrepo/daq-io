@@ -8,42 +8,42 @@ import icecube.daq.io.NormalState;
 public class MockObserver
     implements DAQComponentObserver
 {
-    private String sinkNotificationId;
-    private boolean sinkStopNotificationCalled;
-    private boolean sinkErrorNotificationCalled;
+    private String sinkId;
+    private boolean sinkStopCalled;
+    private boolean sinkErrorCalled;
 
-    private String sourceNotificationId;
-    private boolean sourceStopNotificationCalled;
-    private boolean sourceErrorNotificationCalled;
+    private String sourceId;
+    private boolean sourceStopCalled;
+    private boolean sourceErrorCalled;
 
     public boolean gotSinkError()
     {
-        return sinkErrorNotificationCalled;
+        return sinkErrorCalled;
     }
 
     public boolean gotSinkStop()
     {
-        return sinkStopNotificationCalled;
+        return sinkStopCalled;
     }
 
     public boolean gotSourceError()
     {
-        return sourceErrorNotificationCalled;
+        return sourceErrorCalled;
     }
 
     public boolean gotSourceStop()
     {
-        return sourceStopNotificationCalled;
+        return sourceStopCalled;
     }
 
     public void setSinkNotificationId(String id)
     {
-        sinkNotificationId = id;
+        sinkId = id;
     }
 
     public void setSourceNotificationId(String id)
     {
-        sourceNotificationId = id;
+        sourceId = id;
     }
 
     public synchronized void update(Object object, String notificationId)
@@ -52,13 +52,13 @@ public class MockObserver
             NormalState state = (NormalState)object;
             if (state == NormalState.STOPPED) {
                 if (notificationId.equals(DAQCmdInterface.SOURCE) ||
-                    notificationId.equals(sourceNotificationId))
+                    notificationId.equals(sourceId))
                 {
-                    sourceStopNotificationCalled = true;
+                    sourceStopCalled = true;
                 } else if (notificationId.equals(DAQCmdInterface.SINK) ||
-                           notificationId.equals(sinkNotificationId))
+                           notificationId.equals(sinkId))
                 {
-                    sinkStopNotificationCalled = true;
+                    sinkStopCalled = true;
                 } else {
                     throw new Error("Unexpected stop notification \"" +
                                     notificationId + "\"");
@@ -71,13 +71,13 @@ public class MockObserver
             ErrorState state = (ErrorState)object;
             if (state == ErrorState.UNKNOWN_ERROR) {
                 if (notificationId.equals(DAQCmdInterface.SOURCE) ||
-                    notificationId.equals(sourceNotificationId))
+                    notificationId.equals(sourceId))
                 {
-                    sourceErrorNotificationCalled = true;
+                    sourceErrorCalled = true;
                 } else if (notificationId.equals(DAQCmdInterface.SINK) ||
-                           notificationId.equals(sinkNotificationId))
+                           notificationId.equals(sinkId))
                 {
-                    sinkErrorNotificationCalled = true;
+                    sinkErrorCalled = true;
                 } else {
                     throw new Error("Unexpected error notification \"" +
                                     notificationId + "\"");
@@ -90,5 +90,15 @@ public class MockObserver
             throw new Error("Unexpected notification object " +
                             object.getClass().getName());
         }
+    }
+
+    public String toString()
+    {
+        return "Observer[Sink=" + sinkId +
+            (sinkStopCalled ? ",stop" : ",!stop") +
+            (sinkErrorCalled ? ",error" : ",!error") + "]" +
+            ":Src=" + sourceId +
+            (sourceStopCalled ? ",stop" : ",!stop") +
+            (sourceErrorCalled ? ",error" : ",!error") + "]";
     }
 }
