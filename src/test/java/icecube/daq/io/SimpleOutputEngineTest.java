@@ -235,13 +235,7 @@ public class SimpleOutputEngineTest
             engine.addDataChannel(testPipe.sink(), cacheMgr);
         transmitEng.registerComponentObserver(xmitObserver, notificationId);
 
-/*
-        assertEquals("Bad number of log messages", 1, getNumberOfMessages());
-        assertEquals("Unexpected log message",
-                     "Setting multiple observers", getMessage(0));
-        clearMessages();
-*/
-assertEquals("Bad number of log messages", 0, getNumberOfMessages());
+        assertEquals("Bad number of log messages", 0, getNumberOfMessages());
 
         assertTrue("SimpleOutputEngine in " + engine.getPresentState() +
                    ", not Idle after StopSig", engine.isStopped());
@@ -335,13 +329,7 @@ assertEquals("Bad number of log messages", 0, getNumberOfMessages());
         QueuedOutputChannel transmitEng = engine.connect(cacheMgr, sock, 1);
         transmitEng.registerComponentObserver(xmitObserver, notificationId);
 
-/*
-        assertEquals("Bad number of log messages", 1, getNumberOfMessages());
-        assertEquals("Unexpected log message",
-                     "Setting multiple observers", getMessage(0));
-        clearMessages();
-*/
-assertEquals("Bad number of log messages", 0, getNumberOfMessages());
+        assertEquals("Bad number of log messages", 0, getNumberOfMessages());
 
         SocketChannel chan = acceptChannel(sel);
 
@@ -437,13 +425,7 @@ assertEquals("Bad number of log messages", 0, getNumberOfMessages());
         QueuedOutputChannel transmitEng = engine.connect(cacheMgr, sock, 1);
         transmitEng.registerComponentObserver(xmitObserver, notificationId);
 
-/*
-        assertEquals("Bad number of log messages", 1, getNumberOfMessages());
-        assertEquals("Unexpected log message",
-                     "Setting multiple observers", getMessage(0));
-        clearMessages();
-*/
-assertEquals("Bad number of log messages", 0, getNumberOfMessages());
+        assertEquals("Bad number of log messages", 0, getNumberOfMessages());
 
         SocketChannel chan = acceptChannel(sel);
 
