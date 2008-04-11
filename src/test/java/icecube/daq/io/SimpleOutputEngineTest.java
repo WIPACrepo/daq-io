@@ -437,7 +437,7 @@ public class SimpleOutputEngineTest
         engine.disconnect();
         Thread.sleep(10);
 
-        assertFalse("Failure on sendLastAndStop command.",
+        assertTrue("Failure on sendLastAndStop command.",
                    observer.gotSourceStop());
         assertFalse("Got sinkStop notification",
                    observer.gotSinkStop());
