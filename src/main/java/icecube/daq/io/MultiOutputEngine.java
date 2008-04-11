@@ -189,7 +189,8 @@ class ThreadedOutputChannel
         thread = null;
     }
 
-    void sendLastAndStop() {
+    public void sendLastAndStop()
+    {
         ByteBuffer stopMessage = ByteBuffer.allocate(STOP_MESSAGE_SIZE);
         stopMessage.putInt(0, STOP_MESSAGE_SIZE);
         receiveByteBuffer(stopMessage);
@@ -392,6 +393,24 @@ public class MultiOutputEngine
                 }
             }
         }
+    }
+
+    /**
+     * Return the single channel associated with this output engine.
+     *
+     * @return output channel
+     *
+     * @throws Error if there is more than one output channel
+     */
+    public OutputChannel getChannel()
+    {
+        if (channelList.size() != 1) {
+            throw new Error("Engine " + toString() +
+                            " should only contain one channel, not " +
+                            channelList.size());
+        }
+
+        return channelList.get(0);
     }
 
     public long[] getDepth()

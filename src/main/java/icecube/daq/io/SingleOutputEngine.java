@@ -271,7 +271,7 @@ class SingleOutputChannel
     /**
      * Add a stop message to the output queue.
      */
-    void sendLastAndStop() {
+    public void sendLastAndStop() {
         receiveByteBuffer(stopMessage);
     }
 
@@ -521,6 +521,18 @@ public class SingleOutputEngine
         }
 
         return outChan.getBytesSent();
+    }
+
+    /**
+     * Return the single channel associated with this output engine.
+     *
+     * @return output channel
+     *
+     * @throws Error if there is more than one output channel
+     */
+    public OutputChannel getChannel()
+    {
+        return outChan;
     }
 
     /**

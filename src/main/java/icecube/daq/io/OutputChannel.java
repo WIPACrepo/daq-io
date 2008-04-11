@@ -13,4 +13,9 @@ public interface OutputChannel
      * @param buf data to be transmitted.
      */
     void receiveByteBuffer(ByteBuffer buf);
+
+    /**
+     * Send remaining data and stop.
+     */
+    void sendLastAndStop();
 }

@@ -184,7 +184,7 @@ public class SimpleOutputEngine
                     }
 
                     channelList.clear();
-                    state = State.STOPPED;
+                    handleEngineStop();
                 }
             }
 
@@ -205,15 +205,35 @@ public class SimpleOutputEngine
             throw new Error("Engine has been destroyed");
         }
 
-        synchronized (channelList) {
-            if (channelList.size() == 0) {
-                state = State.STOPPED;
-            } else {
-                for (SimpleOutputChannel outChan : channelList) {
-                    outChan.stopProcessing();
+        if (state != State.STOPPED) {
+            synchronized (channelList) {
+                if (channelList.size() == 0) {
+                    handleEngineStop();
+                } else {
+                    for (SimpleOutputChannel outChan : channelList) {
+                        outChan.sendLastAndStop();
+                    }
                 }
             }
         }
+    }
+
+    /**
+     * Return the single channel associated with this output engine.
+     *
+     * @return output channel
+     *
+     * @throws Error if there is more than one output channel
+     */
+    public OutputChannel getChannel()
+    {
+        if (channelList.size() != 1) {
+            throw new Error("Engine " + toString() +
+                            " should only contain one channel, not " +
+                            channelList.size());
+        }
+
+        return channelList.get(0);
     }
 
     /**
@@ -286,14 +306,12 @@ public class SimpleOutputEngine
      */
     private void handleEngineStop()
     {
-        if (state == State.RUNNING && channelList.size() == 0) {
-            if (observer != null) {
-                observer.update(NormalState.STOPPED,
-                                DAQCmdInterface.SOURCE);
-            }
-
-            state = State.STOPPED;
+        if (observer != null) {
+            observer.update(NormalState.STOPPED,
+                            DAQCmdInterface.SOURCE);
         }
+
+        state = State.STOPPED;
     }
 
     /**
@@ -384,7 +402,9 @@ public class SimpleOutputEngine
                 channelList.remove(idx);
             }
 
-            handleEngineStop();
+            if (state == State.RUNNING && channelList.size() == 0) {
+                handleEngineStop();
+            }
 
             wakeup();
         }
@@ -395,7 +415,7 @@ public class SimpleOutputEngine
      */
     public void run()
     {
-        while (true) {
+        while (state == State.RUNNING || channelList.size() > 0) {
             int numSelected = 0;
             try {
                 numSelected = selector.select(DEFAULT_SELECTOR_TIMEOUT_MSEC);
@@ -419,17 +439,21 @@ public class SimpleOutputEngine
             }
 
             if (numSelected == 0) {
-                // check for stopped channels
-                synchronized (channelList) {
-                    for (int i = 0; i < channelList.size(); ) {
-                        if (channelList.get(i).isStopped()) {
-                            channelList.remove(i);
-                        } else {
-                            i++;
+                if (channelList.size() > 0) {
+                    // check for stopped channels
+                    synchronized (channelList) {
+                        for (int i = 0; i < channelList.size(); ) {
+                            if (channelList.get(i).isStopped()) {
+                                channelList.remove(i);
+                            } else {
+                                i++;
+                            }
+                        }
+
+                        if (channelList.size() == 0) {
+                            handleEngineStop();
                         }
                     }
-
-                    handleEngineStop();
                 }
             } else {
                 Iterator<SelectionKey> i = selector.selectedKeys().iterator();
@@ -451,7 +475,9 @@ public class SimpleOutputEngine
             }
         }
 
-        state = State.STOPPED;
+        if (state == State.RUNNING) {
+            state = State.STOPPED;
+        }
     }
 
     /**
@@ -584,12 +610,7 @@ public class SimpleOutputEngine
         void close()
             throws IOException
         {
-            stopProcessing();
-
-            WritableByteChannel tmpChan = channel;
-            channel = null;
-
-            tmpChan.close();
+            sendLastAndStop();
         }
 
         /**
@@ -659,6 +680,8 @@ public class SimpleOutputEngine
         {
             if (stopped) {
                 LOG.error("Queuing buffer after channel has been stopped");
+            } else if (parent.isStopped()) {
+                LOG.error("Queuing buffer after engine has stopped");
             }
 
             synchronized (outputQueue) {
@@ -704,7 +727,7 @@ public class SimpleOutputEngine
         /**
          * Add a "stop" message to the output queue.
          */
-        void sendLastAndStop()
+        public void sendLastAndStop()
         {
             ByteBuffer stopMessage = ByteBuffer.allocate(STOP_MESSAGE_SIZE);
             stopMessage.putInt(0, STOP_MESSAGE_SIZE);
@@ -758,16 +781,23 @@ public class SimpleOutputEngine
                 buf.position(0);
                 buf.limit(payLen);
 
-                try {
-                    int numWritten = channel.write(buf);
-                    if (numWritten != payLen) {
-                        LOG.error("Partial write: Only wrote " + numWritten +
-                                  " of " + payLen + " bytes");
+                int numWritten = 0;
+                while (numWritten < payLen) {
+                    try {
+                        int bytes = channel.write(buf);
+                        if (bytes < 0) {
+                            LOG.error("Write of " + payLen +
+                                      " bytes returned " + bytes);
+                            break;
+                        }
+                        numWritten += bytes;
+                    } catch (IOException ioe) {
+                        LOG.error("Channel " + name + " write failed", ioe);
+                        break;
                     }
-                    bytesLeft -= numWritten;
-                } catch (IOException ioe) {
-                    LOG.error("Channel " + name + " write failed", ioe);
                 }
+
+                bytesLeft -= numWritten;
 
                 if (buf.getInt(0) == STOP_MESSAGE_SIZE) {
                     stopProcessing();

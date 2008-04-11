@@ -1,7 +1,7 @@
 /*
  * class: PayloadOutputEngine
  *
- * Version $Id: PayloadOutputEngine.java 2896 2008-04-10 20:14:29Z dglo $
+ * Version $Id: PayloadOutputEngine.java 2904 2008-04-11 17:38:14Z dglo $
  *
  * Date: May 19 2005
  *
@@ -34,7 +34,7 @@ import org.apache.commons.logging.LogFactory;
  * a collection a PayloadTransmitChannels
  *
  * @author mcp
- * @version $Id: PayloadOutputEngine.java 2896 2008-04-10 20:14:29Z dglo $
+ * @version $Id: PayloadOutputEngine.java 2904 2008-04-11 17:38:14Z dglo $
  */
 public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOutputProcess, Runnable {
 
@@ -392,6 +392,22 @@ public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOu
             recordCount.add(new Long(msg.stopMsgSent));
         }
         return (Long[]) recordCount.toArray(new Long[0]);
+    }
+
+    /**
+     * Return the single channel associated with this output engine.
+     *
+     * @return output channel
+     *
+     * @throws Error if there is more than one output channel
+     */
+    public synchronized OutputChannel getChannel() {
+        if (payloadEngineList.size() != 1) {
+            throw new Error("Engine should only contain one channel, not " +
+                            payloadEngineList.size());
+        }
+
+        return (PayloadTransmitChannel) payloadEngineList.get(0);
     }
 
     public boolean isRunning() {
