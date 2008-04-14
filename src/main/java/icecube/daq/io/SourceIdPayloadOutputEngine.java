@@ -1,7 +1,7 @@
 /*
  * class: SourceIdPayloadOutputEngine
  *
- * Version $Id: SourceIdPayloadOutputEngine.java 2894 2008-04-10 18:57:32Z dglo $
+ * Version $Id: SourceIdPayloadOutputEngine.java 2920 2008-04-14 15:52:54Z dglo $
  *
  * Date: May 23 2005
  *
@@ -23,11 +23,11 @@ import java.util.HashMap;
  * This class ...does what?
  *
  * @author mcp
- * @version $Id: SourceIdPayloadOutputEngine.java 2894 2008-04-10 18:57:32Z dglo $
+ * @version $Id: SourceIdPayloadOutputEngine.java 2920 2008-04-14 15:52:54Z dglo $
  */
 public class SourceIdPayloadOutputEngine
     extends PayloadOutputEngine
-    implements DAQComponentOutputProcess
+    implements DAQSourceIdOutputProcess
 {
 
     private IByteBufferCache bufMgr;

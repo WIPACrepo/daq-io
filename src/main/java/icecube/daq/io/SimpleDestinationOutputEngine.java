@@ -25,7 +25,7 @@ import java.util.HashMap;
 
 public class SimpleDestinationOutputEngine
     extends SimpleOutputEngine
-    implements DAQComponentOutputProcess,
+    implements DAQSourceIdOutputProcess,
                IPayloadDestinationCollectionController
 {
     /** Byte buffer manager. */
