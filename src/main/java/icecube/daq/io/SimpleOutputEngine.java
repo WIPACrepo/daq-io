@@ -83,16 +83,6 @@ public class SimpleOutputEngine
     }
 
     /**
-     * String representation of output engine.
-     *
-     * @return debugging string
-     */
-    public String toString()
-    {
-        return engineType + "#" + engineId + ":" + engineFunction;
-    }
-
-    /**
      * Add a channel.
      *
      * @param channel output channel
@@ -533,6 +523,18 @@ public class SimpleOutputEngine
         thread.start();
 
         state = State.RUNNING;
+    }
+
+    /**
+     * Debugging string.
+     *
+     * @return debugging string
+     */
+    public String toString()
+    {
+        return engineType + "#" + engineId + ":" + engineFunction +
+            "=" + state +
+            (channelList.size() == 0 ? "" : "*" + channelList.size());
     }
 
     /**
