@@ -62,6 +62,9 @@ public class SimpleOutputEngine
     /** Has this engine been connected to one or more input channels? */
     private boolean isConnected = false;
 
+    /** Total number of records sent. */
+    private long totalSent;
+
     /**
      * Create an output engine.
      *
@@ -275,6 +278,16 @@ public class SimpleOutputEngine
     }
 
     /**
+     * Get the total number of records written.
+     *
+     * @return total number of records written
+     */
+    public long getTotalRecordsSent()
+    {
+        return totalSent;
+    }
+
+    /**
      * Get the number of records written by all output channel queues.
      *
      * @return number of records written by each output channel
@@ -409,6 +422,8 @@ public class SimpleOutputEngine
      */
     public void run()
     {
+        totalSent = 0;
+
         while (state == State.RUNNING || channelList.size() > 0) {
             int numSelected = 0;
             try {
@@ -812,6 +827,7 @@ public class SimpleOutputEngine
                 }
 
                 numSent++;
+                totalSent++;
 
                 // if we're out of payloads, or if we couldn't send the most
                 // recent payload again, stop sending
