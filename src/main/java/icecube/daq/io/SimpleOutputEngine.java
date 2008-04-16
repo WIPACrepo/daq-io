@@ -824,8 +824,9 @@ public class SimpleOutputEngine
          */
         public String toString()
         {
-            return name + (outputQueue.size() == 0 ? "" : "*" +
-                           outputQueue.size() + (stopped ? "*STOPPED" : ""));
+            return name + (outputQueue.size() == 0 ? "" :
+                           "*" + outputQueue.size()) +
+                (stopped ? "*STOPPED" : "");
         }
 
         /**
