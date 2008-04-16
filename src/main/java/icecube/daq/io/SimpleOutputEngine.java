@@ -96,6 +96,10 @@ public class SimpleOutputEngine
                                        getPresentState());
         }
 
+        if (!(channel instanceof SelectableChannel)) {
+            throw new Error("Channel is not selectable");
+        }
+
         int chanNum = nextChannelNum++;
 
         String name = toString() + ":" + chanNum;
@@ -801,7 +805,7 @@ public class SimpleOutputEngine
 
                 bytesLeft -= numWritten;
 
-                if (buf.getInt(0) == STOP_MESSAGE_SIZE) {
+                if (payLen == STOP_MESSAGE_SIZE) {
                     stopProcessing();
                 } else if (bufferMgr != null) {
                     bufferMgr.returnBuffer(buf);
