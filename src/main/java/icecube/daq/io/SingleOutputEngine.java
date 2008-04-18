@@ -577,13 +577,13 @@ public class SingleOutputEngine
      *
      * @return number of records sent.
      */
-    public long getRecordsSent()
+    public long[] getRecordsSent()
     {
         if (outChan == null) {
-            return -1L;
+            return new long[0];
         }
 
-        return outChan.getRecordsSent();
+        return new long[] { outChan.getRecordsSent(), };
     }
 
     /**

@@ -1,7 +1,7 @@
 /*
  * class: PayloadOutputEngine
  *
- * Version $Id: PayloadOutputEngine.java 2904 2008-04-11 17:38:14Z dglo $
+ * Version $Id: PayloadOutputEngine.java 2950 2008-04-18 23:20:55Z dglo $
  *
  * Date: May 19 2005
  *
@@ -34,7 +34,7 @@ import org.apache.commons.logging.LogFactory;
  * a collection a PayloadTransmitChannels
  *
  * @author mcp
- * @version $Id: PayloadOutputEngine.java 2904 2008-04-11 17:38:14Z dglo $
+ * @version $Id: PayloadOutputEngine.java 2950 2008-04-18 23:20:55Z dglo $
  */
 public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOutputProcess, Runnable {
 
@@ -374,14 +374,14 @@ public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOu
     }
 
 
-    public synchronized Long[] getRecordsSent() {
-        ArrayList recordCount = new ArrayList();
-        Iterator payloadListIterator = payloadEngineList.iterator();
-        while (payloadListIterator.hasNext()) {
-            PayloadTransmitChannel msg = (PayloadTransmitChannel) payloadListIterator.next();
-            recordCount.add(new Long(msg.recordsSent));
+    public synchronized long[] getRecordsSent() {
+        long[] recordCount = new long[payloadEngineList.size()];
+        for (int i = 0; i < recordCount.length; i++) {
+            PayloadTransmitChannel msg =
+                (PayloadTransmitChannel) payloadEngineList.get(i);
+            recordCount[i] = msg.recordsSent;
         }
-        return (Long[]) recordCount.toArray(new Long[0]);
+        return recordCount;
     }
 
     public synchronized Long[] getStopMessagesSent() {
