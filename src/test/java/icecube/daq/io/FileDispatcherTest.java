@@ -79,26 +79,6 @@ class AdjustablePayload
         throw new Error("Unimplemented");
     }
 
-    public boolean hasBeenDisposed()
-    {
-        throw new Error("Unimplemented");
-    }
-
-    public void hasBeenDisposed(boolean b0)
-    {
-        throw new Error("Unimplemented");
-    }
-
-    public boolean hasBeenRecycled()
-    {
-        throw new Error("Unimplemented");
-    }
-
-    public void hasBeenRecycled(boolean b0)
-    {
-        throw new Error("Unimplemented");
-    }
-
     public void initialize(int i0, ByteBuffer x1, PayloadFactory x2)
         throws IOException, DataFormatException
     {
