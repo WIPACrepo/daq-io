@@ -15,7 +15,7 @@ import java.util.zip.DataFormatException;
  * Read payloads from a file.
  */
 public class PayloadFileReader
-    implements Iterable, Iterator
+    implements DAQFileReader
 {
     /** Input channel */
     private ReadableByteChannel chan;
