@@ -445,7 +445,9 @@ public class FileDispatcherTest
         final boolean preexist = destDir.isDirectory();
 
         if (preexist) {
-            fail("Read-only subdirectory exists");
+            if (!destDir.delete()) {
+                fail("Read-only subdirectory " + destDir + " exists");
+            }
         }
 
         destDir.mkdir();
