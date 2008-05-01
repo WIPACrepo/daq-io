@@ -80,9 +80,6 @@ public class FileDispatcher implements Dispatcher {
         }
 
         this.bufferCache = bufferCache;
-
-        tempFile = getTempFile(dispatchDestStorage, baseFileName);
-        currFileSize = tempFile.length();
     }
 
     /**
@@ -158,6 +155,11 @@ public class FileDispatcher implements Dispatcher {
      * @throws DispatchException is there is a problem in the Dispatch system.
      */
     public void dispatchEvent(ByteBuffer buffer) throws DispatchException {
+        if (tempFile == null) {
+            tempFile = getTempFile(dispatchDestStorage, baseFileName);
+            currFileSize = tempFile.length();
+        }
+
         final boolean tempExists = tempFile.exists();
 
         if (!tempExists || outChannel == null || !outChannel.isOpen()) {
@@ -403,6 +405,11 @@ public class FileDispatcher implements Dispatcher {
 
         dispatchDestStorage = dirName;
         LOG.info("dispatchDestStorage is set to: " + dispatchDestStorage);
+
+        if (tempFile != null) {
+            LOG.error("dispatchDestStorage " + dispatchDestStorage +
+                      " set after temp file " + tempFile + " was created");
+        }
     }
 
     /**
@@ -464,7 +471,8 @@ public class FileDispatcher implements Dispatcher {
 
         File destFile = getDestFile();
         if (!tempFile.renameTo(destFile)) {
-            String errorMsg = "Couldn't move temp file to " + destFile;
+            String errorMsg = "Couldn't move temp file " + tempFile +
+                " to " + destFile;
             LOG.error(errorMsg);
             throw new DispatchException(errorMsg);
         }
