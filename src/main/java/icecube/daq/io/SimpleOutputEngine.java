@@ -148,48 +148,43 @@ public class SimpleOutputEngine
      */
     public void destroyProcessor()
     {
-        forcedStopProcessing();
+        synchronized (channelList) {
+            if (channelList.size() > 0) {
+                for (SimpleOutputChannel outChan : channelList) {
+                    try {
+                        outChan.close();
+                    } catch (IOException ioe) {
+                        LOG.error("Cannot close " + outChan, ioe);
+                    }
+                }
+
+                channelList.clear();
+                handleEngineStop();
+            }
+        }
 
         state = State.DESTROYED;
     }
 
     /**
      * Disconnect all channels.
-     *
-     * @throws IOException if there is a problem
      */
     public void disconnect()
-        throws IOException
     {
         if (state == State.DESTROYED) {
             throw new Error("Engine has been destroyed");
         }
 
-        IOException ioEx = null;
-
         if (isConnected) {
             synchronized (channelList) {
                 if (channelList.size() > 0) {
                     for (SimpleOutputChannel outChan : channelList) {
-                        try {
-                            outChan.close();
-                        } catch (IOException ioe) {
-                            if (ioEx == null) {
-                                ioEx = ioe;
-                            }
-                        }
+                        outChan.sendLastAndStop();
                     }
-
-                    channelList.clear();
-                    handleEngineStop();
                 }
             }
 
             isConnected = false;
-        }
-
-        if (ioEx != null) {
-            throw ioEx;
         }
     }
 
@@ -313,12 +308,14 @@ public class SimpleOutputEngine
      */
     private void handleEngineStop()
     {
-        if (observer != null) {
-            observer.update(NormalState.STOPPED,
-                            DAQCmdInterface.SOURCE);
-        }
+        if (state == State.RUNNING) {
+            if (observer != null) {
+                observer.update(NormalState.STOPPED,
+                                DAQCmdInterface.SOURCE);
+            }
 
-        state = State.STOPPED;
+            state = State.STOPPED;
+        }
     }
 
     /**
@@ -407,6 +404,11 @@ public class SimpleOutputEngine
                 LOG.error("Couldn't find stopped channel " + chan);
             } else {
                 channelList.remove(idx);
+                try {
+                    chan.close();
+                } catch (IOException ioe) {
+                    LOG.error("Couldn't close stopped channel", ioe);
+                }
             }
 
             if (state == State.RUNNING && channelList.size() == 0) {
@@ -452,8 +454,14 @@ public class SimpleOutputEngine
                     // check for stopped channels
                     synchronized (channelList) {
                         for (int i = 0; i < channelList.size(); ) {
-                            if (channelList.get(i).isStopped()) {
+                            SimpleOutputChannel chan = channelList.get(i);
+                            if (chan.isStopped()) {
                                 channelList.remove(i);
+                                try {
+                                    chan.close();
+                                } catch (IOException ioe) {
+                                    LOG.error("Couldn't close " + chan, ioe);
+                                }
                             } else {
                                 i++;
                             }
@@ -473,6 +481,8 @@ public class SimpleOutputEngine
                     SimpleOutputChannel chan =
                         ((SimpleOutputChannel) key.attachment());
                     if (chan.isStopped()) {
+                        // XXX probably should keep channels around in case
+                        // XXX we ever want to restart without reconnecting
                         removeStoppedChannel(chan);
                         key.cancel();
                     } else if (!chan.isOutputQueued()) {
@@ -631,7 +641,9 @@ public class SimpleOutputEngine
         void close()
             throws IOException
         {
-            sendLastAndStop();
+            WritableByteChannel tmpChan = channel;
+            channel = null;
+            tmpChan.close();
         }
 
         /**
@@ -750,9 +762,11 @@ public class SimpleOutputEngine
          */
         public void sendLastAndStop()
         {
-            ByteBuffer stopMessage = ByteBuffer.allocate(STOP_MESSAGE_SIZE);
-            stopMessage.putInt(0, STOP_MESSAGE_SIZE);
-            receiveByteBuffer(stopMessage);
+            if (!stopped) {
+                ByteBuffer stopMessage = ByteBuffer.allocate(STOP_MESSAGE_SIZE);
+                stopMessage.putInt(0, STOP_MESSAGE_SIZE);
+                receiveByteBuffer(stopMessage);
+            }
         }
 
         /**
@@ -799,35 +813,42 @@ public class SimpleOutputEngine
 
                 final int payLen = buf.getInt(0);
 
-                buf.position(0);
-                buf.limit(payLen);
+                if (stopped) {
+                    if (payLen != STOP_MESSAGE_SIZE) {
+                        LOG.error("Channel " + name + " saw " + payLen +
+                                  "-byte payload after stop");
+                    }
+                } else {
+                    buf.position(0);
+                    buf.limit(payLen);
 
-                int numWritten = 0;
-                while (numWritten < payLen) {
-                    try {
-                        int bytes = channel.write(buf);
-                        if (bytes < 0) {
-                            LOG.error("Write of " + payLen +
-                                      " bytes returned " + bytes);
+                    int numWritten = 0;
+                    while (numWritten < payLen) {
+                        try {
+                            int bytes = channel.write(buf);
+                            if (bytes < 0) {
+                                LOG.error("Channel " + name + " write of " +
+                                          payLen + " bytes returned " + bytes);
+                                break;
+                            }
+                            numWritten += bytes;
+                        } catch (IOException ioe) {
+                            LOG.error("Channel " + name + " write failed", ioe);
                             break;
                         }
-                        numWritten += bytes;
-                    } catch (IOException ioe) {
-                        LOG.error("Channel " + name + " write failed", ioe);
-                        break;
                     }
-                }
 
-                bytesLeft -= numWritten;
+                    bytesLeft -= numWritten;
+
+                    numSent++;
+                    totalSent++;
+                }
 
                 if (payLen == STOP_MESSAGE_SIZE) {
                     stopProcessing();
                 } else if (bufferMgr != null) {
                     bufferMgr.returnBuffer(buf);
                 }
-
-                numSent++;
-                totalSent++;
 
                 // if we're out of payloads, or if we couldn't send the most
                 // recent payload again, stop sending
