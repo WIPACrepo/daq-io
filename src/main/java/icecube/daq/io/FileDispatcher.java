@@ -1,7 +1,5 @@
 package icecube.daq.io;
 
-//import java.util.*;
-
 import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IWriteablePayload;
@@ -163,14 +161,14 @@ public class FileDispatcher implements Dispatcher {
         final boolean tempExists = tempFile.exists();
 
         if (!tempExists || outChannel == null || !outChannel.isOpen()) {
+            FileOutputStream out;
             try {
-                FileOutputStream out = new FileOutputStream(tempFile.getPath());
-                currFileSize = tempFile.length();
-                outChannel = out.getChannel();
+                out = new FileOutputStream(tempFile.getPath());
             } catch (IOException ioe) {
-                LOG.error("couldn't initiate temp dispatch file ", ioe);
-                throw new DispatchException(ioe);
+                throw new DispatchException("Couldn't open " + tempFile, ioe);
             }
+            currFileSize = tempFile.length();
+            outChannel = out.getChannel();
             if (tempExists) {
                 LOG.error("The last temp-" + baseFileName +
                           " file was not moved to the dispatch storage!!!");
@@ -309,7 +307,19 @@ public class FileDispatcher implements Dispatcher {
 
     public static File getTempFile(String destDir, String baseFileName)
     {
-        return new File(destDir, "temp-" + baseFileName);
+        int extraNum = 0;
+        String extraStr = "";
+
+        File tmpFile;
+        while (true) {
+            tmpFile = new File(destDir, "temp-" + baseFileName + extraStr);
+            if (!tmpFile.exists() || tmpFile.canWrite()) {
+                break;
+            }
+            extraNum++;
+            extraStr = "-" + extraNum;
+        }
+        return tmpFile;
     }
 
     public int getRunNumber()
