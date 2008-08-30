@@ -80,31 +80,30 @@ class AdjustablePayload
     }
 
     public void initialize(int i0, ByteBuffer x1, PayloadFactory x2)
-        throws IOException, DataFormatException
     {
         throw new Error("Unimplemented");
     }
 
     protected void loadEnvelope()
-        throws IOException, DataFormatException
+        throws DataFormatException
     {
         throw new Error("Unimplemented");
     }
 
     public void loadPayload()
-        throws IOException, DataFormatException
+        throws DataFormatException
     {
         throw new Error("Unimplemented");
     }
 
     public void loadSpliceablePayload()
-        throws IOException, DataFormatException
+        throws DataFormatException
     {
         throw new Error("Unimplemented");
     }
 
     public int readSpliceableLength(int i0, ByteBuffer x1)
-        throws IOException, DataFormatException
+        throws DataFormatException
     {
         throw new Error("Unimplemented");
     }
@@ -115,7 +114,6 @@ class AdjustablePayload
     }
 
     public void setPayloadBuffer(int i0, ByteBuffer x1)
-        throws IOException, DataFormatException
     {
         throw new Error("Unimplemented");
     }
