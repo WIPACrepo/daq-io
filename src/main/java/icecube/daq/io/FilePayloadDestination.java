@@ -4,11 +4,16 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 /**
  * This object encapsulates the methods needed to create
  * an IPayloadDestination as a file.
  */
  public class FilePayloadDestination extends DataOutputStreamPayloadDestination {
+    private static Log LOG = LogFactory.getLog(FilePayloadDestination.class);
+
     private String msFilename;
     private File mtFile;
     private FileOutputStream mtFileOutputStream;
@@ -59,8 +64,7 @@ import java.io.IOException;
         try {
             close();
         } catch (IOException tException) {
-            //-TODO: put in logging...
-            System.out.println("FilePayloadDestination.dispose() caused IOException="+tException);
+            LOG.error("Cannot close destination", tException);
         }
     }
 

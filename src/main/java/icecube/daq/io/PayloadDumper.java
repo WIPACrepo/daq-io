@@ -10,6 +10,8 @@ import org.apache.log4j.BasicConfigurator;
 
 public class PayloadDumper
 {
+    private static Log LOG = LogFactory.getLog(PayloadDumper.class);
+
     public static final void main(String[] args)
         throws IOException
     {
@@ -22,7 +24,7 @@ public class PayloadDumper
             try {
                 payload.loadPayload();
             } catch (Exception ex) {
-                System.err.println("Couldn't load payload");
+                LOG.error("Couldn't load payload");
                 ex.printStackTrace();
                 continue;
             }

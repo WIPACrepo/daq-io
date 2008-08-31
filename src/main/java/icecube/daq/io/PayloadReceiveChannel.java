@@ -1,7 +1,7 @@
 /*
  * class: PayloadReceiveChannel
  *
- * Version $Id: PayloadReceiveChannel.java 2654 2008-02-15 23:03:26Z dglo $
+ * Version $Id: PayloadReceiveChannel.java 3433 2008-08-31 16:19:12Z dglo $
  *
  * Date: May 15 2005
  *
@@ -33,7 +33,7 @@ import org.apache.commons.logging.LogFactory;
  * for acquiring buffers into the buffer cache and managing the flow control.
  *
  * @author mcp
- * @version $Id: PayloadReceiveChannel.java 2654 2008-02-15 23:03:26Z dglo $
+ * @version $Id: PayloadReceiveChannel.java 3433 2008-08-31 16:19:12Z dglo $
  */
 public class PayloadReceiveChannel implements IOChannel {
 
@@ -133,8 +133,6 @@ public class PayloadReceiveChannel implements IOChannel {
 
     private DAQComponentObserver compObserver;
     private String notificationID;
-
-    private boolean debug = false;
 
     /**
      * Create an instance of this class.
@@ -550,7 +548,6 @@ public class PayloadReceiveChannel implements IOChannel {
                     " state " + getStateName(presState) +
                     " transition signal " + getSignalName(signal));
         }
-        if (debug) System.err.println(id + " " + getStateName(presState) + " -> " + getSignalName(signal));
         // note, in order to simplify state machine operation, NO
         // transitions are allowed in state exit routines.  They are allowed
         // in state enter routines, since the present state flag

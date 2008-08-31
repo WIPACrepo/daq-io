@@ -7,6 +7,9 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 /**
  * This object wrappers a DataInputStream as the source of
  * IPayload's as an IPayloadSource object.
@@ -14,6 +17,9 @@ import java.nio.ByteBuffer;
  * @author Dan Wharton
  */
 public class DataOutputStreamPayloadDestination extends PayloadDestination {
+    private static Log LOG =
+        LogFactory.getLog(DataOutputStreamPayloadDestination.class);
+
     /**
      * The destination of the data.
      */
@@ -374,8 +380,7 @@ public class DataOutputStreamPayloadDestination extends PayloadDestination {
         try {
             close();
         } catch ( IOException tException) {
-            //-TODO: Put logging here
-            System.out.println("DataOutputStreamPayloadDestination.dispose() has caught IOException="+tException);
+            LOG.error("Cannot close destination", tException);
         } finally {
             mtPayloadDest = null;
         }
