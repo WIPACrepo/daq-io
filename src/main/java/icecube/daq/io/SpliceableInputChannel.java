@@ -219,6 +219,6 @@ public class SpliceableInputChannel
 
     public String toString()
     {
-        return "SpliceableInputChannel#" + id;
+        return getParent().toString() + "=>SpliceableInputChannel#" + id;
     }
 }
