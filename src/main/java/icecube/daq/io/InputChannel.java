@@ -161,6 +161,11 @@ if(DEBUG_FILL)System.err.println("FillEnd "+inputBuf+" bufPos "+bufPos+" payBuf 
         return limitToRestartAllocation;
     }
 
+    IOChannelParent getParent()
+    {
+        return parent;
+    }
+
     long getRecordsReceived()
     {
         return recordsReceived;
