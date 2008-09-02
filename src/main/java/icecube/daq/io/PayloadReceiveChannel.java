@@ -1,7 +1,7 @@
 /*
  * class: PayloadReceiveChannel
  *
- * Version $Id: PayloadReceiveChannel.java 3433 2008-08-31 16:19:12Z dglo $
+ * Version $Id: PayloadReceiveChannel.java 3439 2008-09-02 17:08:41Z dglo $
  *
  * Date: May 15 2005
  *
@@ -33,7 +33,7 @@ import org.apache.commons.logging.LogFactory;
  * for acquiring buffers into the buffer cache and managing the flow control.
  *
  * @author mcp
- * @version $Id: PayloadReceiveChannel.java 3433 2008-08-31 16:19:12Z dglo $
+ * @version $Id: PayloadReceiveChannel.java 3439 2008-09-02 17:08:41Z dglo $
  */
 public class PayloadReceiveChannel implements IOChannel {
 
@@ -227,7 +227,9 @@ public class PayloadReceiveChannel implements IOChannel {
     protected void exitRecvBody()
     {
        if (payloadBuf.getInt(0) == INT_SIZE) {
-            log.info("PayloadReceiveChannel " + id + " received STOP msg");
+            if (log.isInfoEnabled()) {
+                log.info("PayloadReceiveChannel " + id + " received STOP msg");
+            }
             // count stop message tokens
             stopMsgReceived += 1;
         } else {
@@ -500,7 +502,10 @@ public class PayloadReceiveChannel implements IOChannel {
                         exitRecvHeader();
                         getBuffer();
                         if (handleMorePayloads()) {
-                            log.debug("handling more payloads - bufPos = " + bufPos);
+                            if (log.isDebugEnabled()) {
+                                log.debug("handling more payloads - bufPos = " +
+                                          bufPos);
+                            }
                             continue;
                         }
                         break;

@@ -71,7 +71,9 @@ public class FileDispatcher implements Dispatcher {
 
         Runtime.getRuntime().addShutdownHook(new ShutdownHook());
         this.baseFileName = baseFileName;
-        LOG.info("baseFileName is set to: " + baseFileName);
+        if (LOG.isInfoEnabled()) {
+            LOG.info("baseFileName is set to: " + baseFileName);
+        }
         if ( baseFileName.equalsIgnoreCase("tcal") ||
                    baseFileName.equalsIgnoreCase("sn")){
             maxFileSize = 200000000;
@@ -414,7 +416,9 @@ public class FileDispatcher implements Dispatcher {
         }
 
         dispatchDestStorage = dirName;
-        LOG.info("dispatchDestStorage is set to: " + dispatchDestStorage);
+        if (LOG.isInfoEnabled()) {
+            LOG.info("dispatchDestStorage is set to: " + dispatchDestStorage);
+        }
 
         if (tempFile != null) {
             LOG.error("dispatchDestStorage " + dispatchDestStorage +

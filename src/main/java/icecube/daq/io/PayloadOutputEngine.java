@@ -1,7 +1,7 @@
 /*
  * class: PayloadOutputEngine
  *
- * Version $Id: PayloadOutputEngine.java 2950 2008-04-18 23:20:55Z dglo $
+ * Version $Id: PayloadOutputEngine.java 3439 2008-09-02 17:08:41Z dglo $
  *
  * Date: May 19 2005
  *
@@ -34,7 +34,7 @@ import org.apache.commons.logging.LogFactory;
  * a collection a PayloadTransmitChannels
  *
  * @author mcp
- * @version $Id: PayloadOutputEngine.java 2950 2008-04-18 23:20:55Z dglo $
+ * @version $Id: PayloadOutputEngine.java 3439 2008-09-02 17:08:41Z dglo $
  */
 public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOutputProcess, Runnable {
 
@@ -466,7 +466,7 @@ public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOu
     }
 
     public void sendLastAndStop() {
-        if(debug){
+        if (debug && log.isInfoEnabled()) {
             log.info(componentType + ":" + componentFcn +" -- sendLastAndStop");
         }
         try {
@@ -609,7 +609,7 @@ public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOu
                       componentType + ":" + componentFcn +
                       " state " + getStateName(presState) +
                       " transition signal " + getSignalName(signal));
-        } else if (debug) {
+        } else if (debug && log.isInfoEnabled()) {
             log.info(componentType + ":" + componentFcn + " " +
                      getStateName(presState) + " -> " + getSignalName(signal));
         }

@@ -1,7 +1,7 @@
 /*
  * class: PayloadTransmitChannel
  *
- * Version $Id: PayloadTransmitChannel.java 2894 2008-04-10 18:57:32Z dglo $
+ * Version $Id: PayloadTransmitChannel.java 3439 2008-09-02 17:08:41Z dglo $
  *
  * Date: May 15 2005
  *
@@ -30,7 +30,7 @@ import org.apache.commons.logging.LogFactory;
  * for returning buffers into the buffer cache.
  *
  * @author mcp
- * @version $Id: PayloadTransmitChannel.java 2894 2008-04-10 18:57:32Z dglo $
+ * @version $Id: PayloadTransmitChannel.java 3439 2008-09-02 17:08:41Z dglo $
  */
 public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutputChannel {
 
@@ -146,7 +146,9 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutput
     protected void enterGetBuffer() {
         if (outputQueue.isEmpty()) {
             if (debug && !queueStillEmpty) {
-                log.info(id + ":XMIT:EmptyQueue");
+                if (log.isInfoEnabled()) {
+                    log.info(id + ":XMIT:EmptyQueue");
+                }
                 queueStillEmpty = true;
             }
         } else {
@@ -157,7 +159,9 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutput
                 log.error(e);
             }
             if (debug) {
-                log.info(id + ":XMIT:GotBuf " + buf);
+                if (log.isInfoEnabled()) {
+                    log.info(id + ":XMIT:GotBuf " + buf);
+                }
                 queueStillEmpty = false;
             }
         }
@@ -184,12 +188,14 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutput
             // this is the last message, flag state machine to stop when complete
             lastMsgAndStop = true;
             if (debug) {
-                log.info(id + ":XMIT:stop");
+                if (log.isInfoEnabled()) {
+                    log.info(id + ":XMIT:stop");
+                }
             }
         }
         try {
             channel.write(buf);
-            if (debug) {
+            if (debug && log.isInfoEnabled()) {
                 log.info(id + ":XMIT:wrote " + buf.getInt(0) + " bytes");
             }
         } catch (IOException e) {
@@ -202,11 +208,11 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutput
     protected void exitTransMsg() {
         // track some statistics
         bytesSent += buf.getInt(0);
-        if (debug) {
+        if (debug && log.isInfoEnabled()) {
             log.info(id + ":XMIT:sent " + bytesSent + " bytes");
         }
         recordsSent += 1;
-        if (debug) {
+        if (debug && log.isInfoEnabled()) {
             log.info(id + ":XMIT:sent " + recordsSent + " recs");
         }
         if (buf.getInt(0) == INT_SIZE) {
@@ -234,7 +240,7 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutput
 
     protected void enterError() {
         if (compObserver != null) {
-            if (debug) {
+            if (debug && log.isInfoEnabled()) {
                 log.info(id + ":XMIT:Error");
             }
             compObserver.update(ErrorState.UNKNOWN_ERROR, notificationID);
@@ -246,7 +252,7 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutput
 
     protected void notifyOnStop() {
         if (compObserver != null) {
-            if (debug) {
+            if (debug && log.isInfoEnabled()) {
                 log.info(id + ":XMIT:Stop");
             }
             compObserver.update(NormalState.STOPPED, notificationID);
@@ -375,7 +381,7 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutput
             log.debug("PayloadTransmitEngine " + id +
                     " state " + getStateName(presState) +
                     " transition signal " + getSignalName(signal));
-        } else if (debug) {
+        } else if (debug && log.isInfoEnabled()) {
             log.info(id + " " + getStateName(presState) + " -> " +
                      getSignalName(signal));
         }
