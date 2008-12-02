@@ -8,17 +8,13 @@
  * (c) 2005 IceCube Collaboration
  */
 
-package icecube.daq.io.test;
+package icecube.daq.io;
 
 import EDU.oswego.cs.dl.util.concurrent.LinkedQueue;
 
 import icecube.daq.common.DAQCmdInterface;
-import icecube.daq.io.DAQComponentObserver;
-import icecube.daq.io.ErrorState;
-import icecube.daq.io.NormalState;
-import icecube.daq.io.QueuedOutputChannel;
-import icecube.daq.io.SimpleOutputEngine;
-import icecube.daq.io.PayloadTransmitChannel;
+import icecube.daq.io.test.IOTestUtil;
+import icecube.daq.io.test.LoggingCase;
 import icecube.daq.io.test.MockObserver;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.VitreousBufferCache;
