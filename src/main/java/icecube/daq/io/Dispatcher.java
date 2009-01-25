@@ -1,7 +1,7 @@
 /*
  * interface: Dispatcher
  *
- * Version $Id: Dispatcher.java 2651 2008-02-14 20:36:05Z dglo $
+ * Version $Id: Dispatcher.java 3858 2009-01-25 19:06:04Z dglo $
  *
  * Date: April 1 2004
  *
@@ -18,7 +18,7 @@ import java.nio.ByteBuffer;
  * This interface specifies how events are dispatched from the DAQ system.
  *
  * @author patton
- * @version $Id: Dispatcher.java 2651 2008-02-14 20:36:05Z dglo $
+ * @version $Id: Dispatcher.java 3858 2009-01-25 19:06:04Z dglo $
  */
 public interface Dispatcher
 {
@@ -117,7 +117,7 @@ public interface Dispatcher
      *
      * @return the number of units still available in the disk.
      */
-    int getDiskAvailable();
+    long getDiskAvailable();
 
     /**
      * Returns the total number of units in the disk (measured in MB).
@@ -125,5 +125,5 @@ public interface Dispatcher
      *
      * @return the total number of units in the disk.
      */
-    int getDiskSize();
+    long getDiskSize();
 }

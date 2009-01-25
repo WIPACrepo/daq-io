@@ -29,7 +29,7 @@ public class FileDispatcher implements Dispatcher {
         DAQCmdInterface.DAQ_ONLINE_RUNSTOP_FLAG;
     private static final String SUBRUN_START_PREFIX =
         DAQCmdInterface.DAQ_ONLINE_SUBRUNSTART_FLAG;
-    private static final int KB_IN_MB = 1024;
+    private static final long KB_IN_MB = 1024;
 
     private String baseFileName;
     private int numStarts;
@@ -43,8 +43,8 @@ public class FileDispatcher implements Dispatcher {
     private String dispatchDestStorage;
     private int fileIndex;
     private long startingEventNum;
-    private int diskSize;          // measured in MB
-    private int diskAvailable;     // measured in MB
+    private long diskSize;          // measured in MB
+    private long diskAvailable;     // measured in MB
 
     public FileDispatcher(String baseFileName) {
         this(getDefaultDispatchDirectory(baseFileName), baseFileName, null);
@@ -446,7 +446,7 @@ public class FileDispatcher implements Dispatcher {
      *
      * @return the number of units still available in the disk.
      */
-    public int getDiskAvailable(){
+    public long getDiskAvailable(){
         return diskAvailable;
     }
 
@@ -456,7 +456,7 @@ public class FileDispatcher implements Dispatcher {
      *
      * @return the total number of units in the disk.
      */
-    public int getDiskSize(){
+    public long getDiskSize(){
         return diskSize;
     }
 
@@ -504,8 +504,8 @@ public class FileDispatcher implements Dispatcher {
             diskAvailable = -1;
             return;
         }
-        diskSize = (int)usage.getBlocks() / KB_IN_MB;
-        diskAvailable = (int) usage.getAvailable() / KB_IN_MB;
+        diskSize = usage.getBlocks() / KB_IN_MB;
+        diskAvailable = usage.getAvailable() / KB_IN_MB;
     }
 
     /**
