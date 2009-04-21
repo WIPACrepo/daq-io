@@ -461,15 +461,10 @@ public class FileDispatcher implements Dispatcher {
     }
 
     private File getDestFile(){
-        // TODO: Add the time in the next version
-        //long millisec = System.currentTimeMillis();
-        //Date date = new Date(millisec);
-        //SimpleDateFormat dateFormat = new SimpleDateFormat("yyMMddHHmmssZ");
-        //String fileName = baseFileName + "_" + runNumber + "_" + fileIndex + "_" + startingEventNum + "_" +
-        //                  + totalDispatchedEvents + "_" + dateFormat.format(date);
-        String fileName = baseFileName + "_" + runNumber + "_" + fileIndex + "_" + startingEventNum + "_" +
-                          + totalDispatchedEvents;
+        String fileName = baseFileName + "_" + runNumber + "_" + fileIndex +
+            "_" + startingEventNum + "_" + + totalDispatchedEvents;
         File file = new File(dispatchDestStorage, fileName + ".dat");
+
         ++fileIndex;
 
         return file;
