@@ -130,9 +130,6 @@ public class FileDispatcher implements Dispatcher {
                 if (outChannel != null && outChannel.isOpen()) {
                     moveToDest();
                 }
-
-                fileIndex = 0;
-                startingEventNum = 0;
             }
         } else if (message.startsWith(SUBRUN_START_PREFIX)) {
             if (outChannel != null && outChannel.isOpen()) {
