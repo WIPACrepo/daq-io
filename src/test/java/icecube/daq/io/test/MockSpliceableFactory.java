@@ -19,12 +19,6 @@ try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
         throw new Error("Unimplemented");
     }
 
-    public Spliceable createCurrentPlaceSpliceable()
-    {
-try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
-        throw new Error("Unimplemented");
-    }
-
     public Spliceable createSpliceable(ByteBuffer bBuf)
     {
         return new MockSpliceable(bBuf);

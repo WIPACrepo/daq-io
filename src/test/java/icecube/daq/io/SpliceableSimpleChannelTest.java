@@ -184,11 +184,6 @@ public class SpliceableSimpleChannelTest
             throw new Error("Unimplemented");
         }
 
-        public Spliceable createCurrentPlaceSpliceable()
-        {
-            throw new Error("Unimplemented");
-        }
-
         public Spliceable createSpliceable(ByteBuffer buf)
         {
             return new MockSpliceable(bufMgr, buf);
