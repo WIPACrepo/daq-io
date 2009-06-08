@@ -306,7 +306,7 @@ public class SimpleReaderTest
     public void testBasic()
         throws IOException
     {
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("Basic");
 
         Pipe testPipe = Pipe.open();
         Pipe.SinkChannel sinkChannel = testPipe.sink();
@@ -404,7 +404,7 @@ public class SimpleReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("OutIn");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -470,7 +470,7 @@ public class SimpleReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("MultiOutIn");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -556,7 +556,7 @@ public class SimpleReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("MultiSzOutIn");
 
         MockObserver observer = new MockObserver();
 
@@ -661,7 +661,7 @@ public class SimpleReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("Disp");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -719,7 +719,7 @@ public class SimpleReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("Get");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -787,7 +787,7 @@ public class SimpleReaderTest
     public void testInetServer()
         throws Exception
     {
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("InetSrvr");
 
         tstRdr = new SimpleTestReader("InetServer");
 
@@ -883,7 +883,7 @@ public class SimpleReaderTest
     public void testMultiServer()
         throws Exception
     {
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("MultiSrvr");
 
         final int numTstRdrs = 4;
 
@@ -990,7 +990,7 @@ public class SimpleReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("SrvrIn");
 
         Selector sel = Selector.open();
 
@@ -1083,7 +1083,7 @@ public class SimpleReaderTest
 
         // buffer caching manager
         IByteBufferCache bufMgr =
-            new VitreousBufferCache((long) (bufLen * 4));
+            new VitreousBufferCache("AllocRe", (long) (bufLen * 4));
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();

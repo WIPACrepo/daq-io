@@ -403,7 +403,7 @@ public class FileDispatcherTest
     public void testDispatchEvent()
         throws DispatchException
     {
-        IByteBufferCache bufCache = new VitreousBufferCache();
+        IByteBufferCache bufCache = new VitreousBufferCache("DispEvt");
 
         FileDispatcher fd = new FileDispatcher("physics", bufCache);
         handleLogMessages();
@@ -604,7 +604,7 @@ public class FileDispatcherTest
         }
 
         try {
-            IByteBufferCache bufCache = new VitreousBufferCache();
+            IByteBufferCache bufCache = new VitreousBufferCache("Full");
 
             FileDispatcher fd =
                 new FileDispatcher(destDirName, "physics", bufCache);

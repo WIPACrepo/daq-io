@@ -106,7 +106,7 @@ public class PushPayloadReaderTest
     public void testStartStop()
         throws Exception
     {
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("StartStop");
 
         tstRdr = new MockPushReader("StartStop", bufMgr);
 
@@ -146,7 +146,7 @@ public class PushPayloadReaderTest
     public void testStartDispose()
         throws Exception
     {
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("StartDisp");
 
         tstRdr = new MockPushReader("StartDisp", bufMgr);
 
@@ -164,7 +164,7 @@ public class PushPayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("OutIn");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -236,7 +236,7 @@ public class PushPayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("MultiOutIn");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();

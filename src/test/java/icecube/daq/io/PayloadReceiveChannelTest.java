@@ -44,7 +44,7 @@ public class PayloadReceiveChannelTest
 
         Pipe.SourceChannel srcChan = testPipe.source();
 
-        IByteBufferCache cacheMgr = new VitreousBufferCache();
+        IByteBufferCache cacheMgr = new VitreousBufferCache("Ctor");
 
         Semaphore inputSem = new Semaphore(0);
 

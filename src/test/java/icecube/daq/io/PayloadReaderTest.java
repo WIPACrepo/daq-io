@@ -305,7 +305,7 @@ public class PayloadReaderTest
     public void testBasic()
         throws IOException
     {
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("Basic");
 
         Pipe testPipe = Pipe.open();
         Pipe.SinkChannel sinkChannel = testPipe.sink();
@@ -403,7 +403,7 @@ public class PayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("OutIn");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -469,7 +469,7 @@ public class PayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("MultiOutIn");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -555,7 +555,7 @@ public class PayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("MultiSzOutIn");
 
         MockObserver observer = new MockObserver();
 
@@ -660,7 +660,7 @@ public class PayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("Disp");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -718,7 +718,7 @@ public class PayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("Get");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -789,7 +789,7 @@ public class PayloadReaderTest
     public void testInetServer()
         throws Exception
     {
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("InetSrvr");
 
         tstRdr = new SimplePayloadReader("InetServer");
 
@@ -894,7 +894,7 @@ public class PayloadReaderTest
     public void testMultiServer()
         throws Exception
     {
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("MultiSrvr");
 
         final int numTstRdrs = 4;
 
@@ -1003,7 +1003,7 @@ public class PayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("SrvrIn");
 
         Selector sel = Selector.open();
 

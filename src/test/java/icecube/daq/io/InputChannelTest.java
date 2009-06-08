@@ -89,9 +89,9 @@ public class InputChannelTest
         for (int i = 0; i < vals.length; i++) {
             IByteBufferCache bufMgr;
             if (vals[i] == Long.MIN_VALUE) {
-                bufMgr = new VitreousBufferCache();
+                bufMgr = new VitreousBufferCache("AllocLim");
             } else {
-                bufMgr = new VitreousBufferCache(vals[i]);
+                bufMgr = new VitreousBufferCache("AllocLim", vals[i]);
             }
 
             InputChannel chan =

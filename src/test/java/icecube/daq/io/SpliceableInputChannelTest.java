@@ -227,7 +227,7 @@ public class SpliceableInputChannelTest
 
         Pipe pipe = Pipe.open();
 
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("OOO");
 
         MockFactory factory = new MockFactory(bufMgr);
 

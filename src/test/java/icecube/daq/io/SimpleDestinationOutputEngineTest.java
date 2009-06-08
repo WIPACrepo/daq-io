@@ -104,7 +104,7 @@ public class SimpleDestinationOutputEngineTest
         assertEquals("Unexpected number of messages sent",
                      0, eng.getMessagesSent());
 
-        IByteBufferCache cache = new VitreousBufferCache();
+        IByteBufferCache cache = new VitreousBufferCache("Basic");
         eng.registerBufferManager(cache);
         assertEquals("Unexpected cache manager", cache, eng.getBufferManager());
     }
@@ -124,7 +124,7 @@ public class SimpleDestinationOutputEngineTest
         engine.start();
         IOTestUtil.waitUntilStopped(engine, "creation");
 
-        IByteBufferCache cacheMgr = new VitreousBufferCache();
+        IByteBufferCache cacheMgr = new VitreousBufferCache("Conn");
         engine.registerBufferManager(cacheMgr);
 
         SocketChannel sock =
@@ -182,7 +182,7 @@ public class SimpleDestinationOutputEngineTest
         engine.start();
         IOTestUtil.waitUntilStopped(engine, "creation");
 
-        IByteBufferCache cacheMgr = new VitreousBufferCache();
+        IByteBufferCache cacheMgr = new VitreousBufferCache("SendData");
         engine.registerBufferManager(cacheMgr);
 
         SocketChannel sock =

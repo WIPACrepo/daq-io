@@ -205,7 +205,7 @@ public class SimpleOutputEngineTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache cacheMgr = new VitreousBufferCache();
+        IByteBufferCache cacheMgr = new VitreousBufferCache("OutLoop");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -297,7 +297,7 @@ public class SimpleOutputEngineTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache cacheMgr = new VitreousBufferCache();
+        IByteBufferCache cacheMgr = new VitreousBufferCache("SrvrOut");
 
         Selector sel = Selector.open();
 
@@ -393,7 +393,7 @@ public class SimpleOutputEngineTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache cacheMgr = new VitreousBufferCache();
+        IByteBufferCache cacheMgr = new VitreousBufferCache("Disconn");
 
         Selector sel = Selector.open();
 

@@ -1,7 +1,7 @@
 /*
  * class: PayloadOutputEngineTest
  *
- * Version $Id: PayloadOutputEngineTest.java 2894 2008-04-10 18:57:32Z dglo $
+ * Version $Id: PayloadOutputEngineTest.java 4268 2009-06-08 16:50:49Z dglo $
  *
  * Date: May 19 2005
  *
@@ -42,7 +42,7 @@ import junit.textui.TestRunner;
  * This class defines the tests that any PayloadOutputEngine object should pass.
  *
  * @author mcp
- * @version $Id: PayloadOutputEngineTest.java 2894 2008-04-10 18:57:32Z dglo $
+ * @version $Id: PayloadOutputEngineTest.java 4268 2009-06-08 16:50:49Z dglo $
  */
 public class PayloadOutputEngineTest
     extends LoggingCase
@@ -276,7 +276,7 @@ public class PayloadOutputEngineTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache cacheMgr = new VitreousBufferCache();
+        IByteBufferCache cacheMgr = new VitreousBufferCache("OutLoop");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -372,7 +372,7 @@ public class PayloadOutputEngineTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache cacheMgr = new VitreousBufferCache();
+        IByteBufferCache cacheMgr = new VitreousBufferCache("SrvrOut");
 
         Selector sel = Selector.open();
 
