@@ -518,4 +518,11 @@ public class FileDispatcher implements Dispatcher {
             }
         }
     }
+
+    public String toString()
+    {
+        return "FileDispatcher[" + baseFileName + " starts " + numStarts +
+            " run " + runNumber + " idx " + fileIndex +
+            " totDisp " + totalDispatchedEvents + "]";
+    }
 }
