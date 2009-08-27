@@ -1,35 +1,29 @@
 package icecube.daq.io;
 
+import icecube.daq.io.test.IOTestUtil;
 import icecube.daq.io.test.LoggingCase;
 import icecube.daq.io.test.MockObserver;
-
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.VitreousBufferCache;
 
 import java.io.IOException;
-
 import java.net.InetSocketAddress;
-
 import java.nio.ByteBuffer;
-
 import java.nio.channels.Pipe;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.nio.channels.WritableByteChannel;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
 import junit.framework.Test;
 import junit.framework.TestSuite;
-
 import junit.textui.TestRunner;
 
-class SimpleReader
+class SimplePayloadReader
     extends PayloadReader
 {
     private ArrayList<ByteBuffer> inputData = new ArrayList<ByteBuffer>();
@@ -37,7 +31,7 @@ class SimpleReader
     class TestChannel
         extends InputChannel
     {
-        TestChannel(InputChannelParent parent, SelectableChannel channel,
+        TestChannel(IOChannelParent parent, SelectableChannel channel,
                     IByteBufferCache bufMgr, int bufSize)
             throws IOException
         {
@@ -50,16 +44,22 @@ class SimpleReader
                 inputData.add(buf);
             }
         }
+
+        public void registerComponentObserver(DAQComponentObserver compObserver,
+                                              String notificationID)
+        {
+            throw new Error("Unimplemented");
+        }
     }
 
-    SimpleReader(String name)
+    SimplePayloadReader(String name)
         throws IOException
     {
         super(name);
     }
 
     public InputChannel createChannel(SelectableChannel channel,
-                               IByteBufferCache bufMgr, int bufSize)
+                                      IByteBufferCache bufMgr, int bufSize)
         throws IOException
     {
         return new TestChannel(this, channel, bufMgr, bufSize);
@@ -89,9 +89,7 @@ public class PayloadReaderTest
     private static final int BUFFER_LEN = 5000;
     private static final int INPUT_OUTPUT_LOOP_CNT = 5;
 
-    private static ByteBuffer stopMsg;
-
-    private SimpleReader tstRdr;
+    private SimplePayloadReader tstRdr;
 
     /**
      * Constructs an instance of this test.
@@ -195,7 +193,7 @@ public class PayloadReaderTest
                 name = "curAcqBuf";
                 data = rdr.getBufferCurrentAcquiredBuffers();
                 val = bufsAcquired;
-            break;
+                break;
             case 6:
                 name = "curAcqByt";
                 data = rdr.getBufferCurrentAcquiredBytes();
@@ -217,7 +215,7 @@ public class PayloadReaderTest
             }
         }
     }
-                                           
+
     int createServer(Selector sel)
         throws IOException
     {
@@ -232,13 +230,15 @@ public class PayloadReaderTest
         return ssChan.socket().getLocalPort();
     }
 
-    private static final int harvestBuffers(SimpleReader tstRdr, int bufLen,
+    private static final int harvestBuffers(SimplePayloadReader tstRdr,
+                                            int bufLen,
                                             IByteBufferCache bufMgr)
     {
         return harvestBuffers(tstRdr, bufLen, bufMgr, false, 0);
     }
 
-    private static final int harvestBuffers(SimpleReader tstRdr, int bufLen,
+    private static final int harvestBuffers(SimplePayloadReader tstRdr,
+                                            int bufLen,
                                             IByteBufferCache bufMgr,
                                             boolean checkId, int prevId)
     {
@@ -267,23 +267,11 @@ public class PayloadReaderTest
             }
 
             bufMgr.returnBuffer(buf);
+
             numHarvested++;
         }
 
         return numHarvested;
-    }
-
-    private static final void sendStopMsg(WritableByteChannel sinkChannel)
-        throws IOException
-    {
-        if (stopMsg == null) {
-            stopMsg = ByteBuffer.allocate(4);
-            stopMsg.putInt(0, 4);
-            stopMsg.limit(4);
-        }
-
-        stopMsg.position(0);
-        sinkChannel.write(stopMsg);
     }
 
     protected void setUp()
@@ -317,7 +305,7 @@ public class PayloadReaderTest
     public void testBasic()
         throws IOException
     {
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("Basic");
 
         Pipe testPipe = Pipe.open();
         Pipe.SinkChannel sinkChannel = testPipe.sink();
@@ -325,19 +313,15 @@ public class PayloadReaderTest
 
         Pipe.SourceChannel sourceChannel = testPipe.source();
 
-        tstRdr = new SimpleReader("Basic");
+        tstRdr = new SimplePayloadReader("Basic");
 
         tstRdr.start();
-        waitUntilStopped(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after creation", tstRdr.isStopped());
+        IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
         tstRdr.addDataChannel(sourceChannel, bufMgr, 256);
 
         tstRdr.startProcessing();
-        waitUntilRunning(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Running after StartSig", tstRdr.isRunning());
+        IOTestUtil.waitUntilRunning(tstRdr);
 
         // now move some buffers
         ByteBuffer testBuf;
@@ -352,12 +336,13 @@ public class PayloadReaderTest
                 final int acquireLen = bufLen;
                 testBuf = bufMgr.acquireBuffer(acquireLen);
                 assertNotNull("Unable to acquire transmit buffer on " +
-                              xmitCnt + " try.", testBuf);
+                              xmitCnt + " try", testBuf);
 
                 testBuf.putInt(0, bufLen);
                 testBuf.limit(bufLen);
                 testBuf.position(0);
                 sinkChannel.write(testBuf);
+
                 bufMgr.returnBuffer(testBuf);
 
                 xmitCnt++;
@@ -371,7 +356,6 @@ public class PayloadReaderTest
                      " buffers were transmitted");
             }
         }
-
     }
 
     /**
@@ -380,42 +364,36 @@ public class PayloadReaderTest
     public void testStartStop()
         throws Exception
     {
-        tstRdr = new SimpleReader("StartStop");
+        tstRdr = new SimplePayloadReader("StartStop");
 
         tstRdr.start();
-        waitUntilStopped(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after creation", tstRdr.isStopped());
+        IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
         tstRdr.startProcessing();
-        waitUntilRunning(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Running after StartSig", tstRdr.isRunning());
+        IOTestUtil.waitUntilRunning(tstRdr);
 
         tstRdr.forcedStopProcessing();
-        waitUntilStopped(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after StopSig", tstRdr.isStopped());
+        IOTestUtil.waitUntilStopped(tstRdr, "forced stop");
+
+        assertEquals("Bad number of log messages",
+                     0, getNumberOfMessages());
 
         // try it a second time
         tstRdr.startProcessing();
-        waitUntilRunning(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Running after StartSig", tstRdr.isRunning());
+        IOTestUtil.waitUntilRunning(tstRdr);
 
         tstRdr.forcedStopProcessing();
-        waitUntilStopped(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after StopSig", tstRdr.isStopped());
+        IOTestUtil.waitUntilStopped(tstRdr, "forced stop");
 
         tstRdr.destroyProcessor();
-        waitUntilDestroyed(tstRdr);
-        assertTrue("PayloadReader did not die after kill request",
-                   tstRdr.isDestroyed());
+        IOTestUtil.waitUntilDestroyed(tstRdr);
+
+        assertEquals("Bad number of log messages",
+                     0, getNumberOfMessages());
 
         try {
             tstRdr.startProcessing();
-            fail("PayloadReader restart after kill succeeded");
+            fail("Reader restart after kill succeeded");
         } catch (Error e) {
             // expect this to fail
         }
@@ -425,7 +403,7 @@ public class PayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("OutIn");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -437,20 +415,16 @@ public class PayloadReaderTest
 
         MockObserver observer = new MockObserver();
 
-        tstRdr = new SimpleReader("OutputInput");
+        tstRdr = new SimplePayloadReader("OutputInput");
         tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
-        waitUntilStopped(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after creation", tstRdr.isStopped());
+        IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
         tstRdr.addDataChannel(sourceChannel, bufMgr);
 
         tstRdr.startProcessing();
-        waitUntilRunning(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Running after startup", tstRdr.isRunning());
+        IOTestUtil.waitUntilRunning(tstRdr);
 
         // now move some buffers
         ByteBuffer testBuf;
@@ -465,7 +439,7 @@ public class PayloadReaderTest
                 final int acquireLen = bufLen;
                 testBuf = bufMgr.acquireBuffer(acquireLen);
                 assertNotNull("Unable to acquire transmit buffer on " +
-                              xmitCnt + " try.", testBuf);
+                              xmitCnt + " try", testBuf);
 
                 testBuf.putInt(0, bufLen);
                 testBuf.limit(bufLen);
@@ -473,6 +447,7 @@ public class PayloadReaderTest
                 sinkChannel.write(testBuf);
 
                 bufMgr.returnBuffer(testBuf);
+
                 xmitCnt++;
             }
 
@@ -485,18 +460,16 @@ public class PayloadReaderTest
             }
         }
 
-        sendStopMsg(sinkChannel);
-
-        Thread.sleep(100);
-        assertTrue("Failure on sendStopMsg command.",
-                   observer.gotSinkStop());
+        IOTestUtil.sendStopMsg(sinkChannel);
+        IOTestUtil.waitUntilStopped(tstRdr, "stop msg");
+        assertTrue("Observer didn't see sinkStop", observer.gotSinkStop());
     }
 
     public void testMultiOutputInput()
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("MultiOutIn");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -508,20 +481,16 @@ public class PayloadReaderTest
 
         MockObserver observer = new MockObserver();
 
-        tstRdr = new SimpleReader("MultiOutputInput");
+        tstRdr = new SimplePayloadReader("MultiOutputInput");
         tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
-        waitUntilStopped(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after creation", tstRdr.isStopped());
+        IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
         tstRdr.addDataChannel(sourceChannel, bufMgr, 1024);
 
         tstRdr.startProcessing();
-        waitUntilRunning(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Running after StartSig", tstRdr.isRunning());
+        IOTestUtil.waitUntilRunning(tstRdr);
 
         // now move some buffers
         ByteBuffer testBuf;
@@ -542,7 +511,7 @@ public class PayloadReaderTest
                 final int acquireLen = bufLen * groupSize;
                 testBuf = bufMgr.acquireBuffer(acquireLen);
                 assertNotNull("Unable to acquire transmit buffer on " +
-                              xmitCnt + " try.", testBuf);
+                              xmitCnt + " try", testBuf);
 
                 for (int i = 0; i < groupSize; i++) {
                     final int start = bufLen * i;
@@ -552,7 +521,9 @@ public class PayloadReaderTest
                 testBuf.limit(acquireLen);
                 testBuf.position(0);
                 sinkChannel.write(testBuf);
+
                 bufMgr.returnBuffer(testBuf);
+
                 xmitCnt += groupSize;
             } else {
                 try {
@@ -575,31 +546,24 @@ public class PayloadReaderTest
             }
         }
 
-        sendStopMsg(sinkChannel);
-
-        Thread.sleep(100);
-        assertTrue("Failure on sendStopMsg command.",
-                   observer.gotSinkStop());
-
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after stop", tstRdr.isStopped());
+        IOTestUtil.sendStopMsg(sinkChannel);
+        IOTestUtil.waitUntilStopped(tstRdr, "stop msg");
+        assertTrue("Observer didn't see sinkStop", observer.gotSinkStop());
     }
 
     public void testMultiSizeOutputInput()
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("MultiSzOutIn");
 
         MockObserver observer = new MockObserver();
 
-        tstRdr = new SimpleReader("MultiSize");
+        tstRdr = new SimplePayloadReader("MultiSize");
         tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
-        waitUntilStopped(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after creation", tstRdr.isStopped());
+        IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
         // avoid a Sun race condition
         try {
@@ -608,8 +572,6 @@ public class PayloadReaderTest
             // ignore interrupts
         }
 
-        //for (int msgSize = 10; msgSize <= 13; msgSize++) {
-        //    for (int bufLen = 32; bufLen <= 40; bufLen++) {
         for (int msgSize = 10; msgSize <= 13; msgSize++) {
             for (int bufLen = 32; bufLen <= 40; bufLen++) {
                 // create a pipe for use in testing
@@ -623,10 +585,8 @@ public class PayloadReaderTest
                 tstRdr.addDataChannel(sourceChannel, bufMgr, bufLen);
 
                 tstRdr.startProcessing();
-                waitUntilRunning(tstRdr);
-                assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                           ", not Running after startup (msgSize " + msgSize +
-                           ", bufLen " + bufLen + ")", tstRdr.isRunning());
+                IOTestUtil.waitUntilRunning(tstRdr, " (msgSize " + msgSize +
+                                            ", bufLen " + bufLen + ")");
 
                 assertEquals("There are acquired byte buffers before start" +
                              " (msgSize " + msgSize + ", bufLen " + bufLen +
@@ -648,7 +608,7 @@ public class PayloadReaderTest
                         final int acquireLen = msgSize * groupSize;
                         testBuf = bufMgr.acquireBuffer(acquireLen);
                         assertNotNull("Unable to acquire transmit buffer on " +
-                                      xmitCnt + " try.", testBuf);
+                                      xmitCnt + " try", testBuf);
 
                         for (int i = 0; i < groupSize; i++) {
                             final int start = msgSize * i;
@@ -658,7 +618,9 @@ public class PayloadReaderTest
                         testBuf.limit(acquireLen);
                         testBuf.position(0);
                         sinkChannel.write(testBuf);
+
                         bufMgr.returnBuffer(testBuf);
+
                         xmitCnt += groupSize;
                     } else {
                         try {
@@ -683,13 +645,10 @@ public class PayloadReaderTest
                     }
                 }
 
-                sendStopMsg(sinkChannel);
-
-                waitUntilStopped(tstRdr);
-                assertTrue("Failure on sendStopMsg command.",
+                IOTestUtil.sendStopMsg(sinkChannel);
+                IOTestUtil.waitUntilStopped(tstRdr, "stop msg");
+                assertTrue("Observer didn't see sinkStop",
                            observer.gotSinkStop());
-                assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                           ", not Idle after stop", tstRdr.isStopped());
 
                 assertEquals("There are still unreturned byte buffers",
                              0, bufMgr.getCurrentAquiredBuffers());
@@ -701,7 +660,7 @@ public class PayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("Disp");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -713,20 +672,16 @@ public class PayloadReaderTest
 
         MockObserver observer = new MockObserver();
 
-        tstRdr = new SimpleReader("Disposing");
+        tstRdr = new SimplePayloadReader("Disposing");
         tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
-        waitUntilStopped(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after creation", tstRdr.isStopped());
+        IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
         tstRdr.addDataChannel(sourceChannel, bufMgr);
 
         tstRdr.startProcessing();
-        waitUntilRunning(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Running after startup", tstRdr.isRunning());
+        IOTestUtil.waitUntilRunning(tstRdr);
 
         // now move some buffers
         ByteBuffer testBuf;
@@ -743,27 +698,27 @@ public class PayloadReaderTest
             testBuf.limit(bufLen);
             testBuf.position(0);
             sinkChannel.write(testBuf);
+
             bufMgr.returnBuffer(testBuf);
 
             if (i == 1) {
                 tstRdr.startDisposing();
+                IOTestUtil.waitUntilDisposing(tstRdr);
             }
 
             harvestBuffers(tstRdr, bufLen, bufMgr);
         }
 
-        sendStopMsg(sinkChannel);
-
-        Thread.sleep(100);
-        assertTrue("Failure on sendStopMsg command.",
-                   observer.gotSinkStop());
+        IOTestUtil.sendStopMsg(sinkChannel);
+        IOTestUtil.waitUntilStopped(tstRdr, "stop msg");
+        assertTrue("Observer didn't see sinkStop", observer.gotSinkStop());
     }
 
     public void testGetters()
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("Get");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -775,20 +730,16 @@ public class PayloadReaderTest
 
         MockObserver observer = new MockObserver();
 
-        tstRdr = new SimpleReader("Getters");
+        tstRdr = new SimplePayloadReader("Getters");
         tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
-        waitUntilStopped(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after creation", tstRdr.isStopped());
+        IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
         tstRdr.addDataChannel(sourceChannel, bufMgr);
 
         tstRdr.startProcessing();
-        waitUntilRunning(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Running after startup", tstRdr.isRunning());
+        IOTestUtil.waitUntilRunning(tstRdr);
 
         checkGetters(tstRdr, 1, 0, 0, 0, 0, 0);
 
@@ -809,26 +760,25 @@ public class PayloadReaderTest
         testBuf.flip();
 
         sinkChannel.write(testBuf);
+
         bufMgr.returnBuffer(testBuf);
-        for (int i = 0; !tstRdr.isError() && i < 10; i++) {
+
+        // wait for buffer to be received
+        for (int i = 0;
+             tstRdr.getRecordsReceived()[0].longValue() == 0 && i < 10; i++)
+        {
             Thread.sleep(100);
         }
 
         checkGetters(tstRdr, 1, 1, acquireLen, bufLen, 1, 0);
 
-        assertFalse("PayloadReader in Error state after ErrorSig",
-                   tstRdr.isError());
-        assertFalse("Error notification was received.",
-                   observer.gotSinkError());
+        assertFalse("Reader in Error state after ErrorSig",
+                    tstRdr.isError());
+        assertFalse("Observer saw sinkError", observer.gotSinkError());
 
-        sendStopMsg(sinkChannel);
-
-        for (int i = 0; i < 5 && !tstRdr.isStopped(); i++) {
-            Thread.sleep(100);
-        }
-
-        assertTrue("Sink stop notification was not received.",
-                   observer.gotSinkStop());
+        IOTestUtil.sendStopMsg(sinkChannel);
+        IOTestUtil.waitUntilStopped(tstRdr, "stop msg");
+        assertTrue("Observer didn't see sinkStop", observer.gotSinkStop());
 
         checkGetters(tstRdr, 0, 0, BUFFER_LEN, bufLen, 1, 1);
     }
@@ -839,18 +789,16 @@ public class PayloadReaderTest
     public void testInetServer()
         throws Exception
     {
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("InetSrvr");
 
-        tstRdr = new SimpleReader("InetServer");
+        tstRdr = new SimplePayloadReader("InetServer");
 
         tstRdr.start();
-        waitUntilStopped(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after creation", tstRdr.isStopped());
+        IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
         tstRdr.startServer(bufMgr);
 
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
+        assertTrue("Reader in " + tstRdr.getPresentState() +
                    ", not Idle after server start", tstRdr.isStopped());
 
         InetSocketAddress addr =
@@ -866,9 +814,7 @@ public class PayloadReaderTest
         Thread.sleep(100);
 
         tstRdr.startProcessing();
-        waitUntilRunning(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Running after startup", tstRdr.isRunning());
+        IOTestUtil.waitUntilRunning(tstRdr);
 
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
@@ -884,7 +830,7 @@ public class PayloadReaderTest
             final int acquireLen = bufLen;
             testBuf = bufMgr.acquireBuffer(acquireLen);
             assertNotNull("Unable to acquire transmit buffer on " +
-                          xmitCnt + " try.", testBuf);
+                          xmitCnt + " try", testBuf);
 
             testBuf.putInt(0, bufLen);
             testBuf.limit(bufLen);
@@ -916,31 +862,27 @@ public class PayloadReaderTest
         clearMessages();
 
         tstRdr.forcedStopProcessing();
-        Thread.sleep(100);
+        IOTestUtil.waitUntilStopped(tstRdr, "forced stop");
 
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after StopSig", tstRdr.isStopped());
+        assertEquals("Bad number of log messages",
+                     0, getNumberOfMessages());
 
         // try it a second time
         tstRdr.startProcessing();
-        waitUntilRunning(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Running after startup", tstRdr.isRunning());
+        IOTestUtil.waitUntilRunning(tstRdr);
 
         tstRdr.forcedStopProcessing();
-        Thread.sleep(100);
-
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after StopSig", tstRdr.isStopped());
+        IOTestUtil.waitUntilStopped(tstRdr, "forced stop");
 
         tstRdr.destroyProcessor();
-        waitUntilDestroyed(tstRdr);
-        assertTrue("PayloadReader did not die after kill request",
-                   tstRdr.isDestroyed());
+        IOTestUtil.waitUntilDestroyed(tstRdr);
+
+        assertEquals("Bad number of log messages",
+                     0, getNumberOfMessages());
 
         try {
             tstRdr.startProcessing();
-            fail("PayloadReader restart after kill succeeded");
+            fail("Reader restart after kill succeeded");
         } catch (Error e) {
             // expect this to fail
         }
@@ -952,28 +894,27 @@ public class PayloadReaderTest
     public void testMultiServer()
         throws Exception
     {
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("MultiSrvr");
 
         final int numTstRdrs = 4;
 
-        PayloadReader[] tstRdrs = new SimpleReader[numTstRdrs];
+        PayloadReader[] tstRdrs = new SimplePayloadReader[numTstRdrs];
 
         // create a bunch of engines
         for (int i = 0; i < numTstRdrs; i++) {
-            tstRdrs[i] = new SimpleReader("MultiServer");
+            tstRdrs[i] = new SimplePayloadReader("MultiServer");
 
             tstRdrs[i].start();
-            waitUntilStopped(tstRdrs[i]);
-            assertTrue("PayloadReader in " + tstRdrs[i].getPresentState() +
-                       ", not Idle after creation", tstRdrs[i].isStopped());
+            IOTestUtil.waitUntilStopped(tstRdrs[i], "creation",
+                                        " (#" + i + ")");
         }
 
         // start all the servers
         for (int i = 0; i < numTstRdrs; i++) {
             tstRdrs[i].startServer(bufMgr);
 
-            assertTrue("PayloadReader in " + tstRdrs[i].getPresentState() +
-                   ", not Idle after server start", tstRdrs[i].isStopped());
+            assertTrue("Reader in " + tstRdrs[i].getPresentState() +
+                       ", not Idle after server start", tstRdrs[i].isStopped());
         }
 
         SocketChannel[] chans = new SocketChannel[numTstRdrs];
@@ -991,15 +932,8 @@ public class PayloadReaderTest
         for (int i = 0; i < numTstRdrs; i++) {
             tstRdrs[i].startProcessing();
         }
-
-        Thread.sleep(100);
-
-        // make sure they're all running
         for (int i = 0; i < numTstRdrs; i++) {
-            waitUntilRunning(tstRdrs[i]);
-            assertTrue("PayloadReader in " + tstRdrs[i].getPresentState() +
-                       ", not Running after server start",
-                       tstRdrs[i].isRunning());
+            IOTestUtil.waitUntilRunning(tstRdrs[i], " (#" + i + ")");
         }
 
         ByteBuffer testBuf;
@@ -1016,6 +950,7 @@ public class PayloadReaderTest
             testBuf.flip();
 
             chans[i].write(testBuf);
+
             bufMgr.returnBuffer(testBuf);
         }
 
@@ -1050,18 +985,17 @@ public class PayloadReaderTest
         for (int i = 0; i < numTstRdrs; i++) {
             tstRdrs[i].forcedStopProcessing();
         }
+        for (int i = 0; i < numTstRdrs; i++) {
+            IOTestUtil.waitUntilStopped(tstRdrs[i], "forced stop",
+                                        " (#" + i + ")");
+        }
 
         // destroy everything
         for (int i = 0; i < numTstRdrs; i++) {
             tstRdrs[i].destroyProcessor();
         }
         for (int i = 0; i < numTstRdrs; i++) {
-            waitUntilDestroyed(tstRdrs[i]);
-        }
-        for (int i = 0; i < numTstRdrs; i++) {
-            assertTrue("PayloadReader#" + i +
-                       " did not die after kill request",
-                       tstRdrs[i].isDestroyed());
+            IOTestUtil.waitUntilDestroyed(tstRdrs[i], " (#" + i + ")");
         }
     }
 
@@ -1069,29 +1003,24 @@ public class PayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("SrvrIn");
 
         Selector sel = Selector.open();
 
         int port = createServer(sel);
 
-        tstRdr = new SimpleReader("ServerInput");
+        tstRdr = new SimplePayloadReader("ServerInput");
         tstRdr.start();
-        waitUntilStopped(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after creation", tstRdr.isStopped());
+        IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
         tstRdr.addReverseConnection("localhost", port, bufMgr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after start", tstRdr.isStopped());
+        IOTestUtil.waitUntilStopped(tstRdr, "reverse connection");
 
         ByteBuffer testBuf;
 
         for (int i = 0; i < 2; i++) {
             tstRdr.startProcessing();
-            waitUntilRunning(tstRdr);
-            assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                       ", not Running after StartSig", tstRdr.isRunning());
+            IOTestUtil.waitUntilRunning(tstRdr);
 
             SocketChannel chan = acceptChannel(sel);
 
@@ -1104,6 +1033,7 @@ public class PayloadReaderTest
             testBuf.flip();
 
             chan.write(testBuf);
+
             bufMgr.returnBuffer(testBuf);
 
             // wait until we've got data on all channels
@@ -1142,16 +1072,10 @@ public class PayloadReaderTest
             testBuf.flip();
 
             chan.write(testBuf);
+
             bufMgr.returnBuffer(testBuf);
 
-            int reps = 0;
-            while (reps < 10 && !tstRdr.isStopped()) {
-                Thread.sleep(10);
-                reps++;
-            }
-            if (reps >= 10) {
-                fail("Engine did not stop after receiving stop msg");
-            }
+            IOTestUtil.waitUntilStopped(tstRdr, "stop msg");
 
             // make sure receive engines have been detatched
             Long[] postRcvd = tstRdr.getBytesReceived();
@@ -1161,42 +1085,7 @@ public class PayloadReaderTest
         }
 
         tstRdr.destroyProcessor();
-        waitUntilDestroyed(tstRdr);
-        assertTrue("PayloadReader did not die after kill request",
-                   tstRdr.isDestroyed());
-    }
-
-    private static final void waitUntilDestroyed(PayloadReader rdr)
-    {
-        for (int i = 0; i < 5 && !rdr.isDestroyed(); i++) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ie) {
-                // ignore interrupts
-            }
-        }
-    }
-
-    private static final void waitUntilRunning(PayloadReader rdr)
-    {
-        for (int i = 0; i < 5 && !rdr.isRunning(); i++) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ie) {
-                // ignore interrupts
-            }
-        }
-    }
-
-    private static final void waitUntilStopped(PayloadReader rdr)
-    {
-        for (int i = 0; i < 5 && !rdr.isStopped(); i++) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ie) {
-                // ignore interrupts
-            }
-        }
+        IOTestUtil.waitUntilDestroyed(tstRdr);
     }
 
     /**

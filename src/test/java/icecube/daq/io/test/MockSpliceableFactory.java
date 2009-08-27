@@ -4,7 +4,6 @@ import icecube.daq.splicer.Spliceable;
 import icecube.daq.splicer.SpliceableFactory;
 
 import java.nio.ByteBuffer;
-
 import java.util.List;
 
 public class MockSpliceableFactory
@@ -15,12 +14,6 @@ public class MockSpliceableFactory
     }
 
     public void backingBufferShift(List x0, int i1, int i2)
-    {
-try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
-        throw new Error("Unimplemented");
-    }
-
-    public Spliceable createCurrentPlaceSpliceable()
     {
 try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
         throw new Error("Unimplemented");

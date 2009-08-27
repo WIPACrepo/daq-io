@@ -1,35 +1,39 @@
 package icecube.daq.io;
 
 import icecube.daq.io.test.LoggingCase;
-
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.VitreousBufferCache;
 
 import java.io.IOException;
-
 import java.nio.ByteBuffer;
-
 import java.nio.channels.Pipe;
 import java.nio.channels.SelectableChannel;
 
 import junit.framework.Test;
 import junit.framework.TestSuite;
-
 import junit.textui.TestRunner;
 
 public class InputChannelTest
     extends LoggingCase
 {
     class MockParent
-        implements InputChannelParent
+        implements IOChannelParent
     {
-        public void channelStopped() { }
+        public void channelError(IOChannel chan, ByteBuffer buf, Exception ex)
+        {
+            throw new Error("Unimplemented");
+        }
+
+        public void channelStopped(IOChannel chan)
+        {
+            throw new Error("Unimplemented");
+        }
     }
 
     class MockChannel
         extends InputChannel
     {
-        public MockChannel(InputChannelParent parent, SelectableChannel channel,
+        public MockChannel(IOChannelParent parent, SelectableChannel channel,
                          IByteBufferCache bufMgr, int bufSize)
             throws IOException
         {
@@ -38,6 +42,12 @@ public class InputChannelTest
 
         public void pushPayload(ByteBuffer payBuf)
             throws IOException
+        {
+            throw new Error("Unimplemented");
+        }
+
+        public void registerComponentObserver(DAQComponentObserver compObserver,
+                                              String notificationID)
         {
             throw new Error("Unimplemented");
         }
@@ -79,9 +89,9 @@ public class InputChannelTest
         for (int i = 0; i < vals.length; i++) {
             IByteBufferCache bufMgr;
             if (vals[i] == Long.MIN_VALUE) {
-                bufMgr = new VitreousBufferCache();
+                bufMgr = new VitreousBufferCache("AllocLim");
             } else {
-                bufMgr = new VitreousBufferCache(vals[i]);
+                bufMgr = new VitreousBufferCache("AllocLim", vals[i]);
             }
 
             InputChannel chan =

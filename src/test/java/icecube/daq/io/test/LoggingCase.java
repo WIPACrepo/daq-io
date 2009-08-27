@@ -1,7 +1,5 @@
 package icecube.daq.io.test;
 
-import icecube.daq.io.test.MockAppender;
-
 import junit.framework.TestCase;
 
 import org.apache.log4j.BasicConfigurator;
@@ -9,8 +7,7 @@ import org.apache.log4j.BasicConfigurator;
 public class LoggingCase
     extends TestCase
 {
-    private MockAppender appender =
-        new MockAppender(/*org.apache.log4j.Level.ALL*/)/*.setVerbose(true)*/;
+    private MockAppender appender = new MockAppender();
 
     /**
      * Constructs an instance of this test.
@@ -25,6 +22,11 @@ public class LoggingCase
     public void clearMessages()
     {
         appender.clear();
+    }
+
+    public MockAppender getAppender()
+    {
+        return appender;
     }
 
     public Object getMessage(int idx)
@@ -44,6 +46,11 @@ public class LoggingCase
 
         BasicConfigurator.resetConfiguration();
         BasicConfigurator.configure(appender);
+    }
+
+    public void setVerbose(boolean val)
+    {
+        appender.setVerbose(val);
     }
 
     protected void tearDown()

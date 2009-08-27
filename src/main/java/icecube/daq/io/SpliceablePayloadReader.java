@@ -1,14 +1,11 @@
 package icecube.daq.io;
 
 import icecube.daq.payload.IByteBufferCache;
-
 import icecube.daq.splicer.SpliceableFactory;
 import icecube.daq.splicer.Splicer;
 
 import java.io.IOException;
-
 import java.nio.channels.SelectableChannel;
-
 import java.util.ArrayList;
 
 import org.apache.commons.logging.Log;
@@ -19,9 +16,6 @@ public class SpliceablePayloadReader
 {
     private static final Log LOG =
         LogFactory.getLog(SpliceablePayloadReader.class);
-
-    // default maximum size of strand queue
-    private static final int DEFAULT_STRAND_QUEUE_MAX = 40000;
 
     // maximum number of stop attempts
     private static final int MAX_STOP_TRIES = 10;

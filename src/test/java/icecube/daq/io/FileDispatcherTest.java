@@ -1,29 +1,22 @@
 package icecube.daq.io;
 
 import icecube.daq.common.DAQCmdInterface;
-
 import icecube.daq.io.test.LoggingCase;
-
 import icecube.daq.payload.IByteBufferCache;
+import icecube.daq.payload.IPayloadDestination;
 import icecube.daq.payload.IUTCTime;
-import icecube.daq.payload.PayloadDestination;
 import icecube.daq.payload.VitreousBufferCache;
-
 import icecube.daq.payload.splicer.Payload;
 import icecube.daq.payload.splicer.PayloadFactory;
-
 import icecube.util.Poolable;
 
 import java.io.File;
 import java.io.IOException;
-
 import java.nio.ByteBuffer;
-
 import java.util.zip.DataFormatException;
 
 import junit.framework.Test;
 import junit.framework.TestSuite;
-
 import junit.textui.TestRunner;
 
 class AdjustablePayload
@@ -86,54 +79,33 @@ class AdjustablePayload
         throw new Error("Unimplemented");
     }
 
-    public boolean hasBeenDisposed()
-    {
-        throw new Error("Unimplemented");
-    }
-
-    public void hasBeenDisposed(boolean b0)
-    {
-        throw new Error("Unimplemented");
-    }
-
-    public boolean hasBeenRecycled()
-    {
-        throw new Error("Unimplemented");
-    }
-
-    public void hasBeenRecycled(boolean b0)
-    {
-        throw new Error("Unimplemented");
-    }
-
     public void initialize(int i0, ByteBuffer x1, PayloadFactory x2)
-        throws IOException, DataFormatException
     {
-        throw new IOException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 
     protected void loadEnvelope()
-        throws IOException, DataFormatException
+        throws DataFormatException
     {
-        throw new IOException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 
     public void loadPayload()
-        throws IOException, DataFormatException
+        throws DataFormatException
     {
-        throw new IOException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 
     public void loadSpliceablePayload()
-        throws IOException, DataFormatException
+        throws DataFormatException
     {
-        throw new IOException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 
     public int readSpliceableLength(int i0, ByteBuffer x1)
-        throws IOException, DataFormatException
+        throws DataFormatException
     {
-        throw new IOException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 
     public void recycle()
@@ -142,9 +114,8 @@ class AdjustablePayload
     }
 
     public void setPayloadBuffer(int i0, ByteBuffer x1)
-        throws IOException, DataFormatException
     {
-        throw new IOException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 
     public void setPayloadTimeUTC(IUTCTime x0)
@@ -157,16 +128,16 @@ class AdjustablePayload
         throw new Error("Unimplemented");
     }
 
-    public int writePayload(PayloadDestination x0)
+    public int writePayload(IPayloadDestination x0)
         throws IOException
     {
-        throw new IOException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 
-    public int writePayload(boolean b0, PayloadDestination x1)
+    public int writePayload(boolean b0, IPayloadDestination x1)
         throws IOException
     {
-        throw new IOException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 
     public int writePayload(boolean writeLoaded, int offset, ByteBuffer buf)
@@ -192,7 +163,7 @@ class AdjustablePayload
     public int writePayload(int i0, ByteBuffer x1)
         throws IOException
     {
-        throw new IOException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 }
 
@@ -432,7 +403,7 @@ public class FileDispatcherTest
     public void testDispatchEvent()
         throws DispatchException
     {
-        IByteBufferCache bufCache = new VitreousBufferCache();
+        IByteBufferCache bufCache = new VitreousBufferCache("DispEvt");
 
         FileDispatcher fd = new FileDispatcher("physics", bufCache);
         handleLogMessages();
@@ -472,7 +443,9 @@ public class FileDispatcherTest
         final boolean preexist = destDir.isDirectory();
 
         if (preexist) {
-            fail("Read-only subdirectory exists");
+            if (!destDir.delete()) {
+                fail("Read-only subdirectory " + destDir + " exists");
+            }
         }
 
         destDir.mkdir();
@@ -631,7 +604,7 @@ public class FileDispatcherTest
         }
 
         try {
-            IByteBufferCache bufCache = new VitreousBufferCache();
+            IByteBufferCache bufCache = new VitreousBufferCache("Full");
 
             FileDispatcher fd =
                 new FileDispatcher(destDirName, "physics", bufCache);

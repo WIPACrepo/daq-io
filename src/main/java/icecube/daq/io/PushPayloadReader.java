@@ -2,19 +2,10 @@ package icecube.daq.io;
 
 import icecube.daq.payload.IByteBufferCache;
 
-import icecube.daq.splicer.SpliceableFactory;
-import icecube.daq.splicer.Splicer;
-
 import java.io.IOException;
-
 import java.nio.ByteBuffer;
-
 import java.nio.channels.SelectableChannel;
-
 import java.util.ArrayList;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 public abstract class PushPayloadReader
     extends PayloadReader
@@ -24,7 +15,7 @@ public abstract class PushPayloadReader
     {
         private PushPayloadReader reader;
 
-        PushInputChannel(InputChannelParent parent, SelectableChannel channel,
+        PushInputChannel(IOChannelParent parent, SelectableChannel channel,
                          IByteBufferCache bufMgr, int bufSize)
             throws IOException
         {
@@ -45,9 +36,19 @@ public abstract class PushPayloadReader
             dequeuedMessages++;
             reader.pushBuffer(payBuf);
         }
-    }
 
-    private static final Log LOG = LogFactory.getLog(PushPayloadReader.class);
+        /**
+         * Unimplemented.
+         *
+         * @param compObserver component observer
+         * @param notificationID ID string
+         */
+        public void registerComponentObserver(DAQComponentObserver compObserver,
+                                              String notificationID)
+        {
+            throw new Error("Unimplemented");
+        }
+    }
 
     private ArrayList<InputChannel> pushChanList =
         new ArrayList<InputChannel>();
@@ -71,6 +72,8 @@ public abstract class PushPayloadReader
             stopMessagesPropagated++;
             totStops++;
         }
+
+        super.channelStopped(chan);
     }
 
     public InputChannel createChannel(SelectableChannel channel,

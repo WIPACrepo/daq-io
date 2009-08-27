@@ -1,6 +1,5 @@
 package icecube.daq.io.test;
 
-import icecube.daq.splicer.MonitorPoints;
 import icecube.daq.splicer.OrderingException;
 import icecube.daq.splicer.Spliceable;
 import icecube.daq.splicer.SplicedAnalysis;
@@ -9,9 +8,7 @@ import icecube.daq.splicer.SplicerListener;
 import icecube.daq.splicer.StrandTail;
 
 import java.io.IOException;
-
 import java.nio.channels.SelectableChannel;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -52,7 +49,7 @@ n
         throws IOException
     {
 try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
-        throw new IOException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 
     /**
@@ -139,25 +136,6 @@ try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
      * @return the {@link SplicedAnalysis} that is being used by this object.
      */
     public SplicedAnalysis getAnalysis()
-    {
-try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
-        throw new Error("Unimplemented");
-    }
-
-    /**
-     * Returns the MonitorPoints object, if any, associated with this Splicer.
-     * <p/>
-     * This method is optional.
-     * <p/>
-     * Those implementations that do not support the Channel operations of a
-     * Splicer should return "0" for the rate and total of bytes in the
-     * returned object.
-     *
-     * @return the MonitorPoints object associated with this Splicer.
-     * @throws UnsupportedOperationException if the implementation does not
-     * support this method.
-     */
-    public MonitorPoints getMonitorPoints()
     {
 try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
         throw new Error("Unimplemented");
@@ -390,7 +368,7 @@ try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
         throws OrderingException
     {
 try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
-        throw new OrderingException("Unimplemented");
+        throw new Error("Unimplemented");
     }
 
     /**

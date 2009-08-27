@@ -3,21 +3,18 @@ package icecube.daq.io;
 import icecube.daq.payload.IByteBufferCache;
 
 import java.io.IOException;
-
 import java.nio.ByteBuffer;
-
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 
-import javax.swing.text.html.HTMLDocument.HTMLReader.IsindexAction;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 public abstract class InputChannel
+    implements IOChannel
 {
     public static final long DEFAULT_MAX_BYTES_ALLOCATION_LIMIT = 200000000;
 
@@ -30,7 +27,7 @@ public abstract class InputChannel
     /** size of initial integer payload length */
     private static final int INT_SIZE = 4;
 
-    private InputChannelParent parent;
+    private IOChannelParent parent;
     private SelectableChannel channel;
     private IByteBufferCache bufMgr;
     private ByteBuffer inputBuf;
@@ -51,7 +48,7 @@ public abstract class InputChannel
     private static int nextId = 1;
     final int id = nextId++;
 
-    public InputChannel(InputChannelParent parent, SelectableChannel channel,
+    public InputChannel(IOChannelParent parent, SelectableChannel channel,
                         IByteBufferCache bufMgr, int bufSize)
         throws IOException
     {
@@ -164,6 +161,11 @@ if(DEBUG_FILL)System.err.println("FillEnd "+inputBuf+" bufPos "+bufPos+" payBuf 
         return limitToRestartAllocation;
     }
 
+    IOChannelParent getParent()
+    {
+        return parent;
+    }
+
     long getRecordsReceived()
     {
         return recordsReceived;
@@ -187,7 +189,7 @@ if(DEBUG_FILL)System.err.println("FillEnd "+inputBuf+" bufPos "+bufPos+" payBuf 
     public void notifyOnStop()
     {
         if (parent != null) {
-            parent.channelStopped();
+            parent.channelStopped(this);
         }
     }
 
@@ -238,7 +240,7 @@ if(DEBUG_SELECT)System.err.println("  PayLen "+length);
 if(DEBUG_SELECT)System.err.println("  BadLen");
                 // this really should not happen
                 LOG.error("Huh?  Saw " + length + "-byte payload!?!?");
-                if (length == 0) {
+                if (length <= 0) {
                     length = 4;
                 }
                 bufPos += length;
@@ -363,6 +365,6 @@ if(DEBUG_SELECT)System.err.println("  Got "+payBuf);
 
     public String toString()
     {
-        return "InputChannel#" + id;
+        return parent.toString() + "=>InputChannel#" + id;
     }
 }

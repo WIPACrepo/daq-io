@@ -1,7 +1,7 @@
 /*
  * class: PayloadOutputEngineTest
  *
- * Version $Id: PayloadOutputEngineTest.java 2125 2007-10-12 18:27:05Z ksb $
+ * Version $Id: PayloadOutputEngineTest.java 4268 2009-06-08 16:50:49Z dglo $
  *
  * Date: May 19 2005
  *
@@ -12,22 +12,26 @@ package icecube.daq.io.test;
 
 import EDU.oswego.cs.dl.util.concurrent.LinkedQueue;
 
-import icecube.daq.common.*;
+import icecube.daq.common.DAQCmdInterface;
+import icecube.daq.io.DAQComponentObserver;
+import icecube.daq.io.ErrorState;
+import icecube.daq.io.NormalState;
+import icecube.daq.io.QueuedOutputChannel;
 import icecube.daq.io.PayloadOutputEngine;
 import icecube.daq.io.PayloadTransmitChannel;
-import icecube.daq.io.test.LoggingCase;
+import icecube.daq.io.test.MockObserver;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.VitreousBufferCache;
 
 import java.io.IOException;
 import java.net.BindException;
 import java.net.InetSocketAddress;
-import java.nio.channels.Selector;
+import java.nio.ByteBuffer;
+import java.nio.channels.Pipe;
 import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.nio.channels.Pipe;
-import java.nio.ByteBuffer;
 import java.util.Iterator;
 
 import junit.framework.Test;
@@ -38,99 +42,11 @@ import junit.textui.TestRunner;
  * This class defines the tests that any PayloadOutputEngine object should pass.
  *
  * @author mcp
- * @version $Id: PayloadOutputEngineTest.java 2125 2007-10-12 18:27:05Z ksb $
+ * @version $Id: PayloadOutputEngineTest.java 4268 2009-06-08 16:50:49Z dglo $
  */
 public class PayloadOutputEngineTest
     extends LoggingCase
 {
-    class Observer
-        implements DAQComponentObserver
-    {
-        private String sinkNotificationId;
-        private boolean sinkStopNotificationCalled;
-        private boolean sinkErrorNotificationCalled;
-
-        private String sourceNotificationId;
-        private boolean sourceStopNotificationCalled;
-        private boolean sourceErrorNotificationCalled;
-
-        boolean gotSinkError()
-        {
-            return sinkErrorNotificationCalled;
-        }
-
-        boolean gotSinkStop()
-        {
-            return sinkStopNotificationCalled;
-        }
-
-        boolean gotSourceError()
-        {
-            return sourceErrorNotificationCalled;
-        }
-
-        boolean gotSourceStop()
-        {
-            return sourceStopNotificationCalled;
-        }
-
-        void setSinkNotificationId(String id)
-        {
-            sinkNotificationId = id;
-        }
-
-        void setSourceNotificationId(String id)
-        {
-            sourceNotificationId = id;
-        }
-
-        public synchronized void update(Object object, String notificationId)
-        {
-            if (object instanceof NormalState) {
-                NormalState state = (NormalState)object;
-                if (state == NormalState.STOPPED) {
-                    if (notificationId.equals(DAQCmdInterface.SOURCE) ||
-                        notificationId.equals(sourceNotificationId))
-                    {
-                        sourceStopNotificationCalled = true;
-                    } else if (notificationId.equals(DAQCmdInterface.SINK) ||
-                               notificationId.equals(sinkNotificationId))
-                    {
-                        sinkStopNotificationCalled = true;
-                    } else {
-                        throw new Error("Unexpected stop notification \"" +
-                                        notificationId + "\"");
-                    }
-                } else {
-                    throw new Error("Unexpected notification state " +
-                                    state);
-                }
-            } else if (object instanceof ErrorState) {
-                ErrorState state = (ErrorState)object;
-                if (state == ErrorState.UNKNOWN_ERROR) {
-                    if (notificationId.equals(DAQCmdInterface.SOURCE) ||
-                        notificationId.equals(sourceNotificationId))
-                    {
-                        sourceErrorNotificationCalled = true;
-                    } else if (notificationId.equals(DAQCmdInterface.SINK) ||
-                               notificationId.equals(sinkNotificationId))
-                    {
-                        sourceStopNotificationCalled = true;
-                    } else {
-                        throw new Error("Unexpected error notification \"" +
-                                        notificationId + "\"");
-                    }
-                } else {
-                    throw new Error("Unexpected notification state " +
-                                    state);
-                }
-            } else {
-                throw new Error("Unexpected notification object " +
-                                object.getClass().getName());
-            }
-        }
-    }
-
     // private static member data
     private static final int BUFFER_BLEN = 32000;
     private static final String SRC_NOTIFICATION_ID = "SourceID";
@@ -250,67 +166,30 @@ public class PayloadOutputEngineTest
     {
         engine = new PayloadOutputEngine("StartStop", 0, "test");
         engine.start();
-
-        assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
-                   ", not Idle after creation", engine.isStopped());
+        IOTestUtil.waitUntilStopped(engine, "creation");
 
         engine.startProcessing();
-
-        for (int i = 0; i < 5 && !engine.isRunning(); i++) {
-            Thread.sleep(100);
-        }
-        assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
-                   ", not Running after StartSig", engine.isRunning());
+        IOTestUtil.waitUntilRunning(engine);
 
         engine.forcedStopProcessing();
-
-        for (int i = 0; i < 5 && !engine.isStopped(); i++) {
-            Thread.sleep(100);
-        }
-        assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
-                   ", not Idle after StopSig", engine.isStopped());
+        IOTestUtil.waitUntilStopped(engine, "forced stop");
 
         // try it a second time
         engine.startProcessing();
-
-        for (int i = 0; i < 5 && !engine.isRunning(); i++) {
-            Thread.sleep(100);
-        }
-        assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
-                   ", not Running after StartSig", engine.isRunning());
+        IOTestUtil.waitUntilRunning(engine);
 
         engine.forcedStopProcessing();
-
-        for (int i = 0; i < 5 && !engine.isStopped(); i++) {
-            Thread.sleep(100);
-        }
-        assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
-                   ", not Idle after StopSig", engine.isStopped());
+        IOTestUtil.waitUntilStopped(engine, "forced stop");
 
         // now try a stop message
         engine.startProcessing();
-
-        for (int i = 0; i < 5 && !engine.isRunning(); i++) {
-            Thread.sleep(100);
-        }
-        assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
-                   ", not Running after StartSig", engine.isRunning());
+        IOTestUtil.waitUntilRunning(engine);
 
         engine.sendLastAndStop();
-
-        for (int i = 0; i < 5 && !engine.isStopped(); i++) {
-            Thread.sleep(100);
-        }
-        assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
-                   ", not Idle after StopSig", engine.isStopped());
+        IOTestUtil.waitUntilStopped(engine, "send last");
 
         engine.destroyProcessor();
-
-        for (int i = 0; i < 5 && !engine.isDestroyed(); i++) {
-            Thread.sleep(100);
-        }
-        assertTrue("PayloadOutputEngine did not die after kill request",
-                   engine.isDestroyed());
+        IOTestUtil.waitUntilDestroyed(engine, "send last");
 
         try {
             engine.startProcessing();
@@ -320,20 +199,29 @@ public class PayloadOutputEngineTest
         }
     }
 
-    public void testInjectError() throws Exception {
-        Observer observer = new Observer();
+    public void testInjectError()
+        throws Exception
+    {
+        MockObserver observer = new MockObserver();
 
         engine = new PayloadOutputEngine("InjectError", 0, "test");
         engine.registerComponentObserver(observer);
 
         engine.start();
-        assertTrue("PayloadOutputEngine not in Idle state after creation", engine.isStopped());
-        engine.startProcessing();
+        IOTestUtil.waitUntilStopped(engine, "creation");
 
+        engine.startProcessing();
+        IOTestUtil.waitUntilRunning(engine);
 
         // inject an error
         engine.injectError();
-        Thread.sleep(500);
+        for (int i = 0; i < 100 && !engine.isError(); i++) {
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException ie) {
+                // ignore interrupts
+            }
+        }
 
         // make sure it was found
         assertTrue("PayloadOutputEngine in " +
@@ -347,24 +235,29 @@ public class PayloadOutputEngineTest
                     " called", observer.gotSourceStop());
     }
 
-    public void testInjectLowLevelError() throws Exception {
-
-        Observer observer = new Observer();
+    public void testInjectLowLevelError()
+        throws Exception
+    {
+        MockObserver observer = new MockObserver();
 
         engine = new PayloadOutputEngine("LowLevel", 0, "test");
         engine.registerComponentObserver(observer);
 
         engine.start();
+        IOTestUtil.waitUntilStopped(engine, "creation");
 
-        assertTrue("PayloadOutputEngine not in Idle state after creation", engine.isStopped());
         engine.startProcessing();
-
-        assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
-                   ", not Running after StartSig", engine.isRunning());
+        IOTestUtil.waitUntilRunning(engine);
 
         // inject an error
         engine.injectLowLevelError();
-        Thread.sleep(500);
+        for (int i = 0; i < 100 && !engine.isError(); i++) {
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException ie) {
+                // ignore interrupts
+            }
+        }
 
         // make sure it was found
         assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
@@ -377,35 +270,35 @@ public class PayloadOutputEngineTest
                     observer.gotSourceStop());
 
         engine.forcedStopProcessing();
-        Thread.sleep(500);
-        assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
-                   ", not Error after StopSig", engine.isError());
     }
 
-    public void testOutputLoop() throws Exception {
+    public void testOutputLoop()
+        throws Exception
+    {
         // buffer caching manager
-        IByteBufferCache cacheMgr = new VitreousBufferCache();
+        IByteBufferCache cacheMgr = new VitreousBufferCache("OutLoop");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
         testPipe.sink().configureBlocking(false);
         testPipe.source().configureBlocking(true);
 
-        Observer observer = new Observer();
+        MockObserver observer = new MockObserver();
 
         engine = new PayloadOutputEngine("OutputLoop", 0, "test");
         engine.registerComponentObserver(observer);
         engine.start();
+        IOTestUtil.waitUntilStopped(engine, "creation");
 
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
 
         final String notificationId = "OutputLoop";
 
-        Observer xmitObserver = new Observer();
-        xmitObserver.setSinkNotificationId(notificationId);
+        MockObserver xmitObserver = new MockObserver();
+        xmitObserver.setSourceNotificationId(notificationId);
 
-        PayloadTransmitChannel transmitEng =
+        QueuedOutputChannel transmitEng =
             engine.addDataChannel(testPipe.sink(), cacheMgr);
         transmitEng.registerComponentObserver(xmitObserver, notificationId);
 
@@ -418,9 +311,7 @@ public class PayloadOutputEngineTest
         assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
                    ", not Idle after StopSig", engine.isStopped());
         engine.startProcessing();
-
-        assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
-                   ", not Running after StartSig", engine.isRunning());
+        IOTestUtil.waitUntilRunning(engine);
 
         final int bufLen = 4096;
 
@@ -436,15 +327,16 @@ public class PayloadOutputEngineTest
             testOutBuf.position(bufLen);
             testOutBuf.flip();
 
-            transmitEng.outputQueue.put(testOutBuf);
-            transmitEng.flushOutQueue();
-            for (int j = 0; j < 10; j++) {
-                if (!transmitEng.outputQueue.isEmpty()) {
-                    Thread.sleep(20);
+            transmitEng.receiveByteBuffer(testOutBuf);
+            for (int j = 0; j < 100; j++) {
+                if (!transmitEng.isOutputQueued()) {
+                    break;
                 }
+
+                Thread.sleep(10);
             }
-            assertTrue("PayloadTransmitChannel did not send buf#" + i,
-                       transmitEng.outputQueue.isEmpty());
+            assertFalse("PayloadTransmitChannel did not send buf#" + i,
+                        transmitEng.isOutputQueued());
 
             testInBuf.position(0);
             testInBuf.limit(4);
@@ -464,26 +356,34 @@ public class PayloadOutputEngineTest
         Thread.sleep(10);
         transmitEng.flushOutQueue();
 
-        for (int i = 0; i < 5 && !engine.isStopped(); i++) {
-            Thread.sleep(100);
-        }
         assertTrue("Failure on sendLastAndStop command.",
                    observer.gotSourceStop());
+        assertFalse("Got sinkStop notification",
+                   observer.gotSinkStop());
+        assertFalse("Got sourceError notification",
+                   observer.gotSourceError());
+        assertFalse("Got sinkError notification",
+                   observer.gotSinkError());
+
+        assertTrue("ByteBufferCache is not balanced", cacheMgr.isBalanced());
     }
 
-    public void testServerOutput() throws Exception {
+    public void testServerOutput()
+        throws Exception
+    {
         // buffer caching manager
-        IByteBufferCache cacheMgr = new VitreousBufferCache();
+        IByteBufferCache cacheMgr = new VitreousBufferCache("SrvrOut");
 
         Selector sel = Selector.open();
 
         int port = createServer(sel);
 
-        Observer observer = new Observer();
+        MockObserver observer = new MockObserver();
 
         engine = new PayloadOutputEngine("ServerOutput", 0, "test");
         engine.registerComponentObserver(observer);
         engine.start();
+        IOTestUtil.waitUntilStopped(engine, "creation");
 
         SocketChannel sock =
             SocketChannel.open(new InetSocketAddress("localhost", port));
@@ -494,10 +394,10 @@ public class PayloadOutputEngineTest
 
         final String notificationId = "ServerOutput";
 
-        Observer xmitObserver = new Observer();
-        xmitObserver.setSinkNotificationId(notificationId);
+        MockObserver xmitObserver = new MockObserver();
+        xmitObserver.setSourceNotificationId(notificationId);
 
-        PayloadTransmitChannel transmitEng = engine.connect(cacheMgr, sock, 1);
+        QueuedOutputChannel transmitEng = engine.connect(cacheMgr, sock, 1);
         transmitEng.registerComponentObserver(xmitObserver, notificationId);
 
         assertEquals("Bad number of log messages",
@@ -511,9 +411,7 @@ public class PayloadOutputEngineTest
         assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
                    ", not Idle after StopSig", engine.isStopped());
         engine.startProcessing();
-
-        assertTrue("PayloadOutputEngine in " + engine.getPresentState() +
-                   ", not Running after StartSig", engine.isRunning());
+        IOTestUtil.waitUntilRunning(engine);
 
         final int bufLen = 40;
 
@@ -530,15 +428,15 @@ public class PayloadOutputEngineTest
             testOutBuf.flip();
 
             transmitEng.receiveByteBuffer(testOutBuf);
-            for (int j = 0; j < 10; j++) {
+            for (int j = 0; j < 100; j++) {
                 if (!transmitEng.isOutputQueued()) {
                     break;
                 }
 
-                Thread.sleep(100);
+                Thread.sleep(10);
             }
             assertFalse("PayloadTransmitChannel did not send buf#" + i,
-                       transmitEng.isOutputQueued());
+                        transmitEng.isOutputQueued());
 
             testInBuf.position(0);
             testInBuf.limit(4);
@@ -555,10 +453,19 @@ public class PayloadOutputEngineTest
         }
 
         engine.sendLastAndStop();
-        transmitEng.flushOutQueue();
         Thread.sleep(10);
+        transmitEng.flushOutQueue();
+
         assertTrue("Failure on sendLastAndStop command.",
                    observer.gotSourceStop());
+        assertFalse("Got sinkStop notification",
+                   observer.gotSinkStop());
+        assertFalse("Got sourceError notification",
+                   observer.gotSourceError());
+        assertFalse("Got sinkError notification",
+                   observer.gotSinkError());
+
+        assertTrue("ByteBufferCache is not balanced", cacheMgr.isBalanced());
     }
 
     /**

@@ -1,87 +1,34 @@
 package icecube.daq.io;
 
 import icecube.daq.common.DAQCmdInterface;
-import icecube.daq.common.DAQComponentObserver;
-import icecube.daq.common.ErrorState;
-import icecube.daq.common.NormalState;
-
+import icecube.daq.io.test.IOTestUtil;
 import icecube.daq.io.test.LoggingCase;
+import icecube.daq.io.test.MockObserver;
 import icecube.daq.io.test.MockSpliceableFactory;
 import icecube.daq.io.test.MockSplicer;
 import icecube.daq.io.test.MockStrandTail;
-
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.VitreousBufferCache;
-
 import icecube.daq.splicer.Splicer;
 
-import java.io.IOException;
-
 import java.net.InetSocketAddress;
-
 import java.nio.ByteBuffer;
-
 import java.nio.channels.Pipe;
-import java.nio.channels.Selector;
 import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.nio.channels.WritableByteChannel;
-
 import java.util.Iterator;
 
 import junit.framework.Test;
 import junit.framework.TestSuite;
-
 import junit.textui.TestRunner;
-
-class Observer
-    implements DAQComponentObserver
-{
-    private boolean sinkStopNotificationCalled;
-    private boolean sinkErrorNotificationCalled;
-
-    boolean gotError()
-    {
-        return sinkErrorNotificationCalled;
-    }
-
-    boolean gotStop()
-    {
-        return sinkStopNotificationCalled;
-    }
-
-    public synchronized void update(Object object, String notificationID)
-    {
-        if (object instanceof NormalState){
-            NormalState state = (NormalState)object;
-            if (state == NormalState.STOPPED){
-                if (notificationID.equals(DAQCmdInterface.SINK)){
-                    sinkStopNotificationCalled = true;
-                } else {
-                    throw new Error("Unexpected notification update");
-                }
-            }
-        } else if (object instanceof ErrorState){
-            ErrorState state = (ErrorState)object;
-            if (state == ErrorState.UNKNOWN_ERROR){
-                if (notificationID.equals(DAQCmdInterface.SINK)){
-                    sinkErrorNotificationCalled = true;
-                } else {
-                    throw new Error("Unexpected notification update");
-                }
-            }
-        }
-    }
-}
 
 public class SpliceablePayloadReaderTest
     extends LoggingCase
 {
     private static final int BUFFER_LEN = 5000;
     private static final int INPUT_OUTPUT_LOOP_CNT = 5;
-
-    private static ByteBuffer stopMsg;
 
     private SpliceablePayloadReader tstRdr;
 
@@ -105,19 +52,6 @@ public class SpliceablePayloadReaderTest
         }
 
         return numReturned;
-    }
-
-    private static final void sendStopMsg(WritableByteChannel sinkChannel)
-        throws IOException
-    {
-        if (stopMsg == null) {
-            stopMsg = ByteBuffer.allocate(4);
-            stopMsg.putInt(0, 4);
-            stopMsg.limit(4);
-        }
-
-        stopMsg.position(0);
-        sinkChannel.write(stopMsg);
     }
 
     protected void setUp()
@@ -160,28 +94,20 @@ public class SpliceablePayloadReaderTest
         tstRdr = new SpliceablePayloadReader("StartStop", splicer, factory);
 
         tstRdr.start();
-        waitUntilStopped(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after creation", tstRdr.isStopped());
+        IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
         tstRdr.startProcessing();
-        waitUntilRunning(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Running after StartSig", tstRdr.isRunning());
+        IOTestUtil.waitUntilRunning(tstRdr);
 
         tstRdr.forcedStopProcessing();
-        waitUntilStopped(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after StopSig", tstRdr.isStopped());
+        IOTestUtil.waitUntilStopped(tstRdr, "forced stop");
 
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
 
         // try it a second time
         tstRdr.startProcessing();
-        waitUntilRunning(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Running after StartSig", tstRdr.isRunning());
+        IOTestUtil.waitUntilRunning(tstRdr);
 
         assertEquals("Bad number of log messages",
                      1, getNumberOfMessages());
@@ -192,21 +118,17 @@ public class SpliceablePayloadReaderTest
         clearMessages();
 
         tstRdr.forcedStopProcessing();
-        waitUntilStopped(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after StopSig", tstRdr.isStopped());
+        IOTestUtil.waitUntilStopped(tstRdr, "forced stop");
 
         tstRdr.destroyProcessor();
-        waitUntilDestroyed(tstRdr);
-        assertTrue("PayloadReader did not die after kill request",
-                   tstRdr.isDestroyed());
+        IOTestUtil.waitUntilDestroyed(tstRdr);
 
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
 
         try {
             tstRdr.startProcessing();
-            fail("PayloadReader restart after kill succeeded");
+            fail("Reader restart after kill succeeded");
         } catch (Error e) {
             // expect this to fail
         }
@@ -224,7 +146,7 @@ public class SpliceablePayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("OutIn");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -237,24 +159,20 @@ public class SpliceablePayloadReaderTest
         MockSplicer splicer = new MockSplicer();
         MockSpliceableFactory factory = new MockSpliceableFactory();
 
-        Observer observer = new Observer();
+        MockObserver observer = new MockObserver();
 
         tstRdr = new SpliceablePayloadReader("OutputInput", splicer, factory);
         tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
-        waitUntilStopped(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after creation", tstRdr.isStopped());
+        IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
         tstRdr.addDataChannel(sourceChannel, bufMgr, 1024);
 
         Thread.sleep(100);
 
         tstRdr.startProcessing();
-        waitUntilRunning(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Running after StartSig", tstRdr.isRunning());
+        IOTestUtil.waitUntilRunning(tstRdr);
 
         // now move some buffers
         ByteBuffer testBuf;
@@ -276,6 +194,7 @@ public class SpliceablePayloadReaderTest
                 sinkChannel.write(testBuf);
 
                 bufMgr.returnBuffer(testBuf);
+
                 xmitCnt++;
             } else {
                 try {
@@ -293,17 +212,16 @@ public class SpliceablePayloadReaderTest
             }
         }
 
-        sendStopMsg(sinkChannel);
-
-        Thread.sleep(100);
-        assertTrue("Failure on sendStopMsg command.", observer.gotStop());
+        IOTestUtil.sendStopMsg(sinkChannel);
+        IOTestUtil.waitUntilStopped(tstRdr, "stop msg");
+        assertTrue("Observer didn't see sinkStop.", observer.gotSinkStop());
     }
 
     public void testMultiOutputInput()
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("MultiOutIn");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -316,24 +234,20 @@ public class SpliceablePayloadReaderTest
         MockSplicer splicer = new MockSplicer();
         MockSpliceableFactory factory = new MockSpliceableFactory();
 
-        Observer observer = new Observer();
+        MockObserver observer = new MockObserver();
 
         tstRdr = new SpliceablePayloadReader("OutputInput", splicer, factory);
         tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
-        waitUntilStopped(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after creation", tstRdr.isStopped());
+        IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
         tstRdr.addDataChannel(sourceChannel, bufMgr, 1024);
 
         Thread.sleep(100);
 
         tstRdr.startProcessing();
-        waitUntilRunning(tstRdr);
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Running after StartSig", tstRdr.isRunning());
+        IOTestUtil.waitUntilRunning(tstRdr);
 
         // now move some buffers
         ByteBuffer testBuf;
@@ -342,6 +256,7 @@ public class SpliceablePayloadReaderTest
         final int groupSize = 3;
 
         final int numToSend = INPUT_OUTPUT_LOOP_CNT * groupSize;
+
         int id = 1;
         int recvId = 0;
 
@@ -365,6 +280,7 @@ public class SpliceablePayloadReaderTest
                 sinkChannel.write(testBuf);
 
                 bufMgr.returnBuffer(testBuf);
+
                 xmitCnt += groupSize;
             } else {
                 try {
@@ -387,46 +303,9 @@ public class SpliceablePayloadReaderTest
             }
         }
 
-        sendStopMsg(sinkChannel);
-
-        Thread.sleep(100);
-        assertTrue("Failure on sendStopMsg command.", observer.gotStop());
-
-        assertTrue("PayloadReader in " + tstRdr.getPresentState() +
-                   ", not Idle after stop", tstRdr.isStopped());
-    }
-
-    private static final void waitUntilDestroyed(PayloadReader rdr)
-    {
-        for (int i = 0; i < 5 && !rdr.isDestroyed(); i++) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ie) {
-                // ignore interrupts
-            }
-        }
-    }
-
-    private static final void waitUntilRunning(PayloadReader rdr)
-    {
-        for (int i = 0; i < 5 && !rdr.isRunning(); i++) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ie) {
-                // ignore interrupts
-            }
-        }
-    }
-
-    private static final void waitUntilStopped(PayloadReader rdr)
-    {
-        for (int i = 0; i < 5 && !rdr.isStopped(); i++) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ie) {
-                // ignore interrupts
-            }
-        }
+        IOTestUtil.sendStopMsg(sinkChannel);
+        IOTestUtil.waitUntilStopped(tstRdr, "stop msg");
+        assertTrue("Observer didn't see sinkStop.", observer.gotSinkStop());
     }
 
     /**

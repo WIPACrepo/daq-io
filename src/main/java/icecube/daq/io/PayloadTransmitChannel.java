@@ -1,7 +1,7 @@
 /*
  * class: PayloadTransmitChannel
  *
- * Version $Id: PayloadTransmitChannel.java 2125 2007-10-12 18:27:05Z ksb $
+ * Version $Id: PayloadTransmitChannel.java 3439 2008-09-02 17:08:41Z dglo $
  *
  * Date: May 15 2005
  *
@@ -11,12 +11,7 @@
 package icecube.daq.io;
 
 import EDU.oswego.cs.dl.util.concurrent.Mutex;
-import EDU.oswego.cs.dl.util.concurrent.LinkedQueue;
 
-import icecube.daq.common.NormalState;
-import icecube.daq.common.DAQCmdInterface;
-import icecube.daq.common.DAQComponentObserver;
-import icecube.daq.common.ErrorState;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IByteBufferReceiver;
 
@@ -35,9 +30,9 @@ import org.apache.commons.logging.LogFactory;
  * for returning buffers into the buffer cache.
  *
  * @author mcp
- * @version $Id: PayloadTransmitChannel.java 2125 2007-10-12 18:27:05Z ksb $
+ * @version $Id: PayloadTransmitChannel.java 3439 2008-09-02 17:08:41Z dglo $
  */
-public class PayloadTransmitChannel implements IByteBufferReceiver {
+public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutputChannel {
 
     // Log object for this class
     private static final Log log = LogFactory.getLog(PayloadTransmitChannel.class);
@@ -73,7 +68,6 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
                                                     STATE_ERROR_NAME,
                                                     STATE_CLOSED_NAME};
 
-    private static final long DISPOSE_TIME_MSEC = 500;
     private static final int INT_SIZE = 4;
 
     // print log messages with state change information?
@@ -86,22 +80,12 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
     private Mutex stateMachineMUTEX = new Mutex();
     // our internal state
     private int presState;
-    // our last state
-    private int prevState;
-    // count transitions
-    private int transitionCnt = 0;
-    // count illeagal transition requests
-    private int illegalTransitionCnt = 0;
 
     private WritableByteChannel channel = null;
     // local copy of selector
     private Selector selector;
-    // local copy of selector key
-    private SelectionKey selectionKey = null;
     // flag for end of data notification
     private boolean lastMsgAndStop;
-    // counters for timer implemetation
-    private long startTimeMsec;
     // buffer cache manager that is source of receive buffers
     private IByteBufferCache bufferMgr;
     // receive buffer in use
@@ -118,7 +102,7 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
     private ByteBuffer lastMessage;
 
     // output buffer queue
-    public DepthQueue outputQueue;
+    private DepthQueue outputQueue;
     private boolean queueStillEmpty;
 
     private DAQComponentObserver compObserver;
@@ -137,7 +121,6 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
                                   IByteBufferCache bufMgr) {
         id = myID;
         presState = STATE_IDLE;
-        prevState = presState;
         cancelSelectorOnExit = false;
         selector = sel;
         bufferMgr = bufMgr;
@@ -145,8 +128,12 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
         // make up a last message that we can use when we need it
         lastMessage = ByteBuffer.allocate(INT_SIZE);
         lastMessage.putInt(0, INT_SIZE);
-        this.channel = channel;
 
+        if (((SelectableChannel)channel).isBlocking()) {
+            throw new Error("Channel " + channel + " is blocking");
+        }
+
+        this.channel = channel;
     }
 
     protected void enterIdle() {
@@ -159,7 +146,9 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
     protected void enterGetBuffer() {
         if (outputQueue.isEmpty()) {
             if (debug && !queueStillEmpty) {
-                log.info(id + ":XMIT:EmptyQueue");
+                if (log.isInfoEnabled()) {
+                    log.info(id + ":XMIT:EmptyQueue");
+                }
                 queueStillEmpty = true;
             }
         } else {
@@ -170,7 +159,9 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
                 log.error(e);
             }
             if (debug) {
-                log.info(id + ":XMIT:GotBuf " + buf);
+                if (log.isInfoEnabled()) {
+                    log.info(id + ":XMIT:GotBuf " + buf);
+                }
                 queueStillEmpty = false;
             }
         }
@@ -196,17 +187,15 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
         if (buf.getInt(0) == INT_SIZE) {
             // this is the last message, flag state machine to stop when complete
             lastMsgAndStop = true;
-            if (TRACE_DATADUMP && log.isErrorEnabled()) {
-                log.error(id + ":XMIT:stop");
-            } else if (debug) {
-                log.info(id + ":XMIT:stop");
+            if (debug) {
+                if (log.isInfoEnabled()) {
+                    log.info(id + ":XMIT:stop");
+                }
             }
-        } else if (TRACE_DATADUMP && log.isErrorEnabled()) {
-            log.error(id + ":XMIT:" + icecube.daq.payload.DebugDumper.toString(buf));
         }
         try {
             channel.write(buf);
-            if (debug) {
+            if (debug && log.isInfoEnabled()) {
                 log.info(id + ":XMIT:wrote " + buf.getInt(0) + " bytes");
             }
         } catch (IOException e) {
@@ -219,11 +208,11 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
     protected void exitTransMsg() {
         // track some statistics
         bytesSent += buf.getInt(0);
-        if (debug) {
+        if (debug && log.isInfoEnabled()) {
             log.info(id + ":XMIT:sent " + bytesSent + " bytes");
         }
         recordsSent += 1;
-        if (debug) {
+        if (debug && log.isInfoEnabled()) {
             log.info(id + ":XMIT:sent " + recordsSent + " recs");
         }
         if (buf.getInt(0) == INT_SIZE) {
@@ -251,7 +240,7 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
 
     protected void enterError() {
         if (compObserver != null) {
-            if (debug) {
+            if (debug && log.isInfoEnabled()) {
                 log.info(id + ":XMIT:Error");
             }
             compObserver.update(ErrorState.UNKNOWN_ERROR, notificationID);
@@ -263,7 +252,7 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
 
     protected void notifyOnStop() {
         if (compObserver != null) {
-            if (debug) {
+            if (debug && log.isInfoEnabled()) {
                 log.info(id + ":XMIT:Stop");
             }
             compObserver.update(NormalState.STOPPED, notificationID);
@@ -342,12 +331,13 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
     }
 
     public void processSelect(SelectionKey selKey) {
-        selectionKey = selKey;
         if (presState != STATE_TRANSMSG) {
             // should not be getting selects here
-            selectionKey.cancel();
+            selKey.cancel();
         } else {
-            if (buf.hasRemaining()) {
+            if (!buf.hasRemaining()) {
+                transition(SIG_DONE);
+            } else {
                 try {
                     channel.write(buf);
                 } catch (IOException ioe) {
@@ -355,12 +345,10 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
                     log.error("IOException on channel.write(): ", ioe);
                     throw new RuntimeException(ioe);
                 }
-            } else {
-                transition(SIG_DONE);
             }
             if (cancelSelectorOnExit) {
                 // its ok to do it now.
-                selectionKey.cancel();
+                selKey.cancel();
             }
         }
     }
@@ -393,7 +381,7 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
             log.debug("PayloadTransmitEngine " + id +
                     " state " + getStateName(presState) +
                     " transition signal " + getSignalName(signal));
-        } else if (debug) {
+        } else if (debug && log.isInfoEnabled()) {
             log.info(id + " " + getStateName(presState) + " -> " +
                      getSignalName(signal));
         }
@@ -428,7 +416,6 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
                                 break;
                             }
                         default:
-                            illegalTransitionCnt++;
                             break;
                     }
                     break;
@@ -467,7 +454,6 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
                                 break;
                             }
                         default:
-                            illegalTransitionCnt++;
                             break;
                     }
                     break;
@@ -506,7 +492,6 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
                                 break;
                             }
                         default:
-                            illegalTransitionCnt++;
                             break;
                     }
                     break;
@@ -545,7 +530,6 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
                                 break;
                             }
                         default:
-                            illegalTransitionCnt++;
                             break;
                     }
                     break;
@@ -568,7 +552,6 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
                                 break;
                             }
                         default:
-                            illegalTransitionCnt++;
                             break;
                     }
                     break;
@@ -582,23 +565,19 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
                                 break;
                             }
                         default:
-                            illegalTransitionCnt++;
                             break;
                     }
                     break;
                 }
             default:
                 {
-                    illegalTransitionCnt++;
                     break;
                 }
         }
     }
 
     private void doTransition(int nextState) {
-        prevState = presState;
         presState = nextState;
-        transitionCnt++;
     }
 
     /**
@@ -631,7 +610,7 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
         return !outputQueue.isEmpty();
     }
 
-    private static final String getStateName(int state) {
+    private static String getStateName(int state) {
         final String name;
         switch (state) {
             case STATE_IDLE:
@@ -659,7 +638,7 @@ public class PayloadTransmitChannel implements IByteBufferReceiver {
         return name;
     }
 
-    private static final String getSignalName(int signal) {
+    private static String getSignalName(int signal) {
         final String name;
         switch (signal) {
             case SIG_IDLE:

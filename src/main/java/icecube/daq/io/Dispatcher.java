@@ -1,7 +1,7 @@
 /*
  * interface: Dispatcher
  *
- * Version $Id: Dispatcher.java 2125 2007-10-12 18:27:05Z ksb $
+ * Version $Id: Dispatcher.java 3858 2009-01-25 19:06:04Z dglo $
  *
  * Date: April 1 2004
  *
@@ -10,7 +10,7 @@
 
 package icecube.daq.io;
 
-import icecube.daq.payload.splicer.Payload;
+import icecube.daq.payload.IWriteablePayload;
 
 import java.nio.ByteBuffer;
 
@@ -18,7 +18,7 @@ import java.nio.ByteBuffer;
  * This interface specifies how events are dispatched from the DAQ system.
  *
  * @author patton
- * @version $Id: Dispatcher.java 2125 2007-10-12 18:27:05Z ksb $
+ * @version $Id: Dispatcher.java 3858 2009-01-25 19:06:04Z dglo $
  */
 public interface Dispatcher
 {
@@ -61,7 +61,7 @@ public interface Dispatcher
      * @param event A payload object.
      * @throws DispatchException is there is a problem in the Dispatch system.
      */
-    void dispatchEvent(Payload event) throws DispatchException;
+    void dispatchEvent(IWriteablePayload event) throws DispatchException;
 
     /**
      * Copies the events in the buffer into this object. The buffer should be
@@ -117,7 +117,7 @@ public interface Dispatcher
      *
      * @return the number of units still available in the disk.
      */
-    int getDiskAvailable();
+    long getDiskAvailable();
 
     /**
      * Returns the total number of units in the disk (measured in MB).
@@ -125,5 +125,5 @@ public interface Dispatcher
      *
      * @return the total number of units in the disk.
      */
-    int getDiskSize();
+    long getDiskSize();
 }

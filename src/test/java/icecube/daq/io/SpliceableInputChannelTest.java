@@ -1,14 +1,11 @@
 package icecube.daq.io;
 
 import icecube.daq.io.test.LoggingCase;
-
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.ILoadablePayload;
 import icecube.daq.payload.IUTCTime;
 import icecube.daq.payload.VitreousBufferCache;
-
 import icecube.daq.payload.impl.UTCTime8B;
-
 import icecube.daq.splicer.ClosedStrandException;
 import icecube.daq.splicer.OrderingException;
 import icecube.daq.splicer.Spliceable;
@@ -16,28 +13,30 @@ import icecube.daq.splicer.SpliceableFactory;
 import icecube.daq.splicer.StrandTail;
 
 import java.io.IOException;
-
 import java.nio.ByteBuffer;
-
 import java.nio.channels.Pipe;
 import java.nio.channels.SelectableChannel;
-
 import java.util.List;
-
 import java.util.zip.DataFormatException;
 
 import junit.framework.Test;
 import junit.framework.TestSuite;
-
 import junit.textui.TestRunner;
 
 public class SpliceableInputChannelTest
     extends LoggingCase
 {
     class MockParent
-        implements InputChannelParent
+        implements IOChannelParent
     {
-        public void channelStopped() { }
+        public void channelError(IOChannel chan, ByteBuffer buf, Exception ex)
+        {
+            throw new Error("Unimplemented");
+        }
+
+        public void channelStopped(IOChannel chan)
+        {
+        }
     }
 
     class MockStrandTail
@@ -119,12 +118,17 @@ public class SpliceableInputChannelTest
             time = buf.getLong(8);
         }
 
-        public int compareTo(Object obj)
+        public int compareSpliceable(Spliceable spl)
         {
             throw new Error("Unimplemented");
         }
 
         public Object deepCopy()
+        {
+            throw new Error("Unimplemented");
+        }
+
+        public ByteBuffer getPayloadBacking()
         {
             throw new Error("Unimplemented");
         }
@@ -156,7 +160,7 @@ public class SpliceableInputChannelTest
         public void loadPayload()
             throws IOException, DataFormatException
         {
-            throw new IOException("Unimplemented");
+            // do nothing
         }
 
         public void recycle()
@@ -176,11 +180,6 @@ public class SpliceableInputChannelTest
         }
 
         public void backingBufferShift(List list, int index, int shift)
-        {
-            throw new Error("Unimplemented");
-        }
-
-        public Spliceable createCurrentPlaceSpliceable()
         {
             throw new Error("Unimplemented");
         }
@@ -228,7 +227,7 @@ public class SpliceableInputChannelTest
 
         Pipe pipe = Pipe.open();
 
-        IByteBufferCache bufMgr = new VitreousBufferCache();
+        IByteBufferCache bufMgr = new VitreousBufferCache("OOO");
 
         MockFactory factory = new MockFactory(bufMgr);
 
@@ -254,6 +253,16 @@ public class SpliceableInputChannelTest
 
             chan.pushPayload(buf);
 
+            for (int q = 0; q < 10 && chan.getQueueDepth() > 0; q++) {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException ie) {
+                    // ignore interrupts
+                }
+            }
+
+            assertEquals("Expected queue to be empty",
+                         0, chan.getQueueDepth());
             assertEquals("Buffer cache memory leak",
                          expBytes, bufMgr.getCurrentAquiredBytes());
 

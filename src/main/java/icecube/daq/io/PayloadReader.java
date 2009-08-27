@@ -1,22 +1,17 @@
 package icecube.daq.io;
 
-import icecube.daq.common.DAQComponentObserver;
-import icecube.daq.common.NormalState;
 import icecube.daq.common.DAQCmdInterface;
-
 import icecube.daq.payload.IByteBufferCache;
 
 import java.io.IOException;
-
 import java.net.InetSocketAddress;
-
+import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -25,7 +20,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 public abstract class PayloadReader
-    implements DAQComponentInputProcessor, InputChannelParent, Runnable
+    implements DAQComponentInputProcessor, IOChannelParent, Runnable
 {
     class Flag
     {
@@ -80,7 +75,7 @@ public abstract class PayloadReader
     /** worker thread */
     private Thread thread;
     /** input socket selector */
-    protected Selector selector;
+    private Selector selector;
     /** current state */
     private RunState state;
     /** new state */
@@ -102,7 +97,7 @@ public abstract class PayloadReader
     // server port
     private int port = Integer.MIN_VALUE;
     // hack around a Linux bug -- see startServer() for explanation
-    protected Flag pauseThread = new Flag("pauseThread");
+    private Flag pauseThread = new Flag("pauseThread");
     // server byte buffer
     private IByteBufferCache serverCache;
 
@@ -213,7 +208,25 @@ if(DEBUG_NEW)System.err.println("ANend");
         return addDataChannel(chan, bufCache, bufferSize);
     }
 
-    public void channelStopped()
+    /**
+     * Channel encountered an error.
+     *
+     * @param chan channel
+     * @param buf ByteBuffer which caused the error (may ne <tt>null</tt>)
+     * @ex exception (may be null)
+     */
+    public void channelError(IOChannel chan, ByteBuffer buf,
+                             Exception ex)
+    {
+        throw new Error("Unimplemented");
+    }
+
+    /**
+     * Channel has stopped.
+     *
+     * @param chan channel
+     */
+    public void channelStopped(IOChannel chan)
     {
         channelStopFlag.set();
         if (selector != null) {
@@ -359,14 +372,16 @@ if(DEBUG_NEW)System.err.println("ANend");
     void makeReverseConnections()
         throws IOException
     {
-        final int MAX_RETRIES = 10;
-
         if (!madeReverseConnections) {
+            final int MAX_RETRIES = 10;
+
             ArrayList<ReverseConnection> retries =
                 new ArrayList<ReverseConnection>(reverseConnList);
-            for (int i = 1; i <= MAX_RETRIES; i++) {
-                boolean failed = false;
 
+            int numRetries = 0;
+            IOException ex = null;
+
+            for ( ; numRetries < MAX_RETRIES; numRetries++) {
                 Iterator<ReverseConnection> iter = retries.iterator();
                 while (iter.hasNext()) {
                     ReverseConnection rc = iter.next();
@@ -375,31 +390,32 @@ if(DEBUG_NEW)System.err.println("ANend");
                         rc.connect();
                         iter.remove();
                     } catch (IOException ioe) {
-                        if (i == MAX_RETRIES) {
-                            LOG.error("Could not connect " + rc, ioe);
-                        }
-                        failed = true;
+                        ex = ioe;
                     }
                 }
 
-                if (failed) {
+                if (retries.size() > 0) {
                     try {
-                        Thread.sleep(1000);
+                        Thread.sleep(10);
                     } catch (InterruptedException ie) {
                         // ignore interrupts
                     }
                 }
             }
             madeReverseConnections = true;
-        }
 
-        // wait for new connections to be noticed
-        synchronized (newChanList) {
-            while (newChanList.size() > 0) {
-                try {
-                    newChanList.wait();
-                } catch (InterruptedException ie) {
-                    // ignore interrupts
+            if (retries.size() > 0) {
+                LOG.error("Could not connect " + retries.get(0), ex);
+            } else {
+                // wait for new connections to be noticed
+                synchronized (newChanList) {
+                    while (newChanList.size() > 0) {
+                        try {
+                            newChanList.wait();
+                        } catch (InterruptedException ie) {
+                            // ignore interrupts
+                        }
+                    }
                 }
             }
         }
@@ -576,7 +592,10 @@ if(DEBUG_RUN)System.err.println("RchkStop "+chanList.size()+" chans "+chanList);
                 {
                     InputChannel chanData = iter.next();
 
-                    if (chanData.isStopped()) {
+                    if (!chanData.isStopped()) {
+if(DEBUG_RUN)System.err.println("RchanRun "+chanData);
+                        running = true;
+                    } else {
 if(DEBUG_RUN)System.err.println("Rkill "+chanData);
                         try {
                             chanData.close();
@@ -586,10 +605,6 @@ if(DEBUG_RUN)System.err.println("Rkill "+chanData);
                         }
 
                         iter.remove();
-                    } else {
-if(DEBUG_RUN)System.err.println("RchanRun "+chanData);
-                        running = true;
-                        break;
                     }
                 }
 
@@ -652,10 +667,13 @@ if(DEBUG_SET)System.err.println("SSTend");
 
     public void startProcessing()
     {
-        try {
-            makeReverseConnections();
-        } catch (IOException ioe) {
-            throw new RuntimeException("Cannot make reverse connections", ioe);
+        if (reverseConnList.size() > 0) {
+            try {
+                makeReverseConnections();
+            } catch (IOException ioe) {
+                throw new RuntimeException("Cannot make reverse connections",
+                                           ioe);
+            }
         }
 
         synchronized (stateLock) {
@@ -732,6 +750,12 @@ if(DEBUG_SS)System.err.println("SSrenotify");
 if(DEBUG_SS)System.err.println("SSdone");
 
         this.serverCache = serverCache;
+    }
+
+    public String toString()
+    {
+        return name + "[" + state + "," + chanList.size() + " chan," +
+            getTotalRecordsReceived() + " sent]";
     }
 
     /**
