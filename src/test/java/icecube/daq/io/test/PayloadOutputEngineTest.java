@@ -1,7 +1,7 @@
 /*
  * class: PayloadOutputEngineTest
  *
- * Version $Id: PayloadOutputEngineTest.java 4268 2009-06-08 16:50:49Z dglo $
+ * Version $Id: PayloadOutputEngineTest.java 4574 2009-08-28 21:32:32Z dglo $
  *
  * Date: May 19 2005
  *
@@ -19,9 +19,9 @@ import icecube.daq.io.NormalState;
 import icecube.daq.io.QueuedOutputChannel;
 import icecube.daq.io.PayloadOutputEngine;
 import icecube.daq.io.PayloadTransmitChannel;
+import icecube.daq.io.test.MockBufferCache;
 import icecube.daq.io.test.MockObserver;
 import icecube.daq.payload.IByteBufferCache;
-import icecube.daq.payload.VitreousBufferCache;
 
 import java.io.IOException;
 import java.net.BindException;
@@ -42,7 +42,7 @@ import junit.textui.TestRunner;
  * This class defines the tests that any PayloadOutputEngine object should pass.
  *
  * @author mcp
- * @version $Id: PayloadOutputEngineTest.java 4268 2009-06-08 16:50:49Z dglo $
+ * @version $Id: PayloadOutputEngineTest.java 4574 2009-08-28 21:32:32Z dglo $
  */
 public class PayloadOutputEngineTest
     extends LoggingCase
@@ -276,7 +276,7 @@ public class PayloadOutputEngineTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache cacheMgr = new VitreousBufferCache("OutLoop");
+        IByteBufferCache cacheMgr = new MockBufferCache("OutLoop");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -372,7 +372,7 @@ public class PayloadOutputEngineTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache cacheMgr = new VitreousBufferCache("SrvrOut");
+        IByteBufferCache cacheMgr = new MockBufferCache("SrvrOut");
 
         Selector sel = Selector.open();
 

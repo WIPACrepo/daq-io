@@ -3,8 +3,8 @@ package icecube.daq.io;
 import EDU.oswego.cs.dl.util.concurrent.Semaphore;
 
 import icecube.daq.io.test.LoggingCase;
+import icecube.daq.io.test.MockBufferCache;
 import icecube.daq.payload.IByteBufferCache;
-import icecube.daq.payload.VitreousBufferCache;
 
 import java.io.IOException;
 import java.nio.channels.Pipe;
@@ -44,7 +44,7 @@ public class PayloadReceiveChannelTest
 
         Pipe.SourceChannel srcChan = testPipe.source();
 
-        IByteBufferCache cacheMgr = new VitreousBufferCache("Ctor");
+        IByteBufferCache cacheMgr = new MockBufferCache("Ctor");
 
         Semaphore inputSem = new Semaphore(0);
 

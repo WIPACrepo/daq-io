@@ -2,13 +2,12 @@ package icecube.daq.io;
 
 import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.io.test.LoggingCase;
+import icecube.daq.io.test.MockBufferCache;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IPayloadDestination;
 import icecube.daq.payload.IUTCTime;
-import icecube.daq.payload.VitreousBufferCache;
-import icecube.daq.payload.splicer.Payload;
-import icecube.daq.payload.splicer.PayloadFactory;
-import icecube.util.Poolable;
+import icecube.daq.payload.IWriteablePayload;
+import icecube.daq.payload.Poolable;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,18 +19,13 @@ import junit.framework.TestSuite;
 import junit.textui.TestRunner;
 
 class AdjustablePayload
-    extends Payload
+    implements IWriteablePayload
 {
     private int len;
 
-    AdjustablePayload(int len)
+    public AdjustablePayload(int len)
     {
         this.len = len;
-    }
-
-    public int compareTo(Object x0)
-    {
-        throw new Error("Unimplemented");
     }
 
     public Object deepCopy()
@@ -59,11 +53,6 @@ class AdjustablePayload
         return len;
     }
 
-    public int getPayloadOffset()
-    {
-        throw new Error("Unimplemented");
-    }
-
     public IUTCTime getPayloadTimeUTC()
     {
         throw new Error("Unimplemented");
@@ -74,62 +63,12 @@ class AdjustablePayload
         throw new Error("Unimplemented");
     }
 
-    public Poolable getPoolable()
-    {
-        throw new Error("Unimplemented");
-    }
-
-    public void initialize(int i0, ByteBuffer x1, PayloadFactory x2)
-    {
-        throw new Error("Unimplemented");
-    }
-
-    protected void loadEnvelope()
-        throws DataFormatException
-    {
-        throw new Error("Unimplemented");
-    }
-
-    public void loadPayload()
-        throws DataFormatException
-    {
-        throw new Error("Unimplemented");
-    }
-
-    public void loadSpliceablePayload()
-        throws DataFormatException
-    {
-        throw new Error("Unimplemented");
-    }
-
-    public int readSpliceableLength(int i0, ByteBuffer x1)
-        throws DataFormatException
-    {
-        throw new Error("Unimplemented");
-    }
-
     public void recycle()
     {
         throw new Error("Unimplemented");
     }
 
-    public void setPayloadBuffer(int i0, ByteBuffer x1)
-    {
-        throw new Error("Unimplemented");
-    }
-
-    public void setPayloadTimeUTC(IUTCTime x0)
-    {
-        throw new Error("Unimplemented");
-    }
-
-    public void shiftOffset(int i0)
-    {
-        throw new Error("Unimplemented");
-    }
-
-    public int writePayload(IPayloadDestination x0)
-        throws IOException
+    public void setCache(IByteBufferCache cache)
     {
         throw new Error("Unimplemented");
     }
@@ -140,30 +79,11 @@ class AdjustablePayload
         throw new Error("Unimplemented");
     }
 
-    public int writePayload(boolean writeLoaded, int offset, ByteBuffer buf)
+    public int writePayload(boolean b0, int i1, ByteBuffer x2)
         throws IOException
     {
-        buf.position(offset);
-        buf.putInt(len);
-
-        for (int i = 4; i < len - 3; i += 4) {
-            buf.putInt(i / 4);
-        }
-
-        byte val = 0;
-        while (buf.position() < offset + len) {
-            buf.put(val++);
-        }
-
-        buf.flip();
-
+        // don't write anything
         return len;
-    }
-
-    public int writePayload(int i0, ByteBuffer x1)
-        throws IOException
-    {
-        throw new Error("Unimplemented");
     }
 }
 
@@ -403,7 +323,7 @@ public class FileDispatcherTest
     public void testDispatchEvent()
         throws DispatchException
     {
-        IByteBufferCache bufCache = new VitreousBufferCache("DispEvt");
+        IByteBufferCache bufCache = new MockBufferCache("DispEvt");
 
         FileDispatcher fd = new FileDispatcher("physics", bufCache);
         handleLogMessages();
@@ -604,7 +524,7 @@ public class FileDispatcherTest
         }
 
         try {
-            IByteBufferCache bufCache = new VitreousBufferCache("Full");
+            IByteBufferCache bufCache = new MockBufferCache("Full");
 
             FileDispatcher fd =
                 new FileDispatcher(destDirName, "physics", bufCache);
@@ -619,7 +539,7 @@ public class FileDispatcherTest
                 fd.dataBoundary(DAQCmdInterface.DAQ_ONLINE_RUNSTART_FLAG + i);
                 assertEquals("Incorrect run number", i, fd.getRunNumber());
 
-                Payload payload = new AdjustablePayload(i);
+                IWriteablePayload payload = new AdjustablePayload(i);
 
                 assertEquals("Total dispatched events is not zero",
                              0, fd.getTotalDispatchedEvents());

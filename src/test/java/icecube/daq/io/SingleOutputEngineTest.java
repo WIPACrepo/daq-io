@@ -5,10 +5,10 @@ import EDU.oswego.cs.dl.util.concurrent.LinkedQueue;
 import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.io.test.IOTestUtil;
 import icecube.daq.io.test.LoggingCase;
+import icecube.daq.io.test.MockBufferCache;
 import icecube.daq.io.test.MockObserver;
 import icecube.daq.io.test.MockWriteableChannel;
 import icecube.daq.payload.IByteBufferCache;
-import icecube.daq.payload.VitreousBufferCache;
 
 import java.io.IOException;
 import java.net.BindException;
@@ -216,7 +216,7 @@ public class SingleOutputEngineTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache cacheMgr = new VitreousBufferCache("OutLoop");
+        IByteBufferCache cacheMgr = new MockBufferCache("OutLoop");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -301,7 +301,7 @@ public class SingleOutputEngineTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache cacheMgr = new VitreousBufferCache("SrvrDisconn");
+        IByteBufferCache cacheMgr = new MockBufferCache("SrvrDisconn");
 
         Selector sel = Selector.open();
 
@@ -345,7 +345,7 @@ public class SingleOutputEngineTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache cacheMgr = new VitreousBufferCache("SrvrOut");
+        IByteBufferCache cacheMgr = new MockBufferCache("SrvrOut");
 
         Selector sel = Selector.open();
 
