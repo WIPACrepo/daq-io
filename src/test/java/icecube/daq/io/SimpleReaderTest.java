@@ -303,7 +303,7 @@ public class SimpleReaderTest
         super.tearDown();
     }
 
-    public void ZZZtestBasic()
+    public void testBasic()
         throws IOException
     {
         IByteBufferCache bufMgr = new MockBufferCache("Basic");
@@ -362,7 +362,7 @@ public class SimpleReaderTest
     /**
      * Test starting and stopping engine.
      */
-    public void ZZZtestStartStop()
+    public void testStartStop()
         throws Exception
     {
         tstRdr = new SimpleTestReader("StartStop");
@@ -400,7 +400,7 @@ public class SimpleReaderTest
         }
     }
 
-    public void ZZZtestOutputInput()
+    public void testOutputInput()
         throws Exception
     {
         // buffer caching manager
@@ -466,7 +466,7 @@ public class SimpleReaderTest
         assertTrue("Observer didn't see sinkStop", observer.gotSinkStop());
     }
 
-    public void ZZZtestMultiOutputInput()
+    public void testMultiOutputInput()
         throws Exception
     {
         // buffer caching manager
@@ -670,7 +670,7 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
         }
     }
 
-    public void ZZZtestDisposing()
+    public void testDisposing()
         throws Exception
     {
         // buffer caching manager
@@ -728,7 +728,7 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
         assertTrue("Observer didn't see sinkStop", observer.gotSinkStop());
     }
 
-    public void ZZZtestGetters()
+    public void testGetters()
         throws Exception
     {
         // buffer caching manager
@@ -797,7 +797,7 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
     /**
      * Test starting and stopping server version of input tstRdr.
      */
-    public void ZZZtestInetServer()
+    public void testInetServer()
         throws Exception
     {
         IByteBufferCache bufMgr = new MockBufferCache("InetSrvr");
@@ -893,7 +893,7 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
     /**
      * Test multiple input engine servers.
      */
-    public void ZZZtestMultiServer()
+    public void testMultiServer()
         throws Exception
     {
         IByteBufferCache bufMgr = new MockBufferCache("MultiSrvr");
@@ -999,7 +999,7 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
         }
     }
 
-    public void ZZZtestServerInput()
+    public void testServerInput()
         throws Exception
     {
         // buffer caching manager
@@ -1088,7 +1088,7 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
         IOTestUtil.waitUntilDestroyed(tstRdr);
     }
 
-    public void ZZZtestAllocRestart()
+    public void testAllocRestart()
         throws Exception
     {
         final int bufLen = 64;
