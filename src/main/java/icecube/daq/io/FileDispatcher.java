@@ -175,8 +175,9 @@ public class FileDispatcher implements Dispatcher {
         }
 
         buffer.position(0);
+        int numWritten;
         try {
-            outChannel.write(buffer);
+            numWritten = outChannel.write(buffer);
             if (LOG.isDebugEnabled()) {
                 LOG.debug("write ByteBuffer of length: " + buffer.limit() + " to file.");
             }
@@ -184,6 +185,10 @@ public class FileDispatcher implements Dispatcher {
             throw new DispatchException(ioe);
         }
 
+        if (numWritten != buffer.limit()) {
+            LOG.error("Expected to write " + buffer.limit() + " bytes, not " +
+                      numWritten);
+        }
         ++totalDispatchedEvents;
         currFileSize += buffer.limit();
 
@@ -206,12 +211,18 @@ public class FileDispatcher implements Dispatcher {
 
             throw new DispatchException(errMsg);
         }
-        ByteBuffer buffer = bufferCache.acquireBuffer(event.getPayloadLength());
+        final int evtLen = event.getPayloadLength();
+        ByteBuffer buffer = bufferCache.acquireBuffer(evtLen);
+        int numWritten;
         try {
-            event.writePayload(false, 0, buffer);
+            numWritten = event.writePayload(false, 0, buffer);
         } catch (IOException ioe) {
             ioe.printStackTrace();
             throw new DispatchException("Couldn't write payload", ioe);
+        }
+        if (numWritten != evtLen) {
+            throw new DispatchException("Expected payload to be " + evtLen +
+                                        " bytes, but got " + numWritten);
         }
         dispatchEvent(buffer);
         bufferCache.returnBuffer(buffer);
