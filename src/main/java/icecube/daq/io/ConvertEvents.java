@@ -14,6 +14,7 @@ import icecube.daq.util.DOMRegistry;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -88,8 +89,12 @@ public class ConvertEvents
     private void loadChannelIds()
         throws Exception
     {
-        String configDir = getClass().getResource("/config/").getPath();
-        DOMRegistry reg = DOMRegistry.loadRegistry(configDir);
+        URL configRsrc = getClass().getResource("/config/");
+        if (configRsrc == null) {
+            throw new Exception("Cannot find pDAQ 'config' directory");
+        }
+
+        DOMRegistry reg = DOMRegistry.loadRegistry(configRsrc.getPath());
 
         DOM2CHAN = new HashMap<IDOMID,Short>();
         for (String mbStr : reg.keys()) {
