@@ -1,7 +1,7 @@
 /*
  * interface: Dispatcher
  *
- * Version $Id: Dispatcher.java 3858 2009-01-25 19:06:04Z dglo $
+ * Version $Id: Dispatcher.java 4859 2010-01-24 17:44:23Z dglo $
  *
  * Date: April 1 2004
  *
@@ -18,10 +18,17 @@ import java.nio.ByteBuffer;
  * This interface specifies how events are dispatched from the DAQ system.
  *
  * @author patton
- * @version $Id: Dispatcher.java 3858 2009-01-25 19:06:04Z dglo $
+ * @version $Id: Dispatcher.java 4859 2010-01-24 17:44:23Z dglo $
  */
 public interface Dispatcher
 {
+    /**
+     * Close current file (if open)
+     *
+     * @throws DispatchException if there is a problem
+     */
+    void close()
+        throws DispatchException;
 
     /**
      * Signals to the dispatch system that the set of events that preced this

@@ -29,6 +29,8 @@ public class FileDispatcher implements Dispatcher {
         DAQCmdInterface.DAQ_ONLINE_RUNSTOP_FLAG;
     private static final String SUBRUN_START_PREFIX =
         DAQCmdInterface.DAQ_ONLINE_SUBRUNSTART_FLAG;
+    private static final String CLOSE_PREFIX = "Close:";
+
     private static final long KB_IN_MB = 1024;
 
     private String baseFileName;
@@ -83,6 +85,17 @@ public class FileDispatcher implements Dispatcher {
     }
 
     /**
+     * Close current file (if open)
+     *
+     * @throws DispatchException if there is a problem
+     */
+    public void close()
+        throws DispatchException
+    {
+        dataBoundary(CLOSE_PREFIX);
+    }
+
+    /**
      * Signals to the dispatch system that the set of events that preced this
      * call are separated, by some criteria, for those that succeed it.
      *
@@ -131,7 +144,9 @@ public class FileDispatcher implements Dispatcher {
                     moveToDest();
                 }
             }
-        } else if (message.startsWith(SUBRUN_START_PREFIX)) {
+        } else if (message.startsWith(SUBRUN_START_PREFIX) ||
+                   message.startsWith(CLOSE_PREFIX))
+        {
             if (outChannel != null && outChannel.isOpen()) {
                 moveToDest();
             }
