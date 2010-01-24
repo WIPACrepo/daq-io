@@ -1,7 +1,7 @@
 /*
  * interface: Dispatcher
  *
- * Version $Id: Dispatcher.java 4859 2010-01-24 17:44:23Z dglo $
+ * Version $Id: Dispatcher.java 4863 2010-01-24 18:38:17Z dglo $
  *
  * Date: April 1 2004
  *
@@ -10,6 +10,7 @@
 
 package icecube.daq.io;
 
+import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IWriteablePayload;
 
 import java.nio.ByteBuffer;
@@ -18,7 +19,7 @@ import java.nio.ByteBuffer;
  * This interface specifies how events are dispatched from the DAQ system.
  *
  * @author patton
- * @version $Id: Dispatcher.java 4859 2010-01-24 17:44:23Z dglo $
+ * @version $Id: Dispatcher.java 4863 2010-01-24 18:38:17Z dglo $
  */
 public interface Dispatcher
 {
@@ -97,6 +98,13 @@ public interface Dispatcher
      * @throws DispatchException is there is a problem in the Dispatch system.
      */
     void dispatchEvents(ByteBuffer buffer, int[] indices, int count)throws DispatchException;
+
+    /**
+     * Get the byte buffer cache being used.
+     *
+     * @return byte buffer cache
+     */
+    IByteBufferCache getByteBufferCache();
 
     /**
      * Get the total of the dispatched events

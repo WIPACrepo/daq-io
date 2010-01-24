@@ -433,6 +433,18 @@ if(DEBUG_NEW)System.err.println("ANend");
         this.compObserver = compObserver;
     }
 
+    private void removeChannel(InputChannel chanData)
+    {
+        chanList.remove(chanData);
+        if (chanList.size() > 0) {
+            LOG.error("Closed " + name + " socket channel, " + chanList.size() +
+                      " channels remain");
+        } else {
+            LOG.error("Closed " + name + " socket channel, stopping reader");
+            channelStopFlag.set();
+        }
+    }
+
     public void run()
     {
         newState = RunState.IDLE;
@@ -564,19 +576,10 @@ if(DEBUG_RUN)System.err.println("Rproc chanData "+chanData);
                         } catch (ClosedChannelException cce) {
                             // channel went away
                             selKey.cancel();
-                            chanList.remove(chanData);
-                            if (chanList.size() > 0) {
-                                LOG.error("Closed " + name +
-                                          " socket channel, " +
-                                          chanList.size() +
-                                          " channels remain");
-                            } else {
-                                LOG.error("Closed " + name +
-                                          " socket channel, stopping reader");
-                                channelStopFlag.set();
-                            }
+                            removeChannel(chanData);
                         } catch (IOException ioe) {
-                            LOG.error("Could not process select", ioe);
+                            selKey.cancel();
+                            removeChannel(chanData);
                         }
                     }
                 }
