@@ -817,7 +817,13 @@ public class SimpleOutputEngine
                     if (payLen != STOP_MESSAGE_SIZE) {
                         LOG.error("Channel " + name + " saw " + payLen +
                                   "-byte payload after stop");
+                        bytesLeft = 0;
+                        break;
                     }
+                } else if (channel == null) {
+                    LOG.error("Channel " + name + " saw " + payLen +
+                              "-byte payload after close");
+                    break;
                 } else {
                     buf.position(0);
                     buf.limit(payLen);
