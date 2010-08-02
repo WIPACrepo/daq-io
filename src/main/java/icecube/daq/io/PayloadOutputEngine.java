@@ -1,7 +1,7 @@
 /*
  * class: PayloadOutputEngine
  *
- * Version $Id: PayloadOutputEngine.java 3439 2008-09-02 17:08:41Z dglo $
+ * Version $Id: PayloadOutputEngine.java 5109 2010-08-02 19:51:15Z dglo $
  *
  * Date: May 19 2005
  *
@@ -34,7 +34,7 @@ import org.apache.commons.logging.LogFactory;
  * a collection a PayloadTransmitChannels
  *
  * @author mcp
- * @version $Id: PayloadOutputEngine.java 3439 2008-09-02 17:08:41Z dglo $
+ * @version $Id: PayloadOutputEngine.java 5109 2010-08-02 19:51:15Z dglo $
  */
 public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOutputProcess, Runnable {
 
@@ -402,6 +402,10 @@ public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOu
      * @throws Error if there is more than one output channel
      */
     public synchronized OutputChannel getChannel() {
+        if (payloadEngineList.size() == 1) {
+            return null;
+        }
+
         if (payloadEngineList.size() != 1) {
             throw new Error("Engine should only contain one channel, not " +
                             payloadEngineList.size());
