@@ -254,6 +254,16 @@ public class SimpleOutputEngine
     }
 
     /**
+     * Return number of active channels.
+     *
+     * @return number of active channels
+     */
+    public int getNumberOfChannels()
+    {
+        return channelList.size();
+    }
+
+    /**
      * Get the present output engine state.
      *
      * @return engine state

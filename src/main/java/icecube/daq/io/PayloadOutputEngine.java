@@ -1,7 +1,7 @@
 /*
  * class: PayloadOutputEngine
  *
- * Version $Id: PayloadOutputEngine.java 5109 2010-08-02 19:51:15Z dglo $
+ * Version $Id: PayloadOutputEngine.java 5163 2010-09-08 16:54:15Z dglo $
  *
  * Date: May 19 2005
  *
@@ -34,7 +34,7 @@ import org.apache.commons.logging.LogFactory;
  * a collection a PayloadTransmitChannels
  *
  * @author mcp
- * @version $Id: PayloadOutputEngine.java 5109 2010-08-02 19:51:15Z dglo $
+ * @version $Id: PayloadOutputEngine.java 5163 2010-09-08 16:54:15Z dglo $
  */
 public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOutputProcess, Runnable {
 
@@ -392,6 +392,16 @@ public class PayloadOutputEngine implements DAQComponentObserver, DAQComponentOu
             recordCount.add(new Long(msg.stopMsgSent));
         }
         return (Long[]) recordCount.toArray(new Long[0]);
+    }
+
+    /**
+     * Return number of active channels.
+     *
+     * @return number of active channels
+     */
+    public int getNumberOfChannels()
+    {
+        return payloadEngineList.size();
     }
 
     /**

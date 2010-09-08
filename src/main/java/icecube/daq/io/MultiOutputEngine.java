@@ -429,6 +429,16 @@ public class MultiOutputEngine
         return depthList;
     }
 
+    /**
+     * Return number of active channels.
+     *
+     * @return number of active channels
+     */
+    public int getNumberOfChannels()
+    {
+        return channelList.size();
+    }
+
     /** DAQComponentIOProcess method */
     public String getPresentState()
     {

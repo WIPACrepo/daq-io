@@ -304,6 +304,16 @@ if(DEBUG_NEW)System.err.println("ANend");
         return (Long[]) byteLimit.toArray(new Long[0]);
     }
 
+    /**
+     * Return number of active channels.
+     *
+     * @return number of active channels
+     */
+    public int getNumberOfChannels()
+    {
+        return chanList.size();
+    }
+
     public String getPresentState()
     {
         return state.toString();

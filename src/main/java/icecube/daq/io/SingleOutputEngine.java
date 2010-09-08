@@ -550,6 +550,20 @@ public class SingleOutputEngine
     }
 
     /**
+     * Return number of active channels.
+     *
+     * @return number of active channels
+     */
+    public int getNumberOfChannels()
+    {
+        if (outChan == null) {
+            return 0;
+        }
+
+        return 1;
+    }
+
+    /**
      * Get the current engine state.
      *
      * @return name of current state
