@@ -177,9 +177,22 @@ public class SimpleOutputEngine
 
         if (isConnected) {
             synchronized (channelList) {
+                boolean isRunning = state == State.RUNNING;
                 if (channelList.size() > 0) {
                     for (SimpleOutputChannel outChan : channelList) {
-                        outChan.sendLastAndStop();
+                        if (isRunning) {
+                            outChan.sendLastAndStop();
+                        } else {
+                            try {
+                                outChan.close();
+                            } catch (IOException ioe) {
+                                LOG.error("Cannot close " + outChan, ioe);
+                            }
+                        }
+                    }
+
+                    if (!isRunning) {
+                        channelList.clear();
                     }
                 }
             }
@@ -652,7 +665,7 @@ public class SimpleOutputEngine
          *
          * @throws IOException if there was an error
          */
-        void close()
+        public void close()
             throws IOException
         {
             WritableByteChannel tmpChan = channel;
