@@ -1092,6 +1092,56 @@ public class PayloadReaderTest
     }
 
     /**
+     * Test server which never starts
+     */
+    public void testNonStart()
+        throws Exception
+    {
+        IByteBufferCache bufMgr = new MockBufferCache("InetSrvr");
+
+        tstRdr = new SimplePayloadReader("InetServer");
+
+        tstRdr.start();
+        IOTestUtil.waitUntilStopped(tstRdr, "creation");
+
+        tstRdr.startServer(bufMgr);
+
+        assertTrue("Reader in " + tstRdr.getPresentState() +
+                   ", not Idle after server start", tstRdr.isStopped());
+
+        InetSocketAddress addr =
+            new InetSocketAddress("localhost", tstRdr.getServerPort());
+
+        SocketChannel chan = SocketChannel.open(addr);
+
+        Thread.sleep(100);
+
+        assertEquals("Bad number of log messages",
+                     0, getNumberOfMessages());
+
+        chan.close();
+
+        Thread.sleep(100);
+
+        final int numChans = tstRdr.getNumberOfChannels();
+        assertEquals("Reader should not have any open channels (found " +
+                     numChans + ")", 0, numChans);
+
+        assertEquals("Bad number of log messages",
+                     1, getNumberOfMessages());
+        assertEquals("Unexpected log message 0",
+                     "Closed InetServer socket channel, stopping reader",
+                     getMessage(0));
+        clearMessages();
+
+        tstRdr.destroyProcessor();
+        IOTestUtil.waitUntilDestroyed(tstRdr);
+
+        assertEquals("Bad number of log messages",
+                     0, getNumberOfMessages());
+    }
+
+    /**
      * Main routine which runs text test in standalone mode.
      *
      * @param args the arguments with which to execute this method.

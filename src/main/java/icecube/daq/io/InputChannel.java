@@ -181,6 +181,11 @@ if(DEBUG_FILL)System.err.println("FillEnd "+inputBuf+" bufPos "+bufPos+" payBuf 
         return allocationStopped;
     }
 
+    public boolean isOpen()
+    {
+        return channel.isOpen();
+    }
+
     public boolean isStopped()
     {
         return stopped;

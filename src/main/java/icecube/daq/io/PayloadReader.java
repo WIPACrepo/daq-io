@@ -571,15 +571,23 @@ if(DEBUG_RUN)System.err.println("New chan is"+(chan.isRegistered()?"":" NOT")+" 
                         continue;
                     }
 
+                    InputChannel chanData = (InputChannel) selKey.attachment();
+
                     if (state != RunState.RUNNING &&
                         state != RunState.DISPOSING)
                     {
-if(DEBUG_RUN)System.err.println("Rcancel "+state);
-
+if(DEBUG_RUN)System.err.println("Rremove "+state);
+                        if (!chanData.isOpen()) {
+                            try {
+                                chanData.close();
+                            } catch (Exception ex) {
+                                LOG.error("Cannot close closed channel", ex);
+                            }
+                        }
+                        // XXX should we close noisy channels?
+                        removeChannel(chanData);
                         selKey.cancel();
                     } else {
-                        InputChannel chanData =
-                            (InputChannel) selKey.attachment();
                         try {
 if(DEBUG_RUN)System.err.println("Rproc chanData "+chanData);
                             chanData.processSelect(selKey);
