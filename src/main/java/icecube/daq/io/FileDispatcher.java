@@ -502,7 +502,9 @@ public class FileDispatcher implements Dispatcher {
         }
 
         File destFile = getDestFile();
-        if (!tempFile.renameTo(destFile)) {
+        if (!tempFile.exists()) {
+            LOG.error("Couldn't move nonexistent temp file " + tempFile);
+        } else if (!tempFile.renameTo(destFile)) {
             String errorMsg = "Couldn't move temp file " + tempFile +
                 " to " + destFile;
             LOG.error(errorMsg);
