@@ -10,8 +10,10 @@ import icecube.daq.payload.IWriteablePayload;
 import icecube.daq.payload.Poolable;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.WritableByteChannel;
 import java.util.zip.DataFormatException;
 
 import junit.framework.Test;
@@ -22,6 +24,7 @@ class AdjustablePayload
     implements IWriteablePayload
 {
     private int len;
+    private int value;
 
     public AdjustablePayload(int len)
     {
@@ -63,6 +66,11 @@ class AdjustablePayload
         throw new Error("Unimplemented");
     }
 
+    int getValue()
+    {
+        return value;
+    }
+
     public void recycle()
     {
         throw new Error("Unimplemented");
@@ -73,17 +81,150 @@ class AdjustablePayload
         throw new Error("Unimplemented");
     }
 
-    public int writePayload(boolean b0, IPayloadDestination x1)
+    void setValue(int val)
+    {
+        value = val;
+    }
+
+    public int writePayload(boolean b0, IPayloadDestination buf)
         throws IOException
     {
         throw new Error("Unimplemented");
     }
 
-    public int writePayload(boolean b0, int i1, ByteBuffer x2)
+    public int writePayload(boolean b0, int offset, ByteBuffer buf)
         throws IOException
     {
-        // don't write anything
+        if (buf.capacity() - offset >= 4) {
+            buf.putInt(offset, value);
+        }
         return len;
+    }
+}
+
+class MockChannel
+    implements WritableByteChannel
+{
+    private static int nextNum;
+    private int chanNum = nextNum++;
+
+    private Object semaphore;
+    private String fileName;
+    private boolean closed;
+
+    MockChannel(Object semaphore, String fileName)
+    {
+        this.semaphore = semaphore;
+        this.fileName = fileName;
+    }
+
+    public void close()
+    {
+        if (chanNum == 0) {
+            synchronized (semaphore) {
+                semaphore.notifyAll();
+            }
+        }
+
+        closed = true;
+    }
+
+    public boolean isOpen()
+    {
+        return !closed;
+    }
+
+    public int write(ByteBuffer buf)
+        throws IOException
+    {
+        if (closed) {
+            throw new IOException("Closed");
+        }
+
+        return buf.limit();
+    }
+}
+
+class SpecialDispatcher
+    extends FileDispatcher
+{
+    private int nextVal;
+
+    public SpecialDispatcher(String destDir, String baseFileName,
+                             IByteBufferCache bufCache)
+    {
+        super(destDir, baseFileName, bufCache);
+    }
+
+    void checkValue(int val)
+    {
+        if (nextVal != val) {
+            throw new Error("Expected next value " + nextVal + ", not " + val);
+        }
+
+        nextVal++;
+    }
+
+    public WritableByteChannel openFile(File file)
+        throws DispatchException
+    {
+        FileOutputStream out;
+        try {
+            out = new FileOutputStream(file.getPath());
+        } catch (IOException ioe) {
+            throw new DispatchException("Couldn't open " + file, ioe);
+        }
+        try {
+            out.close();
+        } catch (IOException ioe) {
+            // ignore errors on close
+        }
+
+        return new MockChannel(this, file.getPath());
+    }
+}
+
+class RaceRunner
+    implements Runnable
+{
+    private FileDispatcher disp;
+    private AdjustablePayload payload;
+    private Thread thread;
+
+    RaceRunner(FileDispatcher disp, int paySize, int value)
+    {
+        this.disp = disp;
+
+        payload = new AdjustablePayload(paySize);
+        payload.setValue(value);
+    }
+
+    public void run()
+    {
+        try {
+            synchronized (disp) {
+                try {
+                    disp.wait();
+                } catch (Exception ex) {
+                    // ignore
+                }
+            }
+
+            try {
+                disp.dispatchEvent(payload);
+            } catch (DispatchException de) {
+                throw new Error("Caught DispatchException", de);
+            }
+        } finally {
+            thread = null;
+        }
+    }
+
+    public void start()
+    {
+        thread = new Thread(this);
+        thread.setName("RaceRunner");
+        thread.start();
     }
 }
 
@@ -583,6 +724,54 @@ public class FileDispatcherTest
                 deleteDirectory(destDir);
             }
         }
+    }
+
+    public void testSpecialDisp()
+        throws DispatchException
+    {
+        File destDir = new File("raceDir");
+        if (destDir.isDirectory()) {
+            deleteDirectory(destDir);
+        }
+        destDir.mkdir();
+
+        IByteBufferCache bufCache = new MockBufferCache("Full");
+
+        final int paySize = 4;
+        final int maxSize = (paySize * 2) - 1;
+
+        FileDispatcher fd = new SpecialDispatcher(destDir.getAbsolutePath(),
+                                                  "physics", bufCache);
+        fd.setMaxFileSize(maxSize);
+        fd.dataBoundary(DAQCmdInterface.DAQ_ONLINE_RUNSTART_FLAG + 1);
+
+        final int skipVal = 2;
+
+        RaceRunner runner = new RaceRunner(fd, paySize, skipVal);
+        runner.start();
+
+        AdjustablePayload payload = new AdjustablePayload(paySize);
+
+        for (int i = 0; i < skipVal + 2; i++) {
+            if (i == skipVal) {
+                continue;
+            }
+
+            payload.setValue(i);
+            fd.dispatchEvent(payload);
+        }
+
+        fd.dataBoundary(DAQCmdInterface.DAQ_ONLINE_RUNSTOP_FLAG);
+
+        String[] children = destDir.list();
+        for (int i = 0; i < children.length; i++) {
+            File kidFile = new File(destDir, children[i]);
+            boolean success = deleteDirectory(kidFile);
+            if (!success) {
+                throw new Error("Cannot delete " + kidFile);
+            }
+        }
+        destDir.delete();
     }
 
     /**
