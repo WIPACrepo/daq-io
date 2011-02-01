@@ -642,6 +642,9 @@ public class SimpleOutputEngine
         /** <tt>True</tt> if this channel has been stopped. */
         private boolean stopped;
 
+        /** <tt>true</tt> if the remote end of this channel has been closed */
+        private boolean brokenPipe;
+
         /**
          * Create a simple output channel.
          *
@@ -859,6 +862,7 @@ public class SimpleOutputEngine
                     while (numWritten < payLen) {
                         try {
                             int bytes = channel.write(buf);
+                            brokenPipe = false;
                             if (bytes < 0) {
                                 LOG.error("Channel " + name + " write of " +
                                           payLen + " bytes returned " + bytes);
@@ -866,7 +870,16 @@ public class SimpleOutputEngine
                             }
                             numWritten += bytes;
                         } catch (IOException ioe) {
-                            LOG.error("Channel " + name + " write failed", ioe);
+                            if (ioe.getMessage().endsWith("Broken pipe")) {
+                                if (!brokenPipe) {
+                                    brokenPipe = true;
+                                    LOG.error("Channel " + name + " failed",
+                                              ioe);
+                                }
+                            } else {
+                                LOG.error("Channel " + name + " write failed",
+                                          ioe);
+                            }
                             break;
                         }
                     }
