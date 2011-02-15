@@ -23,6 +23,9 @@ public class PayloadFileReader
 {
     private static final Log LOG = LogFactory.getLog(PayloadFileReader.class);
 
+    /** maximum payload length (to avoid garbage inputs) */
+    private static final int MAX_PAYLOAD_LEN = 10000000;
+
     /** Input channel */
     private ReadableByteChannel chan;
     /** Factory used to build payloads */
@@ -161,7 +164,7 @@ public class PayloadFileReader
 
         if (numBytes >= 4) {
             int len = lenBuf.getInt(0);
-            if (len < 4) {
+            if (len < 4 || len > MAX_PAYLOAD_LEN) {
                 throw new PayloadException("Bad length " + len);
             }
 
