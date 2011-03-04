@@ -41,6 +41,7 @@ public class FileDispatcher implements Dispatcher {
     private int runNumber;
     private long maxFileSize = 10000000;
     private long currFileSize;
+    private long numBytesWritten;
     private File tempFile;
     private Object fileLock = new Object();
     private String dispatchDestStorage;
@@ -83,6 +84,8 @@ public class FileDispatcher implements Dispatcher {
         }
 
         this.bufferCache = bufferCache;
+	
+	this.numBytesWritten=0;
     }
 
     /**
@@ -205,6 +208,7 @@ public class FileDispatcher implements Dispatcher {
 
         ++totalDispatchedEvents;
         currFileSize += buffer.limit();
+	numBytesWritte += buffer.limit();
 
         if (currFileSize > maxFileSize) {
             moveToDest();
@@ -349,6 +353,15 @@ public class FileDispatcher implements Dispatcher {
     public int getRunNumber()
     {
         return runNumber;
+    }
+
+    /** 
+     * Get the number of bytes written to disk
+     *
+     * @return a long value ( number of bytes written to disk )
+     */ 
+    public long getNumBytesWritten() {
+	return numBytesWritten;
     }
 
     /**
