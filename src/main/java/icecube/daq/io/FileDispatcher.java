@@ -208,7 +208,7 @@ public class FileDispatcher implements Dispatcher {
 
         ++totalDispatchedEvents;
         currFileSize += buffer.limit();
-	numBytesWritte += buffer.limit();
+	numBytesWritten += buffer.limit();
 
         if (currFileSize > maxFileSize) {
             moveToDest();
