@@ -37,6 +37,8 @@ public class SimpleOutputEngine
     private int engineId;
     /** Engine function. */
     private String engineFunction;
+    /** Use track engine stop message instead of payload stop message */
+    private boolean useTrackEngineStop;
 
     /** Current engine state. */
     private State state = State.STOPPED;
@@ -74,9 +76,25 @@ public class SimpleOutputEngine
      */
     public SimpleOutputEngine(String type, int id, String fcn)
     {
+        this(type, id, fcn, false);
+    }
+
+    /**
+     * Create an output engine.
+     *
+     * @param type engine type
+     * @param id engine ID
+     * @param fcn engine function
+     * @param teStop <tt>false</tt> for standard 4 byte payload stop message,
+     *               <tt>true</tt> to send 11 bytes of zeros
+     */
+    public SimpleOutputEngine(String type, int id, String fcn,
+                              boolean teStop)
+    {
         engineType = type;
         engineId = id;
         engineFunction = fcn;
+        useTrackEngineStop = teStop;
 
         try {
             selector = Selector.open();
@@ -107,8 +125,12 @@ public class SimpleOutputEngine
 
         String name = toString() + ":" + chanNum;
 
-        SimpleOutputChannel outChan =
-            new SimpleOutputChannel(this, name, channel, bufMgr);
+        SimpleOutputChannel outChan;
+        if (useTrackEngineStop) {
+            outChan = new TrackEngineStopChannel(this, name, channel, bufMgr);
+        } else {
+            outChan = new PayloadStopChannel(this, name, channel, bufMgr);
+        }
 
         synchronized (channelList) {
             channelList.add(outChan);
@@ -612,12 +634,9 @@ public class SimpleOutputEngine
     /**
      * Connection to input channel.
      */
-    class SimpleOutputChannel
+    abstract class SimpleOutputChannel
         implements QueuedOutputChannel
     {
-        /** Number of bytes in 'stop' message'. */
-        private static final int STOP_MESSAGE_SIZE = 4;
-
         /** Approximate maximum number of bytes to send at a time. */
         private static final int XMIT_GROUP_MAX_BYTES = 2048;
 
@@ -704,6 +723,8 @@ public class SimpleOutputEngine
             return outputQueue.size();
         }
 
+        abstract int getRecordLength(ByteBuffer buf);
+
         /**
          * Get the number of records sent by this channel.
          *
@@ -725,6 +746,11 @@ public class SimpleOutputEngine
         }
 
         /**
+         * Is this a stop message?
+         */
+        abstract boolean isStopMessage(ByteBuffer buf, int payLen);
+
+        /**
          * Has this channel been stopped?
          *
          * @return <tt>true</tt> if the channel has been stopped
@@ -733,6 +759,11 @@ public class SimpleOutputEngine
         {
             return stopped;
         }
+
+        /**
+         * Add a "stop" message to the output queue.
+         */
+        abstract void queueStopMessage();
 
         /**
          * Add this record to the queue.
@@ -788,14 +819,13 @@ public class SimpleOutputEngine
         }
 
         /**
-         * Add a "stop" message to the output queue.
+         * If the channel hasn't stopped, add a "stop" message to the output
+         * queue.
          */
         public void sendLastAndStop()
         {
             if (!stopped) {
-                ByteBuffer stopMessage = ByteBuffer.allocate(STOP_MESSAGE_SIZE);
-                stopMessage.putInt(0, STOP_MESSAGE_SIZE);
-                receiveByteBuffer(stopMessage);
+                queueStopMessage();
             }
         }
 
@@ -841,10 +871,10 @@ public class SimpleOutputEngine
                     buf = outputQueue.remove(0);
                 }
 
-                final int payLen = buf.getInt(0);
+                final int payLen = getRecordLength(buf);
 
                 if (stopped) {
-                    if (payLen != STOP_MESSAGE_SIZE) {
+                    if (!isStopMessage(buf, payLen)) {
                         LOG.error("Channel " + name + " saw " + payLen +
                                   "-byte payload after stop");
                         bytesLeft = 0;
@@ -890,7 +920,7 @@ public class SimpleOutputEngine
                     totalSent++;
                 }
 
-                if (payLen == STOP_MESSAGE_SIZE) {
+                if (isStopMessage(buf, payLen)) {
                     stopProcessing();
                 } else if (bufferMgr != null) {
                     bufferMgr.returnBuffer(buf);
@@ -929,6 +959,129 @@ public class SimpleOutputEngine
                     registered = false;
                 }
             }
+        }
+    }
+
+    /**
+     * Simple output channel which sends a 4 byte payload stop message.
+     */
+    class PayloadStopChannel
+        extends SimpleOutputChannel
+    {
+        /** Number of bytes in 'stop' message'. */
+        private static final int STOP_MESSAGE_SIZE = 4;
+
+        /**
+         * Create a simple output channel which uses payload stop messages.
+         *
+         * @param parent parent output engine
+         * @param name channel name
+         * @param channel output channel
+         * @param bufferMgr byte buffer manager
+         */
+        PayloadStopChannel(SimpleOutputEngine parent, String name,
+                           WritableByteChannel channel,
+                           IByteBufferCache bufferMgr)
+        {
+            super(parent, name, channel, bufferMgr);
+        }
+
+        int getRecordLength(ByteBuffer buf)
+        {
+            return buf.getInt(0);
+        }
+
+        /**
+         * Is this a stop message?
+         */
+        boolean isStopMessage(ByteBuffer buf, int payLen)
+        {
+            return payLen == STOP_MESSAGE_SIZE;
+        }
+
+        /**
+         * Add a "stop" message to the output queue.
+         */
+        void queueStopMessage()
+        {
+            ByteBuffer stopMessage = ByteBuffer.allocate(STOP_MESSAGE_SIZE);
+            stopMessage.putInt(0, STOP_MESSAGE_SIZE);
+            receiveByteBuffer(stopMessage);
+        }
+    }
+
+    /** Buffer used to check for stop message */
+    private static ByteBuffer stopTEMessage;
+
+    static {
+        stopTEMessage =
+            ByteBuffer.allocate(TrackEngineStopChannel.STOP_MESSAGE_SIZE);
+        for (int i = 0; i < TrackEngineStopChannel.STOP_MESSAGE_SIZE; i++) {
+            stopTEMessage.put((byte) 0);
+        }
+    }
+
+    /**
+     * Simple output channel which sends an 11 byte track engine stop message.
+     */
+    class TrackEngineStopChannel
+        extends SimpleOutputChannel
+    {
+        /** Number of bytes in 'stop' message'. */
+        static final int STOP_MESSAGE_SIZE = 11;
+
+        /**
+         * Create a simple output channel which uses track engine stop messages.
+         *
+         * @param parent parent output engine
+         * @param name channel name
+         * @param channel output channel
+         * @param bufferMgr byte buffer manager
+         */
+        TrackEngineStopChannel(SimpleOutputEngine parent, String name,
+                               WritableByteChannel channel,
+                               IByteBufferCache bufferMgr)
+        {
+            super(parent, name, channel, bufferMgr);
+        }
+
+        int getRecordLength(ByteBuffer buf)
+        {
+            return 11;
+        }
+
+        /**
+         * Is this a stop message?
+         */
+        boolean isStopMessage(ByteBuffer buf, int payLen)
+        {
+            if (buf == null) {
+                return false;
+            }
+
+            if (buf.limit() != STOP_MESSAGE_SIZE) {
+                return false;
+            }
+
+            for (int i = 0; i < STOP_MESSAGE_SIZE; i++) {
+                if (buf.get(i) != (byte) 0) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /**
+         * Add a "stop" message to the output queue.
+         */
+        void queueStopMessage()
+        {
+            ByteBuffer stopMessage = ByteBuffer.allocate(STOP_MESSAGE_SIZE);
+            for (int i = 0; i < STOP_MESSAGE_SIZE; i++) {
+                stopMessage.put((byte) 0);
+            }
+            receiveByteBuffer(stopMessage);
         }
     }
 }
