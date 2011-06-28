@@ -157,6 +157,11 @@ public class SpliceableSimpleChannelTest
             return type;
         }
 
+        public long getUTCTime()
+        {
+            return time;
+        }
+
         public void loadPayload()
             throws IOException, DataFormatException
         {

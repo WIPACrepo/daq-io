@@ -66,6 +66,11 @@ class AdjustablePayload
         throw new Error("Unimplemented");
     }
 
+    public long getUTCTime()
+    {
+        throw new Error("Unimplemented");
+    }
+
     int getValue()
     {
         return value;
