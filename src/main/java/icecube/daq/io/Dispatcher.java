@@ -1,7 +1,7 @@
 /*
  * interface: Dispatcher
  *
- * Version $Id: Dispatcher.java 3858 2009-01-25 19:06:04Z dglo $
+ * Version $Id: Dispatcher.java 12751 2011-03-04 18:16:53Z mnewcomb $
  *
  * Date: April 1 2004
  *
@@ -10,6 +10,7 @@
 
 package icecube.daq.io;
 
+import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IWriteablePayload;
 
 import java.nio.ByteBuffer;
@@ -18,10 +19,17 @@ import java.nio.ByteBuffer;
  * This interface specifies how events are dispatched from the DAQ system.
  *
  * @author patton
- * @version $Id: Dispatcher.java 3858 2009-01-25 19:06:04Z dglo $
+ * @version $Id: Dispatcher.java 12751 2011-03-04 18:16:53Z mnewcomb $
  */
 public interface Dispatcher
 {
+    /**
+     * Close current file (if open)
+     *
+     * @throws DispatchException if there is a problem
+     */
+    void close()
+        throws DispatchException;
 
     /**
      * Signals to the dispatch system that the set of events that preced this
@@ -92,10 +100,25 @@ public interface Dispatcher
     void dispatchEvents(ByteBuffer buffer, int[] indices, int count)throws DispatchException;
 
     /**
+     * Get the byte buffer cache being used.
+     *
+     * @return byte buffer cache
+     */
+    IByteBufferCache getByteBufferCache();
+
+    /**
      * Get the total of the dispatched events
      * @return a long value
      */
     long getTotalDispatchedEvents();
+
+
+    /** 
+     * Get the number of bytes written to disk
+     *
+     * @return a long value ( number of bytes written to disk )
+     */ 
+    long getNumBytesWritten();
 
     /**
      * Set the destination directory where the dispatch files will be saved.

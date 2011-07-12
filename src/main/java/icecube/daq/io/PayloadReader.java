@@ -304,6 +304,16 @@ if(DEBUG_NEW)System.err.println("ANend");
         return (Long[]) byteLimit.toArray(new Long[0]);
     }
 
+    /**
+     * Return number of active channels.
+     *
+     * @return number of active channels
+     */
+    public int getNumberOfChannels()
+    {
+        return chanList.size();
+    }
+
     public String getPresentState()
     {
         return state.toString();
@@ -433,6 +443,18 @@ if(DEBUG_NEW)System.err.println("ANend");
         this.compObserver = compObserver;
     }
 
+    private void removeChannel(InputChannel chanData)
+    {
+        chanList.remove(chanData);
+        if (chanList.size() > 0) {
+            LOG.error("Closed " + name + " socket channel, " + chanList.size() +
+                      " channels remain");
+        } else {
+            LOG.error("Closed " + name + " socket channel, stopping reader");
+            channelStopFlag.set();
+        }
+    }
+
     public void run()
     {
         newState = RunState.IDLE;
@@ -549,34 +571,33 @@ if(DEBUG_RUN)System.err.println("New chan is"+(chan.isRegistered()?"":" NOT")+" 
                         continue;
                     }
 
+                    InputChannel chanData = (InputChannel) selKey.attachment();
+
                     if (state != RunState.RUNNING &&
                         state != RunState.DISPOSING)
                     {
-if(DEBUG_RUN)System.err.println("Rcancel "+state);
-
+if(DEBUG_RUN)System.err.println("Rremove "+state);
+                        if (!chanData.isOpen()) {
+                            try {
+                                chanData.close();
+                            } catch (Exception ex) {
+                                LOG.error("Cannot close closed channel", ex);
+                            }
+                        }
+                        // XXX should we close noisy channels?
+                        removeChannel(chanData);
                         selKey.cancel();
                     } else {
-                        InputChannel chanData =
-                            (InputChannel) selKey.attachment();
                         try {
 if(DEBUG_RUN)System.err.println("Rproc chanData "+chanData);
                             chanData.processSelect(selKey);
                         } catch (ClosedChannelException cce) {
                             // channel went away
                             selKey.cancel();
-                            chanList.remove(chanData);
-                            if (chanList.size() > 0) {
-                                LOG.error("Closed " + name +
-                                          " socket channel, " +
-                                          chanList.size() +
-                                          " channels remain");
-                            } else {
-                                LOG.error("Closed " + name +
-                                          " socket channel, stopping reader");
-                                channelStopFlag.set();
-                            }
+                            removeChannel(chanData);
                         } catch (IOException ioe) {
-                            LOG.error("Could not process select", ioe);
+                            selKey.cancel();
+                            removeChannel(chanData);
                         }
                     }
                 }

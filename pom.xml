@@ -41,11 +41,6 @@
       <artifactId>concurrent</artifactId>
     </dependency>
 
-    <dependency>
-      <groupId>colt</groupId>
-      <artifactId>colt</artifactId>
-    </dependency>
-
   </dependencies>
 
 </project>

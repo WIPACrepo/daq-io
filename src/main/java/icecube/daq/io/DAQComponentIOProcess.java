@@ -4,6 +4,7 @@ public interface DAQComponentIOProcess
 {
     void destroyProcessor();
     void forcedStopProcessing();
+    int getNumberOfChannels();
     String getPresentState();
     boolean isDestroyed();
     boolean isRunning();

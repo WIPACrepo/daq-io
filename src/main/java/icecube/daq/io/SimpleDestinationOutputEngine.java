@@ -10,13 +10,13 @@
 
 package icecube.daq.io;
 
-import icecube.daq.payload.ByteBufferPayloadDestination;
+import icecube.daq.oldpayload.ByteBufferPayloadDestination;
+import icecube.daq.oldpayload.PayloadDestinationCollection;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IPayloadDestinationCollection;
 import icecube.daq.payload.IPayloadDestinationCollectionController;
 import icecube.daq.payload.ISourceID;
-import icecube.daq.payload.PayloadDestinationCollection;
-import icecube.daq.payload.impl.SourceID4B;
+import icecube.daq.payload.impl.SourceID;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -92,7 +92,7 @@ public class SimpleDestinationOutputEngine
     public QueuedOutputChannel connect(IByteBufferCache bufCache,
                                        WritableByteChannel chan, int srcId)
     {
-        return addDataChannel(chan, new SourceID4B(srcId));
+        return addDataChannel(chan, new SourceID(srcId));
     }
 
     /**

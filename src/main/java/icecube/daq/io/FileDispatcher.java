@@ -29,6 +29,8 @@ public class FileDispatcher implements Dispatcher {
         DAQCmdInterface.DAQ_ONLINE_RUNSTOP_FLAG;
     private static final String SUBRUN_START_PREFIX =
         DAQCmdInterface.DAQ_ONLINE_SUBRUNSTART_FLAG;
+    private static final String CLOSE_PREFIX = "Close:";
+
     private static final long KB_IN_MB = 1024;
 
     private String baseFileName;
@@ -39,7 +41,9 @@ public class FileDispatcher implements Dispatcher {
     private int runNumber;
     private long maxFileSize = 10000000;
     private long currFileSize;
+    private long numBytesWritten;
     private File tempFile;
+    private Object fileLock = new Object();
     private String dispatchDestStorage;
     private int fileIndex;
     private long startingEventNum;
@@ -80,6 +84,19 @@ public class FileDispatcher implements Dispatcher {
         }
 
         this.bufferCache = bufferCache;
+	
+	this.numBytesWritten=0;
+    }
+
+    /**
+     * Close current file (if open)
+     *
+     * @throws DispatchException if there is a problem
+     */
+    public void close()
+        throws DispatchException
+    {
+        dataBoundary(CLOSE_PREFIX);
     }
 
     /**
@@ -131,7 +148,9 @@ public class FileDispatcher implements Dispatcher {
                     moveToDest();
                 }
             }
-        } else if (message.startsWith(SUBRUN_START_PREFIX)) {
+        } else if (message.startsWith(SUBRUN_START_PREFIX) ||
+                   message.startsWith(CLOSE_PREFIX))
+        {
             if (outChannel != null && outChannel.isOpen()) {
                 moveToDest();
             }
@@ -152,40 +171,44 @@ public class FileDispatcher implements Dispatcher {
      * @throws DispatchException is there is a problem in the Dispatch system.
      */
     public void dispatchEvent(ByteBuffer buffer) throws DispatchException {
-        if (tempFile == null) {
-            tempFile = getTempFile(dispatchDestStorage, baseFileName);
-            currFileSize = tempFile.length();
-        }
+        synchronized (fileLock) {
+            if (tempFile == null) {
+                tempFile = getTempFile(dispatchDestStorage, baseFileName);
+                currFileSize = tempFile.length();
+            }
 
-        final boolean tempExists = tempFile.exists();
+            final boolean tempExists = tempFile.exists();
 
-        if (!tempExists || outChannel == null || !outChannel.isOpen()) {
-            FileOutputStream out;
+            if (!tempExists || outChannel == null || !outChannel.isOpen()) {
+                outChannel = openFile(tempFile);
+                currFileSize = tempFile.length();
+                if (tempExists) {
+                    LOG.error("The last temp-" + baseFileName +
+                              " file was not moved to the dispatch storage!!!");
+                }
+            }
+
+            buffer.position(0);
+            int numWritten;
             try {
-                out = new FileOutputStream(tempFile.getPath());
+                numWritten = outChannel.write(buffer);
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("write ByteBuffer of length: " + buffer.limit() +
+                              " to file.");
+                }
             } catch (IOException ioe) {
-                throw new DispatchException("Couldn't open " + tempFile, ioe);
+                throw new DispatchException(ioe);
             }
-            currFileSize = tempFile.length();
-            outChannel = out.getChannel();
-            if (tempExists) {
-                LOG.error("The last temp-" + baseFileName +
-                          " file was not moved to the dispatch storage!!!");
-            }
-        }
 
-        buffer.position(0);
-        try {
-            outChannel.write(buffer);
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("write ByteBuffer of length: " + buffer.limit() + " to file.");
+            if (numWritten != buffer.limit()) {
+                LOG.error("Expected to write " + buffer.limit() +
+                          " bytes, not " + numWritten);
             }
-        } catch (IOException ioe) {
-            throw new DispatchException(ioe);
         }
 
         ++totalDispatchedEvents;
         currFileSize += buffer.limit();
+	numBytesWritten += buffer.limit();
 
         if (currFileSize > maxFileSize) {
             moveToDest();
@@ -206,12 +229,18 @@ public class FileDispatcher implements Dispatcher {
 
             throw new DispatchException(errMsg);
         }
-        ByteBuffer buffer = bufferCache.acquireBuffer(event.getPayloadLength());
+        final int evtLen = event.getPayloadLength();
+        ByteBuffer buffer = bufferCache.acquireBuffer(evtLen);
+        int numWritten;
         try {
-            event.writePayload(false, 0, buffer);
+            numWritten = event.writePayload(false, 0, buffer);
         } catch (IOException ioe) {
             ioe.printStackTrace();
             throw new DispatchException("Couldn't write payload", ioe);
+        }
+        if (numWritten != evtLen) {
+            throw new DispatchException("Expected payload to be " + evtLen +
+                                        " bytes, but got " + numWritten);
         }
         dispatchEvent(buffer);
         bufferCache.returnBuffer(buffer);
@@ -326,6 +355,15 @@ public class FileDispatcher implements Dispatcher {
         return runNumber;
     }
 
+    /** 
+     * Get the number of bytes written to disk
+     *
+     * @return a long value ( number of bytes written to disk )
+     */ 
+    public long getNumBytesWritten() {
+	return numBytesWritten;
+    }
+
     /**
      * Get the total of the dispatched events
      *
@@ -333,6 +371,18 @@ public class FileDispatcher implements Dispatcher {
      */
     public long getTotalDispatchedEvents() {
         return totalDispatchedEvents;
+    }
+
+    public WritableByteChannel openFile(File file)
+        throws DispatchException
+    {
+        FileOutputStream out;
+        try {
+            out = new FileOutputStream(file.getPath());
+        } catch (IOException ioe) {
+            throw new DispatchException("Couldn't open " + file, ioe);
+        }
+        return out.getChannel();
     }
 
     /**
@@ -468,22 +518,26 @@ public class FileDispatcher implements Dispatcher {
     }
 
     private void moveToDest() throws DispatchException {
-        try {
-            outChannel.close();
-        } catch(IOException ioe){
-            LOG.error("Problem when closing file channel: ", ioe);
-            throw new DispatchException(ioe);
-        }
+        synchronized (fileLock) {
+            try {
+                outChannel.close();
+            } catch(IOException ioe){
+                LOG.error("Problem when closing file channel: ", ioe);
+                throw new DispatchException(ioe);
+            }
 
-        File destFile = getDestFile();
-        if (!tempFile.renameTo(destFile)) {
-            String errorMsg = "Couldn't move temp file " + tempFile +
-                " to " + destFile;
-            LOG.error(errorMsg);
-            throw new DispatchException(errorMsg);
-        }
+            File destFile = getDestFile();
+            if (!tempFile.exists()) {
+                LOG.error("Couldn't move nonexistent temp file " + tempFile);
+            } else if (!tempFile.renameTo(destFile)) {
+                String errorMsg = "Couldn't move temp file " + tempFile +
+                    " to " + destFile;
+                LOG.error(errorMsg);
+                throw new DispatchException(errorMsg);
+            }
 
-        startingEventNum = totalDispatchedEvents + 1;
+            startingEventNum = totalDispatchedEvents + 1;
+        }
 
         checkDisk();
     }
@@ -506,14 +560,15 @@ public class FileDispatcher implements Dispatcher {
      */
     private class ShutdownHook extends Thread {
         public void run() {
-            LOG.warn(" ShutdownHook invoked for " + baseFileName);
+            LOG.debug("ShutdownHook invoked for " + baseFileName);
             if (outChannel != null && outChannel.isOpen()) {
-                LOG.warn(" ShutdownHook: moving temp file for " + baseFileName);
+                LOG.warn("ShutdownHook: moving temp file for " + baseFileName);
                 try {
                     moveToDest();
                 } catch (DispatchException de) {
                     // We can't do anything about this now anyway...
-                    LOG.error(" Problem in ShutdownHook for " + baseFileName + ": " + de);
+                    LOG.error("Problem in ShutdownHook for " + baseFileName +
+                              ": " + de);
                 }
             }
         }

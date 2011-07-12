@@ -15,9 +15,9 @@ import EDU.oswego.cs.dl.util.concurrent.LinkedQueue;
 import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.io.test.IOTestUtil;
 import icecube.daq.io.test.LoggingCase;
+import icecube.daq.io.test.MockBufferCache;
 import icecube.daq.io.test.MockObserver;
 import icecube.daq.payload.IByteBufferCache;
-import icecube.daq.payload.VitreousBufferCache;
 
 import java.io.IOException;
 import java.net.BindException;
@@ -201,11 +201,99 @@ public class SimpleOutputEngineTest
         }
     }
 
+    public void testOneByteTEPayload()
+        throws Exception
+    {
+        // buffer caching manager
+        IByteBufferCache cacheMgr = new MockBufferCache("OutLoop");
+
+        // create a pipe for use in testing
+        Pipe testPipe = Pipe.open();
+        testPipe.sink().configureBlocking(false);
+        testPipe.source().configureBlocking(true);
+
+        MockObserver observer = new MockObserver();
+
+        engine = new SimpleOutputEngine("OutputLoop", 0, "test", true);
+        engine.registerComponentObserver(observer);
+        engine.start();
+        IOTestUtil.waitUntilStopped(engine, "creation");
+
+        assertEquals("Bad number of log messages",
+                     0, getNumberOfMessages());
+
+        final String notificationId = "OutputLoop";
+
+        MockObserver xmitObserver = new MockObserver();
+        xmitObserver.setSourceNotificationId(notificationId);
+
+        QueuedOutputChannel transmitEng =
+            engine.addDataChannel(testPipe.sink(), cacheMgr);
+        transmitEng.registerComponentObserver(xmitObserver, notificationId);
+
+        assertEquals("Bad number of log messages", 0, getNumberOfMessages());
+
+        assertTrue("SimpleOutputEngine in " + engine.getPresentState() +
+                   ", not Idle after StopSig", engine.isStopped());
+        engine.startProcessing();
+        IOTestUtil.waitUntilRunning(engine);
+
+        final int bufLen = 11;
+
+        // now move some buffers
+        ByteBuffer testInBuf = ByteBuffer.allocate(bufLen * 2);
+
+        ByteBuffer testOutBuf;
+        for (int i = 0; i < 100; i++) {
+            testOutBuf = cacheMgr.acquireBuffer(bufLen);
+            assertNotNull("Unable to acquire buffer#" + i, testOutBuf);
+            testOutBuf.putInt(5, bufLen);
+            testOutBuf.putShort(9, (short) i);
+            testOutBuf.limit(bufLen);
+            testOutBuf.position(bufLen);
+            testOutBuf.flip();
+
+            transmitEng.receiveByteBuffer(testOutBuf);
+            for (int j = 0; j < 100; j++) {
+                if (!transmitEng.isOutputQueued()) {
+                    break;
+                }
+
+                Thread.sleep(10);
+            }
+            assertFalse("PayloadTransmitChannel did not send buf#" + i,
+                        transmitEng.isOutputQueued());
+
+            testInBuf.position(0);
+            testInBuf.limit(bufLen);
+            int numBytes = testPipe.source().read(testInBuf);
+            assertEquals("Bad return count on read#" + i,
+                         bufLen, numBytes);
+            assertEquals("Bad message byte count on read#" + i,
+                         bufLen, testInBuf.getInt(5));
+        }
+
+        engine.sendLastAndStop();
+        transmitEng.flushOutQueue();
+        IOTestUtil.waitUntilStopped(engine, "send last");
+
+        assertTrue("Failure on sendLastAndStop command.",
+                   observer.gotSourceStop());
+        assertFalse("Got sinkStop notification",
+                   observer.gotSinkStop());
+        assertFalse("Got sourceError notification",
+                   observer.gotSourceError());
+        assertFalse("Got sinkError notification",
+                   observer.gotSinkError());
+
+        assertTrue("ByteBufferCache is not balanced", cacheMgr.isBalanced());
+    }
+
     public void testOutputLoop()
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache cacheMgr = new VitreousBufferCache("OutLoop");
+        IByteBufferCache cacheMgr = new MockBufferCache("OutLoop");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -293,11 +381,118 @@ public class SimpleOutputEngineTest
         assertTrue("ByteBufferCache is not balanced", cacheMgr.isBalanced());
     }
 
+    public void testBrokenPipe()
+        throws Exception
+    {
+        // buffer caching manager
+        IByteBufferCache cacheMgr = new MockBufferCache("SrvrOut");
+
+        Selector sel = Selector.open();
+
+        int port = createServer(sel);
+
+        MockObserver observer = new MockObserver();
+
+        engine = new SimpleOutputEngine("ServerOutput", 0, "test");
+        engine.registerComponentObserver(observer);
+        engine.start();
+        IOTestUtil.waitUntilStopped(engine, "creation");
+
+        SocketChannel sock =
+            SocketChannel.open(new InetSocketAddress("localhost", port));
+        sock.configureBlocking(false);
+
+        assertEquals("Bad number of log messages",
+                     0, getNumberOfMessages());
+
+        final String notificationId = "ServerOutput";
+
+        MockObserver xmitObserver = new MockObserver();
+        xmitObserver.setSourceNotificationId(notificationId);
+
+        QueuedOutputChannel transmitEng = engine.connect(cacheMgr, sock, 1);
+        transmitEng.registerComponentObserver(xmitObserver, notificationId);
+
+        assertEquals("Bad number of log messages", 0, getNumberOfMessages());
+
+        SocketChannel chan = acceptChannel(sel);
+
+        assertTrue("SimpleOutputEngine in " + engine.getPresentState() +
+                   ", not Idle after StopSig", engine.isStopped());
+        engine.startProcessing();
+        IOTestUtil.waitUntilRunning(engine);
+
+        final int bufLen = 40;
+
+        // now move some buffers
+        ByteBuffer testInBuf = ByteBuffer.allocate(bufLen * 2);
+
+        ByteBuffer testOutBuf;
+        for (int i = 0; i < 100; i++) {
+            testOutBuf = cacheMgr.acquireBuffer(bufLen);
+            assertNotNull("Unable to acquire buffer#" + i, testOutBuf);
+            testOutBuf.putInt(0, bufLen);
+            testOutBuf.limit(bufLen);
+            testOutBuf.position(bufLen);
+            testOutBuf.flip();
+
+            transmitEng.receiveByteBuffer(testOutBuf);
+            for (int j = 0; j < 100; j++) {
+                if (!transmitEng.isOutputQueued()) {
+                    break;
+                }
+
+                Thread.sleep(10);
+            }
+            assertFalse("PayloadTransmitChannel did not send buf#" + i,
+                        transmitEng.isOutputQueued());
+
+            if (i < 50) {
+                testInBuf.position(0);
+                testInBuf.limit(4);
+                int numBytes = chan.read(testInBuf);
+                assertEquals("Bad return count on read#" + i,
+                             4, numBytes);
+                assertEquals("Bad message byte count on read#" + i,
+                             bufLen, testInBuf.getInt(0));
+
+                testInBuf.limit(bufLen);
+                int remBytes = chan.read(testInBuf);
+                assertEquals("Bad remainder count on read#" + i,
+                             bufLen - 4, remBytes);
+            } else if (chan.isOpen()) {
+                chan.close();
+            }
+        }
+
+        engine.sendLastAndStop();
+        Thread.sleep(10);
+        transmitEng.flushOutQueue();
+
+        assertTrue("Failure on sendLastAndStop command.",
+                   observer.gotSourceStop());
+        assertFalse("Got sinkStop notification",
+                   observer.gotSinkStop());
+        assertFalse("Got sourceError notification",
+                   observer.gotSourceError());
+        assertFalse("Got sinkError notification",
+                   observer.gotSinkError());
+
+        assertTrue("ByteBufferCache is not balanced", cacheMgr.isBalanced());
+
+        for (int i = 0; i < getNumberOfMessages(); i++) {
+            String msg = (String) getMessage(i);
+            assertTrue("Bad log message \"" + msg + "\"",
+                       msg.startsWith("Channel ") && msg.endsWith(" failed"));
+        }
+        clearMessages();
+    }
+
     public void testServerOutput()
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache cacheMgr = new VitreousBufferCache("SrvrOut");
+        IByteBufferCache cacheMgr = new MockBufferCache("SrvrOut");
 
         Selector sel = Selector.open();
 
@@ -392,8 +587,10 @@ public class SimpleOutputEngineTest
     public void testDisconnect()
         throws Exception
     {
+        String testName = "Disconnect";
+
         // buffer caching manager
-        IByteBufferCache cacheMgr = new VitreousBufferCache("Disconn");
+        IByteBufferCache cacheMgr = new MockBufferCache("Disconn");
 
         Selector sel = Selector.open();
 
@@ -401,7 +598,7 @@ public class SimpleOutputEngineTest
 
         MockObserver observer = new MockObserver();
 
-        engine = new SimpleOutputEngine("ServerOutput", 0, "test");
+        engine = new SimpleOutputEngine(testName, 0, "test");
         engine.registerComponentObserver(observer);
         engine.start();
         IOTestUtil.waitUntilStopped(engine, "creation");
@@ -413,13 +610,11 @@ public class SimpleOutputEngineTest
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
 
-        final String notificationId = "ServerOutput";
-
         MockObserver xmitObserver = new MockObserver();
-        xmitObserver.setSourceNotificationId(notificationId);
+        xmitObserver.setSourceNotificationId(testName);
 
         QueuedOutputChannel transmitEng = engine.connect(cacheMgr, sock, 1);
-        transmitEng.registerComponentObserver(xmitObserver, notificationId);
+        transmitEng.registerComponentObserver(xmitObserver, testName);
 
         assertEquals("Bad number of log messages", 0, getNumberOfMessages());
 

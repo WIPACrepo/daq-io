@@ -1,8 +1,8 @@
 package icecube.daq.io;
 
 import icecube.daq.io.test.LoggingCase;
+import icecube.daq.io.test.MockBufferCache;
 import icecube.daq.payload.IByteBufferCache;
-import icecube.daq.payload.VitreousBufferCache;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -90,9 +90,9 @@ public class SimpleChannelTest
         for (int i = 0; i < vals.length; i++) {
             IByteBufferCache bufMgr;
             if (vals[i] == Long.MIN_VALUE) {
-                bufMgr = new VitreousBufferCache("AllocLim");
+                bufMgr = new MockBufferCache("AllocLim");
             } else {
-                bufMgr = new VitreousBufferCache("AllocLim", vals[i]);
+                bufMgr = new MockBufferCache("AllocLim", vals[i]);
             }
 
             SimpleChannel chan =

@@ -1,11 +1,11 @@
 package icecube.daq.io;
 
 import icecube.daq.io.test.LoggingCase;
+import icecube.daq.io.test.MockBufferCache;
+import icecube.daq.io.test.MockUTCTime;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.ILoadablePayload;
 import icecube.daq.payload.IUTCTime;
-import icecube.daq.payload.VitreousBufferCache;
-import icecube.daq.payload.impl.UTCTime8B;
 import icecube.daq.splicer.ClosedStrandException;
 import icecube.daq.splicer.OrderingException;
 import icecube.daq.splicer.Spliceable;
@@ -146,7 +146,7 @@ public class SpliceableInputChannelTest
         public IUTCTime getPayloadTimeUTC()
         {
             if (timeObj == null) {
-                timeObj = new UTCTime8B(time);
+                timeObj = new MockUTCTime(time);
             }
 
             return timeObj;
@@ -155,6 +155,11 @@ public class SpliceableInputChannelTest
         public int getPayloadType()
         {
             return type;
+        }
+
+        public long getUTCTime()
+        {
+            return time;
         }
 
         public void loadPayload()
@@ -166,6 +171,11 @@ public class SpliceableInputChannelTest
         public void recycle()
         {
             bufMgr.returnBuffer(buf);
+        }
+
+        public void setCache(IByteBufferCache cache)
+        {
+            bufMgr = cache;
         }
     }
 
@@ -227,7 +237,7 @@ public class SpliceableInputChannelTest
 
         Pipe pipe = Pipe.open();
 
-        IByteBufferCache bufMgr = new VitreousBufferCache("OOO");
+        IByteBufferCache bufMgr = new MockBufferCache("OOO");
 
         MockFactory factory = new MockFactory(bufMgr);
 

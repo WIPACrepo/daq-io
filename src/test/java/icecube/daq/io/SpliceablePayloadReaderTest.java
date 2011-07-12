@@ -3,12 +3,12 @@ package icecube.daq.io;
 import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.io.test.IOTestUtil;
 import icecube.daq.io.test.LoggingCase;
+import icecube.daq.io.test.MockBufferCache;
 import icecube.daq.io.test.MockObserver;
 import icecube.daq.io.test.MockSpliceableFactory;
 import icecube.daq.io.test.MockSplicer;
 import icecube.daq.io.test.MockStrandTail;
 import icecube.daq.payload.IByteBufferCache;
-import icecube.daq.payload.VitreousBufferCache;
 import icecube.daq.splicer.Splicer;
 
 import java.net.InetSocketAddress;
@@ -146,7 +146,7 @@ public class SpliceablePayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache("OutIn");
+        IByteBufferCache bufMgr = new MockBufferCache("OutIn");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -221,7 +221,7 @@ public class SpliceablePayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache("MultiOutIn");
+        IByteBufferCache bufMgr = new MockBufferCache("MultiOutIn");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();

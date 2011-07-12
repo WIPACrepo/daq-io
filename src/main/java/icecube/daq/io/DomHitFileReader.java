@@ -1,9 +1,9 @@
 package icecube.daq.io;
 
+import icecube.daq.oldpayload.impl.DomHitDeltaCompressedFormatPayload;
+import icecube.daq.oldpayload.impl.DomHitEngineeringFormatPayload;
 import icecube.daq.payload.IDomHit;
 import icecube.daq.payload.PayloadRegistry;
-import icecube.daq.payload.impl.DomHitDeltaCompressedFormatPayload;
-import icecube.daq.payload.impl.DomHitEngineeringFormatPayload;
 
 import java.io.File;
 import java.io.FileInputStream;

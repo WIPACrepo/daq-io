@@ -2,9 +2,9 @@ package icecube.daq.io;
 
 import icecube.daq.io.test.IOTestUtil;
 import icecube.daq.io.test.LoggingCase;
+import icecube.daq.io.test.MockBufferCache;
 import icecube.daq.io.test.MockObserver;
 import icecube.daq.payload.IByteBufferCache;
-import icecube.daq.payload.VitreousBufferCache;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -305,7 +305,7 @@ public class PayloadReaderTest
     public void testBasic()
         throws IOException
     {
-        IByteBufferCache bufMgr = new VitreousBufferCache("Basic");
+        IByteBufferCache bufMgr = new MockBufferCache("Basic");
 
         Pipe testPipe = Pipe.open();
         Pipe.SinkChannel sinkChannel = testPipe.sink();
@@ -403,7 +403,7 @@ public class PayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache("OutIn");
+        IByteBufferCache bufMgr = new MockBufferCache("OutIn");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -469,7 +469,7 @@ public class PayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache("MultiOutIn");
+        IByteBufferCache bufMgr = new MockBufferCache("MultiOutIn");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -555,7 +555,7 @@ public class PayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache("MultiSzOutIn");
+        IByteBufferCache bufMgr = new MockBufferCache("MultiSzOutIn");
 
         MockObserver observer = new MockObserver();
 
@@ -647,11 +647,14 @@ public class PayloadReaderTest
 
                 IOTestUtil.sendStopMsg(sinkChannel);
                 IOTestUtil.waitUntilStopped(tstRdr, "stop msg");
-                assertTrue("Observer didn't see sinkStop",
+                assertTrue("Observer didn't see sinkStop (msgSize " +
+                           msgSize + ", bufLen " + bufLen + ")",
                            observer.gotSinkStop());
 
-                assertEquals("There are still unreturned byte buffers",
-                             0, bufMgr.getCurrentAquiredBuffers());
+                assertEquals("There are still unreturned byte buffers" +
+                             " (msgSize " + msgSize + ", bufLen " + bufLen +
+                             ")", 0, bufMgr.getCurrentAquiredBuffers());
+
             }
         }
     }
@@ -660,7 +663,7 @@ public class PayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache("Disp");
+        IByteBufferCache bufMgr = new MockBufferCache("Disp");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -718,7 +721,7 @@ public class PayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache("Get");
+        IByteBufferCache bufMgr = new MockBufferCache("Get");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -789,7 +792,7 @@ public class PayloadReaderTest
     public void testInetServer()
         throws Exception
     {
-        IByteBufferCache bufMgr = new VitreousBufferCache("InetSrvr");
+        IByteBufferCache bufMgr = new MockBufferCache("InetSrvr");
 
         tstRdr = new SimplePayloadReader("InetServer");
 
@@ -894,7 +897,7 @@ public class PayloadReaderTest
     public void testMultiServer()
         throws Exception
     {
-        IByteBufferCache bufMgr = new VitreousBufferCache("MultiSrvr");
+        IByteBufferCache bufMgr = new MockBufferCache("MultiSrvr");
 
         final int numTstRdrs = 4;
 
@@ -1003,7 +1006,7 @@ public class PayloadReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache("SrvrIn");
+        IByteBufferCache bufMgr = new MockBufferCache("SrvrIn");
 
         Selector sel = Selector.open();
 
@@ -1086,6 +1089,56 @@ public class PayloadReaderTest
 
         tstRdr.destroyProcessor();
         IOTestUtil.waitUntilDestroyed(tstRdr);
+    }
+
+    /**
+     * Test server which never starts
+     */
+    public void testNonStart()
+        throws Exception
+    {
+        IByteBufferCache bufMgr = new MockBufferCache("InetSrvr");
+
+        tstRdr = new SimplePayloadReader("InetServer");
+
+        tstRdr.start();
+        IOTestUtil.waitUntilStopped(tstRdr, "creation");
+
+        tstRdr.startServer(bufMgr);
+
+        assertTrue("Reader in " + tstRdr.getPresentState() +
+                   ", not Idle after server start", tstRdr.isStopped());
+
+        InetSocketAddress addr =
+            new InetSocketAddress("localhost", tstRdr.getServerPort());
+
+        SocketChannel chan = SocketChannel.open(addr);
+
+        Thread.sleep(100);
+
+        assertEquals("Bad number of log messages",
+                     0, getNumberOfMessages());
+
+        chan.close();
+
+        Thread.sleep(100);
+
+        final int numChans = tstRdr.getNumberOfChannels();
+        assertEquals("Reader should not have any open channels (found " +
+                     numChans + ")", 0, numChans);
+
+        assertEquals("Bad number of log messages",
+                     1, getNumberOfMessages());
+        assertEquals("Unexpected log message 0",
+                     "Closed InetServer socket channel, stopping reader",
+                     getMessage(0));
+        clearMessages();
+
+        tstRdr.destroyProcessor();
+        IOTestUtil.waitUntilDestroyed(tstRdr);
+
+        assertEquals("Bad number of log messages",
+                     0, getNumberOfMessages());
     }
 
     /**

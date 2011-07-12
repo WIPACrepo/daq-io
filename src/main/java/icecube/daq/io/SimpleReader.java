@@ -238,6 +238,16 @@ public abstract class SimpleReader
         return array;
     }
 
+    /**
+     * Return number of active channels.
+     *
+     * @return number of active channels
+     */
+    public int getNumberOfChannels()
+    {
+        return channelList.size();
+    }
+
     public String getPresentState()
     {
         return state.toString();

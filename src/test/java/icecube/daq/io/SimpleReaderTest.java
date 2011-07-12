@@ -2,9 +2,9 @@ package icecube.daq.io;
 
 import icecube.daq.io.test.IOTestUtil;
 import icecube.daq.io.test.LoggingCase;
+import icecube.daq.io.test.MockBufferCache;
 import icecube.daq.io.test.MockObserver;
 import icecube.daq.payload.IByteBufferCache;
-import icecube.daq.payload.VitreousBufferCache;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -306,7 +306,7 @@ public class SimpleReaderTest
     public void testBasic()
         throws IOException
     {
-        IByteBufferCache bufMgr = new VitreousBufferCache("Basic");
+        IByteBufferCache bufMgr = new MockBufferCache("Basic");
 
         Pipe testPipe = Pipe.open();
         Pipe.SinkChannel sinkChannel = testPipe.sink();
@@ -404,7 +404,7 @@ public class SimpleReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache("OutIn");
+        IByteBufferCache bufMgr = new MockBufferCache("OutIn");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -470,7 +470,7 @@ public class SimpleReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache("MultiOutIn");
+        IByteBufferCache bufMgr = new MockBufferCache("MultiOutIn");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -556,7 +556,7 @@ public class SimpleReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache("MultiSzOutIn");
+        IByteBufferCache bufMgr = new MockBufferCache("MultiSzOutIn");
 
         MockObserver observer = new MockObserver();
 
@@ -651,6 +651,19 @@ public class SimpleReaderTest
                 assertTrue("Observer didn't see sinkStop",
                            observer.gotSinkStop());
 
+                for (int i = 0; i < 5; i++) {
+                    if (bufMgr.getCurrentAquiredBuffers() == 0) {
+                        break;
+                    }
+
+                    try {
+System.err.println("sleep#"+i+" BM "+bufMgr);
+                        Thread.sleep(100);
+                    } catch (Exception ex) {
+                        // ignore exceptions
+                    }
+                }
+
                 assertEquals("There are still unreturned byte buffers",
                              0, bufMgr.getCurrentAquiredBuffers());
             }
@@ -661,7 +674,7 @@ public class SimpleReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache("Disp");
+        IByteBufferCache bufMgr = new MockBufferCache("Disp");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -719,7 +732,7 @@ public class SimpleReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache("Get");
+        IByteBufferCache bufMgr = new MockBufferCache("Get");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
@@ -787,7 +800,7 @@ public class SimpleReaderTest
     public void testInetServer()
         throws Exception
     {
-        IByteBufferCache bufMgr = new VitreousBufferCache("InetSrvr");
+        IByteBufferCache bufMgr = new MockBufferCache("InetSrvr");
 
         tstRdr = new SimpleTestReader("InetServer");
 
@@ -883,7 +896,7 @@ public class SimpleReaderTest
     public void testMultiServer()
         throws Exception
     {
-        IByteBufferCache bufMgr = new VitreousBufferCache("MultiSrvr");
+        IByteBufferCache bufMgr = new MockBufferCache("MultiSrvr");
 
         final int numTstRdrs = 4;
 
@@ -990,7 +1003,7 @@ public class SimpleReaderTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache bufMgr = new VitreousBufferCache("SrvrIn");
+        IByteBufferCache bufMgr = new MockBufferCache("SrvrIn");
 
         Selector sel = Selector.open();
 
@@ -1083,7 +1096,7 @@ public class SimpleReaderTest
 
         // buffer caching manager
         IByteBufferCache bufMgr =
-            new VitreousBufferCache("AllocRe", (long) (bufLen * 4));
+            new MockBufferCache("AllocRe", (long) (bufLen * 4));
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();

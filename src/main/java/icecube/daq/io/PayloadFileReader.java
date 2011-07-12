@@ -1,7 +1,9 @@
 package icecube.daq.io;
 
+import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IPayload;
-import icecube.daq.payload.MasterPayloadFactory;
+import icecube.daq.payload.PayloadException;
+import icecube.daq.payload.impl.PayloadFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -9,7 +11,9 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 import java.util.Iterator;
-import java.util.zip.DataFormatException;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 /**
  * Read payloads from a file.
@@ -17,10 +21,15 @@ import java.util.zip.DataFormatException;
 public class PayloadFileReader
     implements DAQFileReader
 {
+    private static final Log LOG = LogFactory.getLog(PayloadFileReader.class);
+
+    /** maximum payload length (to avoid garbage inputs) */
+    private static final int MAX_PAYLOAD_LEN = 10000000;
+
     /** Input channel */
     private ReadableByteChannel chan;
     /** Factory used to build payloads */
-    private MasterPayloadFactory factory;
+    private PayloadFactory factory;
     /** ByteBuffer used to read the payload length */
     private ByteBuffer lenBuf;
 
@@ -39,42 +48,75 @@ public class PayloadFileReader
     public PayloadFileReader(String name)
         throws IOException
     {
-        this(new File(name));
+        this(new File(name), null);
+    }
+
+    /**
+     * Open the file.
+    /**
+     * Open the named file.
+     *
+     * @param name file name
+     * @param cache byte buffer cache
+     *
+     * @throws IOException if the file cannot be opened
+     */
+    private PayloadFileReader(String name, IByteBufferCache cache)
+        throws IOException
+    {
+        this(new File(name), cache);
     }
 
     /**
      * Open the file.
      *
      * @param file payload file
+     * @param cache byte buffer cache
      *
      * @throws IOException if the file cannot be opened
      */
     public PayloadFileReader(File file)
         throws IOException
     {
-        this(new FileInputStream(file));
+        this(file, null);
+    }
+
+    /**
+     * Open the file.
+     *
+     * @param file payload file
+     * @param cache byte buffer cache
+     *
+     * @throws IOException if the file cannot be opened
+     */
+    private PayloadFileReader(File file, IByteBufferCache cache)
+        throws IOException
+    {
+        this(new FileInputStream(file), cache);
     }
 
     /**
      * Use the specified stream to read payloads.
      *
      * @param stream payload file stream
+     * @param cache byte buffer cache
      */
-    public PayloadFileReader(FileInputStream stream)
+    private PayloadFileReader(FileInputStream stream, IByteBufferCache cache)
     {
-        this(stream.getChannel());
+        this(stream.getChannel(), cache);
     }
 
     /**
      * Use the specified channel to read payloads.
      *
      * @param chan payload file channel
+     * @param cache byte buffer cache
      */
-    public PayloadFileReader(ReadableByteChannel chan)
+    private PayloadFileReader(ReadableByteChannel chan, IByteBufferCache cache)
     {
         this.chan = chan;
 
-        factory = new MasterPayloadFactory();
+        factory = new PayloadFactory(cache);
     }
 
     /**
@@ -101,7 +143,7 @@ public class PayloadFileReader
      * @throws IOException if the next payload cannot be read
      */
     private void getNextPayload()
-        throws DataFormatException, IOException
+        throws PayloadException
     {
         if (lenBuf == null) {
             lenBuf = ByteBuffer.allocate(4);
@@ -111,18 +153,31 @@ public class PayloadFileReader
         nextPayload = null;
 
         lenBuf.rewind();
-        int numBytes = chan.read(lenBuf);
+
+        int numBytes;
+        try {
+            numBytes = chan.read(lenBuf);
+        } catch (IOException ioe) {
+            throw new PayloadException("Cannot read length of next payload",
+                                       ioe);
+        }
+
         if (numBytes >= 4) {
             int len = lenBuf.getInt(0);
-            if (len < 4) {
-                throw new DataFormatException("Bad length " + len);
+            if (len < 4 || len > MAX_PAYLOAD_LEN) {
+                throw new PayloadException("Bad length " + len);
             }
 
             ByteBuffer buf = ByteBuffer.allocate(len);
             buf.putInt(len);
-            chan.read(buf);
+            try {
+                chan.read(buf);
+            } catch (IOException ioe) {
+                throw new PayloadException("Cannot read next payload (" + len +
+                                           " bytes)", ioe);
+            }
 
-            nextPayload = factory.createPayload(0, buf);
+            nextPayload = factory.getPayload(buf, 0);
         }
     }
 
@@ -136,9 +191,8 @@ public class PayloadFileReader
         if (!gotNext) {
             try {
                 getNextPayload();
-            } catch (DataFormatException dfe) {
-                nextPayload = null;
-            } catch (IOException ioe) {
+            } catch (PayloadException pe) {
+                LOG.error("Cannot get next payload", pe);
                 nextPayload = null;
             }
         }
@@ -163,9 +217,8 @@ public class PayloadFileReader
     {
         try {
             return nextPayload();
-        } catch (DataFormatException ioe) {
-            return null;
-        } catch (IOException ioe) {
+        } catch (PayloadException pe) {
+            LOG.error("Cannot return next payload", pe);
             return null;
         }
     }
@@ -175,11 +228,10 @@ public class PayloadFileReader
      *
      * @return next payload (or <tt>null</tt>)
      *
-     * @throws IOException if there is a problem with the next payload
-     * @throws IOException if the next payload cannot be read
+     * @throws PayloadException if there is a problem with the next payload
      */
     public IPayload nextPayload()
-        throws DataFormatException, IOException
+        throws PayloadException
     {
         if (!gotNext) {
             getNextPayload();

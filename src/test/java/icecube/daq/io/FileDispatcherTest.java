@@ -2,17 +2,18 @@ package icecube.daq.io;
 
 import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.io.test.LoggingCase;
+import icecube.daq.io.test.MockBufferCache;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IPayloadDestination;
 import icecube.daq.payload.IUTCTime;
-import icecube.daq.payload.VitreousBufferCache;
-import icecube.daq.payload.splicer.Payload;
-import icecube.daq.payload.splicer.PayloadFactory;
-import icecube.util.Poolable;
+import icecube.daq.payload.IWriteablePayload;
+import icecube.daq.payload.Poolable;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.WritableByteChannel;
 import java.util.zip.DataFormatException;
 
 import junit.framework.Test;
@@ -20,18 +21,14 @@ import junit.framework.TestSuite;
 import junit.textui.TestRunner;
 
 class AdjustablePayload
-    extends Payload
+    implements IWriteablePayload
 {
     private int len;
+    private int value;
 
-    AdjustablePayload(int len)
+    public AdjustablePayload(int len)
     {
         this.len = len;
-    }
-
-    public int compareTo(Object x0)
-    {
-        throw new Error("Unimplemented");
     }
 
     public Object deepCopy()
@@ -59,11 +56,6 @@ class AdjustablePayload
         return len;
     }
 
-    public int getPayloadOffset()
-    {
-        throw new Error("Unimplemented");
-    }
-
     public IUTCTime getPayloadTimeUTC()
     {
         throw new Error("Unimplemented");
@@ -74,38 +66,14 @@ class AdjustablePayload
         throw new Error("Unimplemented");
     }
 
-    public Poolable getPoolable()
+    public long getUTCTime()
     {
         throw new Error("Unimplemented");
     }
 
-    public void initialize(int i0, ByteBuffer x1, PayloadFactory x2)
+    int getValue()
     {
-        throw new Error("Unimplemented");
-    }
-
-    protected void loadEnvelope()
-        throws DataFormatException
-    {
-        throw new Error("Unimplemented");
-    }
-
-    public void loadPayload()
-        throws DataFormatException
-    {
-        throw new Error("Unimplemented");
-    }
-
-    public void loadSpliceablePayload()
-        throws DataFormatException
-    {
-        throw new Error("Unimplemented");
-    }
-
-    public int readSpliceableLength(int i0, ByteBuffer x1)
-        throws DataFormatException
-    {
-        throw new Error("Unimplemented");
+        return value;
     }
 
     public void recycle()
@@ -113,57 +81,155 @@ class AdjustablePayload
         throw new Error("Unimplemented");
     }
 
-    public void setPayloadBuffer(int i0, ByteBuffer x1)
+    public void setCache(IByteBufferCache cache)
     {
         throw new Error("Unimplemented");
     }
 
-    public void setPayloadTimeUTC(IUTCTime x0)
+    void setValue(int val)
     {
-        throw new Error("Unimplemented");
+        value = val;
     }
 
-    public void shiftOffset(int i0)
-    {
-        throw new Error("Unimplemented");
-    }
-
-    public int writePayload(IPayloadDestination x0)
+    public int writePayload(boolean b0, IPayloadDestination buf)
         throws IOException
     {
         throw new Error("Unimplemented");
     }
 
-    public int writePayload(boolean b0, IPayloadDestination x1)
+    public int writePayload(boolean b0, int offset, ByteBuffer buf)
         throws IOException
     {
-        throw new Error("Unimplemented");
-    }
-
-    public int writePayload(boolean writeLoaded, int offset, ByteBuffer buf)
-        throws IOException
-    {
-        buf.position(offset);
-        buf.putInt(len);
-
-        for (int i = 4; i < len - 3; i += 4) {
-            buf.putInt(i / 4);
+        if (buf.capacity() - offset >= 4) {
+            buf.putInt(offset, value);
         }
-
-        byte val = 0;
-        while (buf.position() < offset + len) {
-            buf.put(val++);
-        }
-
-        buf.flip();
-
         return len;
     }
+}
 
-    public int writePayload(int i0, ByteBuffer x1)
+class MockChannel
+    implements WritableByteChannel
+{
+    private static int nextNum;
+    private int chanNum = nextNum++;
+
+    private Object semaphore;
+    private String fileName;
+    private boolean closed;
+
+    MockChannel(Object semaphore, String fileName)
+    {
+        this.semaphore = semaphore;
+        this.fileName = fileName;
+    }
+
+    public void close()
+    {
+        if (chanNum == 0) {
+            synchronized (semaphore) {
+                semaphore.notifyAll();
+            }
+        }
+
+        closed = true;
+    }
+
+    public boolean isOpen()
+    {
+        return !closed;
+    }
+
+    public int write(ByteBuffer buf)
         throws IOException
     {
-        throw new Error("Unimplemented");
+        if (closed) {
+            throw new IOException("Closed");
+        }
+
+        return buf.limit();
+    }
+}
+
+class SpecialDispatcher
+    extends FileDispatcher
+{
+    private int nextVal;
+
+    public SpecialDispatcher(String destDir, String baseFileName,
+                             IByteBufferCache bufCache)
+    {
+        super(destDir, baseFileName, bufCache);
+    }
+
+    void checkValue(int val)
+    {
+        if (nextVal != val) {
+            throw new Error("Expected next value " + nextVal + ", not " + val);
+        }
+
+        nextVal++;
+    }
+
+    public WritableByteChannel openFile(File file)
+        throws DispatchException
+    {
+        FileOutputStream out;
+        try {
+            out = new FileOutputStream(file.getPath());
+        } catch (IOException ioe) {
+            throw new DispatchException("Couldn't open " + file, ioe);
+        }
+        try {
+            out.close();
+        } catch (IOException ioe) {
+            // ignore errors on close
+        }
+
+        return new MockChannel(this, file.getPath());
+    }
+}
+
+class RaceRunner
+    implements Runnable
+{
+    private FileDispatcher disp;
+    private AdjustablePayload payload;
+    private Thread thread;
+
+    RaceRunner(FileDispatcher disp, int paySize, int value)
+    {
+        this.disp = disp;
+
+        payload = new AdjustablePayload(paySize);
+        payload.setValue(value);
+    }
+
+    public void run()
+    {
+        try {
+            synchronized (disp) {
+                try {
+                    disp.wait();
+                } catch (Exception ex) {
+                    // ignore
+                }
+            }
+
+            try {
+                disp.dispatchEvent(payload);
+            } catch (DispatchException de) {
+                throw new Error("Caught DispatchException", de);
+            }
+        } finally {
+            thread = null;
+        }
+    }
+
+    public void start()
+    {
+        thread = new Thread(this);
+        thread.setName("RaceRunner");
+        thread.start();
     }
 }
 
@@ -403,7 +469,7 @@ public class FileDispatcherTest
     public void testDispatchEvent()
         throws DispatchException
     {
-        IByteBufferCache bufCache = new VitreousBufferCache("DispEvt");
+        IByteBufferCache bufCache = new MockBufferCache("DispEvt");
 
         FileDispatcher fd = new FileDispatcher("physics", bufCache);
         handleLogMessages();
@@ -604,7 +670,7 @@ public class FileDispatcherTest
         }
 
         try {
-            IByteBufferCache bufCache = new VitreousBufferCache("Full");
+            IByteBufferCache bufCache = new MockBufferCache("Full");
 
             FileDispatcher fd =
                 new FileDispatcher(destDirName, "physics", bufCache);
@@ -619,7 +685,7 @@ public class FileDispatcherTest
                 fd.dataBoundary(DAQCmdInterface.DAQ_ONLINE_RUNSTART_FLAG + i);
                 assertEquals("Incorrect run number", i, fd.getRunNumber());
 
-                Payload payload = new AdjustablePayload(i);
+                IWriteablePayload payload = new AdjustablePayload(i);
 
                 assertEquals("Total dispatched events is not zero",
                              0, fd.getTotalDispatchedEvents());
@@ -663,6 +729,54 @@ public class FileDispatcherTest
                 deleteDirectory(destDir);
             }
         }
+    }
+
+    public void testSpecialDisp()
+        throws DispatchException
+    {
+        File destDir = new File("raceDir");
+        if (destDir.isDirectory()) {
+            deleteDirectory(destDir);
+        }
+        destDir.mkdir();
+
+        IByteBufferCache bufCache = new MockBufferCache("Full");
+
+        final int paySize = 4;
+        final int maxSize = (paySize * 2) - 1;
+
+        FileDispatcher fd = new SpecialDispatcher(destDir.getAbsolutePath(),
+                                                  "physics", bufCache);
+        fd.setMaxFileSize(maxSize);
+        fd.dataBoundary(DAQCmdInterface.DAQ_ONLINE_RUNSTART_FLAG + 1);
+
+        final int skipVal = 2;
+
+        RaceRunner runner = new RaceRunner(fd, paySize, skipVal);
+        runner.start();
+
+        AdjustablePayload payload = new AdjustablePayload(paySize);
+
+        for (int i = 0; i < skipVal + 2; i++) {
+            if (i == skipVal) {
+                continue;
+            }
+
+            payload.setValue(i);
+            fd.dispatchEvent(payload);
+        }
+
+        fd.dataBoundary(DAQCmdInterface.DAQ_ONLINE_RUNSTOP_FLAG);
+
+        String[] children = destDir.list();
+        for (int i = 0; i < children.length; i++) {
+            File kidFile = new File(destDir, children[i]);
+            boolean success = deleteDirectory(kidFile);
+            if (!success) {
+                throw new Error("Cannot delete " + kidFile);
+            }
+        }
+        destDir.delete();
     }
 
     /**
