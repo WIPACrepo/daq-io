@@ -475,6 +475,8 @@ public class SimpleOutputEngine
     {
         totalSent = 0;
 
+        state = State.RUNNING;
+
         while (state == State.RUNNING || channelList.size() > 0) {
             int numSelected = 0;
             try {
@@ -599,8 +601,6 @@ public class SimpleOutputEngine
         Thread thread = new Thread(this);
         thread.setName(engineType + "-" + engineId + "-" + engineFunction);
         thread.start();
-
-        state = State.RUNNING;
     }
 
     /**
