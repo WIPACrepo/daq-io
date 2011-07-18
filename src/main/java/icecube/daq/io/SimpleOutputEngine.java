@@ -475,7 +475,12 @@ public class SimpleOutputEngine
     {
         totalSent = 0;
 
-        state = State.RUNNING;
+        // stop immediately if there are no channels
+        if (channelList.size() > 0) {
+            state = State.RUNNING;
+        } else {
+            state = State.STOPPED;
+        }
 
         while (state == State.RUNNING || channelList.size() > 0) {
             int numSelected = 0;
