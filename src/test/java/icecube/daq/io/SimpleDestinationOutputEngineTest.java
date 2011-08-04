@@ -11,6 +11,7 @@ import icecube.daq.payload.IDOMID;
 import icecube.daq.payload.IEventHitRecord;
 import icecube.daq.payload.IEventPayload;
 import icecube.daq.payload.IHitData;
+import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.IReadoutDataPayload;
 import icecube.daq.payload.PayloadException;
 import icecube.daq.payload.Poolable;
@@ -19,6 +20,7 @@ import icecube.daq.payload.impl.DOMID;
 import icecube.daq.payload.impl.EventPayload_v5;
 import icecube.daq.payload.impl.EventPayload_v6;
 import icecube.daq.payload.impl.PayloadFactory;
+import icecube.daq.payload.impl.SourceID;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -32,42 +34,43 @@ import junit.framework.Test;
 import junit.framework.TestSuite;
 import junit.textui.TestRunner;
 
-
-public class PayloadFileReaderTest
+public class SimpleDestinationOutputEngineTest
     extends LoggingCase
 {
-     public PayloadFileReaderTest(String name)
+     public SimpleDestinationOutputEngineTest(String name)
     {
         super(name);
     }
      public static Test suite()
     {
-        return new TestSuite  (PayloadFileReaderTest.class);
+        return new TestSuite(SimpleDestinationOutputEngineTest.class);
     }
 
 
      public void testMethods() throws Exception
     {
-	File file = new File("subdir");
+	final int srcId = 1;
 	
-	PayloadFileReader pfr, pfr1;
-	pfr = new PayloadFileReader("subdir");
-	pfr1 = new PayloadFileReader(file);
-	
-	//assertEquals("is another payload available?", false, pfr.hasNext());
-	assertNotNull("returns this object", pfr.iterator());
-	//assertNull("Gets the next available payload", pfr.next());
-	//assertNotNull("Gets the next available payload", pfr.nextPayload());
+	ISourceID sourceId;
+	sourceId = new SourceID(srcId);
 
+	ByteBuffer buf = ByteBuffer.allocate(10);
+	SimpleDestinationOutputEngine sd;
+	sd = new SimpleDestinationOutputEngine("electric", srcId, "function");
+	sd.allPayloadDestinationsClosed();
+	assertNull("reference to buffer manager", sd.getBufferManager());
+	assertNotNull("number of messages sent", sd.getMessagesSent());
+	assertNotNull("PayloadDestinationCollection", sd.getPayloadDestinationCollection());
+	sd.payloadDestinationClosed(sourceId);
 	try {
-	pfr1.remove();
-	} catch (Error e) {
-	if(!e.getMessage().equals("Unimplemented")) {
-	throw new Error("Unimplemented");
+	sd.sendPayload( sourceId, buf);
+	} catch (Exception e) {
+	if(!e.getMessage().equals("SourceID unknownComponent#1#1not registered")) {
+	throw new Error("SourceID unknownComponent#1#1not registered");
 	}
 	}
-
-	pfr.close();
+	assertNull("output channel associated with the specified source ID", sd.lookUpEngineBySourceID(sourceId));
+	
     }
     
 

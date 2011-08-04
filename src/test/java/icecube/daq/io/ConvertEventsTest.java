@@ -49,7 +49,13 @@ public class ConvertEventsTest
     {
 
 	ConvertEvents ce;
+	try {
 	ce = new ConvertEvents();
+	} catch (Exception e) {
+	if(!e.getMessage().equals("Cannot find pDAQ 'config' directory")) {
+	    throw new Error("Cannot find pDaq config directory");
+	}
+	}
     }
 
 
