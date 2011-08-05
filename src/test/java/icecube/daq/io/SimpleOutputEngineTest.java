@@ -166,9 +166,22 @@ public class SimpleOutputEngineTest
     public void testStartStop()
         throws Exception
     {
+        // buffer caching manager
+        IByteBufferCache cacheMgr = new MockBufferCache("StartStop");
+
+        QueuedOutputChannel transmitEng;
+        Pipe testPipe;
+
+        // create a pipe for use in testing
+        testPipe = Pipe.open();
+        testPipe.sink().configureBlocking(false);
+        testPipe.source().configureBlocking(true);
+
         engine = new SimpleOutputEngine("StartStop", 0, "test");
         engine.start();
         IOTestUtil.waitUntilStopped(engine, "creation");
+
+        transmitEng = engine.addDataChannel(testPipe.sink(), cacheMgr);
 
         engine.startProcessing();
         IOTestUtil.waitUntilRunning(engine);
@@ -176,7 +189,17 @@ public class SimpleOutputEngineTest
         engine.forcedStopProcessing();
         IOTestUtil.waitUntilStopped(engine, "forced stop");
 
+        testPipe.sink().close();
+        testPipe.source().close();
+
         // try it a second time
+
+        testPipe = Pipe.open();
+        testPipe.sink().configureBlocking(false);
+        testPipe.source().configureBlocking(true);
+
+        transmitEng = engine.addDataChannel(testPipe.sink(), cacheMgr);
+
         engine.startProcessing();
         IOTestUtil.waitUntilRunning(engine);
 
@@ -184,6 +207,16 @@ public class SimpleOutputEngineTest
         IOTestUtil.waitUntilStopped(engine, "forced stop");
 
         // now try a stop message
+
+        testPipe.sink().close();
+        testPipe.source().close();
+
+        testPipe = Pipe.open();
+        testPipe.sink().configureBlocking(false);
+        testPipe.source().configureBlocking(true);
+
+        transmitEng = engine.addDataChannel(testPipe.sink(), cacheMgr);
+
         engine.startProcessing();
         IOTestUtil.waitUntilRunning(engine);
 
@@ -468,6 +501,8 @@ public class SimpleOutputEngineTest
         engine.sendLastAndStop();
         Thread.sleep(10);
         transmitEng.flushOutQueue();
+
+        IOTestUtil.waitUntilStopped(engine, "finished");
 
         assertTrue("Failure on sendLastAndStop command.",
                    observer.gotSourceStop());
