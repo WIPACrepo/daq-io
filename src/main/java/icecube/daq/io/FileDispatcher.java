@@ -3,6 +3,7 @@ package icecube.daq.io;
 import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IWriteablePayload;
+import icecube.daq.payload.PayloadException;
 import icecube.icebucket.util.DiskUsage;
 
 import java.io.File;
@@ -84,7 +85,7 @@ public class FileDispatcher implements Dispatcher {
         }
 
         this.bufferCache = bufferCache;
-	
+
 	this.numBytesWritten=0;
     }
 
@@ -234,8 +235,9 @@ public class FileDispatcher implements Dispatcher {
         int numWritten;
         try {
             numWritten = event.writePayload(false, 0, buffer);
+        } catch (PayloadException pe) {
+            throw new DispatchException("Couldn't write payload", pe);
         } catch (IOException ioe) {
-            ioe.printStackTrace();
             throw new DispatchException("Couldn't write payload", ioe);
         }
         if (numWritten != evtLen) {
@@ -355,11 +357,11 @@ public class FileDispatcher implements Dispatcher {
         return runNumber;
     }
 
-    /** 
+    /**
      * Get the number of bytes written to disk
      *
      * @return a long value ( number of bytes written to disk )
-     */ 
+     */
     public long getNumBytesWritten() {
 	return numBytesWritten;
     }
