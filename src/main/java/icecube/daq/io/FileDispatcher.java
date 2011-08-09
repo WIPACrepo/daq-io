@@ -235,8 +235,6 @@ public class FileDispatcher implements Dispatcher {
         int numWritten;
         try {
             numWritten = event.writePayload(false, 0, buffer);
-        } catch (PayloadException pe) {
-            throw new DispatchException("Couldn't write payload", pe);
         } catch (IOException ioe) {
             throw new DispatchException("Couldn't write payload", ioe);
         }
