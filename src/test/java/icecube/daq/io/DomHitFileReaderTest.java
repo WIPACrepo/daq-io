@@ -67,7 +67,7 @@ public class DomHitFileReaderTest
     {
 	DomHitFileReader dh;
 	dh = new DomHitFileReader("subdir");
-	assertEquals("if there is another hit", false, dh.hasNext());
+	assertFalse("if there is another hit", dh.hasNext());
     }
 
     public void testIterator() throws Exception
@@ -89,7 +89,6 @@ public class DomHitFileReaderTest
     {
 	DomHitFileReader dh;
 	dh = new DomHitFileReader("subdir");
-	//assertNotNull("Next available hit returned", dh.nextHit());
     }
 
     public void testRemove() throws Exception
@@ -97,11 +96,11 @@ public class DomHitFileReaderTest
 	DomHitFileReader dh;
 	dh = new DomHitFileReader("subdir");
 	try {
-	dh.remove();
+	    dh.remove();
 	}catch (Error e) {
-	if(!e.getMessage().equals("Unimplemented")) {
-	throw new Error("Unimplemented");
-	}
+	    if(!e.getMessage().equals("Unimplemented")) {
+		throw new Error("Unimplemented");
+	    }
 	}
     }
 
@@ -109,7 +108,6 @@ public class DomHitFileReaderTest
     {
 	final int offset = 0;
 	ByteBuffer buf = ByteBuffer.allocate(12);
-
 	DomHitFactory dhf = new DomHitFactory();
 	assertNull("DomHit object returned", dhf.createPayload( offset, buf));
     }

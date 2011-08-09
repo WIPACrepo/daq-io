@@ -82,7 +82,6 @@ public class PayloadReceiveChannelTest
 	rcvChan.returnBuffer( buf);
 	rcvChan.exitIdle();
 	rcvChan.exitRecvHeader();
-	//rcvChan.exitRecvBody();
 	rcvChan.enterError();
 	rcvChan.enterSplicerWait();
 	rcvChan.notifyOnStop();
@@ -93,13 +92,18 @@ public class PayloadReceiveChannelTest
 	rcvChan.transition( 1);
 	rcvChan.doTransition( 1, 2);
 
-	assertEquals("placeholder for code in SpliceablePayloadReceiveChannel, returns false ", false, rcvChan.splicerAvailable());
-	assertEquals(" returns if more payload can be handled ", false, rcvChan.handleMorePayloads());
-	assertNotNull("Current acquired bytes", rcvChan.getBufferCurrentAcquiredBytes());
-	assertNotNull("current acquired buffers", rcvChan.getBufferCurrentAcquiredBuffers());
+	assertFalse("placeholder for code in SpliceablePayloadReceiveChannel", 
+	    rcvChan.splicerAvailable());
+	assertFalse(" returns if more payload can be handled ",
+	    rcvChan.handleMorePayloads());
+	assertNotNull("Current acquired bytes", 
+	    rcvChan.getBufferCurrentAcquiredBytes());
+	assertNotNull("current acquired buffers", 
+	    rcvChan.getBufferCurrentAcquiredBuffers());
 	assertNotNull("present state", rcvChan.presentState());
 	assertNotNull("String returned", rcvChan.toString());
 	assertEquals("get Number", 1, rcvChan.getNum());
+
 	rcvChan.stopEngine();
 	rcvChan.close();
 	

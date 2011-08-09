@@ -50,7 +50,8 @@ public class BufferWriterTest
 	String baseName = "subdir";
 	BufferWriter bw;
 	bw = new BufferWriter(baseName);
-	assertNotNull("Buffer writer object should be returned",bw.openNext(baseName));
+	assertNotNull("Buffer writer object should be returned",
+	    bw.openNext(baseName));
     }
 
     public void testWrites() throws IOException
@@ -59,17 +60,18 @@ public class BufferWriterTest
 	BufferWriter bw;
 	bw = new BufferWriter("subdir", true);
 
-	assertEquals("Number of bytes written", 12,bw.write(buf));
-	assertEquals("Number of bytes written", 12,bw.writeAndRestore(buf));
-	assertEquals("Number of bytes written", 12,bw.writeAndRestore(buf, 0));
+	assertEquals("Number of bytes written", 12, bw.write(buf));
+	assertEquals("Number of bytes written", 12, bw.writeAndRestore(buf));
+	assertEquals("Number of bytes written", 12,
+	    bw.writeAndRestore(buf, 0));
 
 	try {
-	bw.writeAndRestore(null, 0);
+	    bw.writeAndRestore(null, 0);
 	}
 	catch(Exception e) {
-	if(!(e.getMessage().equals("Cannot write null buffer"))) {
-	throw new Error ("ByteBuffer cannot be null");
-	}
+	    if(!(e.getMessage().equals("Cannot write null buffer"))) {
+		throw new Error ("ByteBuffer cannot be null");
+	    }
 	}
     }
 

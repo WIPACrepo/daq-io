@@ -37,7 +37,6 @@ public class CodeTimerTest
      public void testConstructor()
     {
 	final int numTimes = 10;
-
 	CodeTimer ct;
 	ct = new CodeTimer(numTimes);
     }
@@ -52,21 +51,21 @@ public class CodeTimerTest
 	ct = new CodeTimer(numTimes);
 
 	try {
-	ct.addTime(num, time);
+	    ct.addTime(num, time);
 	}
 	catch(Error e) {
-	if(!(e.getMessage().equals("Illegal timer #-1"))) {
-	throw new Error ("Illegal num value");
-	}
+	    if(!(e.getMessage().equals("Illegal timer #-1"))) {
+		throw new Error ("Illegal num value");
+	    }
 	}
 
 	try {
-	ct.addTime(num1, time);
+	    ct.addTime(num1, time);
 	}
 	catch(Error e) {
-	if(!(e.getMessage().equals("Illegal timer #11"))) {
-	throw new Error ("Illegal num value");
-	}
+	    if(!(e.getMessage().equals("Illegal timer #11"))) {
+		throw new Error ("Illegal num value");
+	    }
 	}
 	
     }
@@ -91,31 +90,31 @@ public class CodeTimerTest
 	ct = new CodeTimer(numTimes);
 
 	try {
-	ct.stop(1);
+	    ct.stop(1);
 	}
 	catch(Error e) {
-	if(!(e.getMessage().equals("No timer running"))) {
-	throw new Error ("Start timer before stop");
-	}
+	    if(!(e.getMessage().equals("No timer running"))) {
+		throw new Error ("Start timer before stop");
+	    }
 	}
 
 	ct.start();
 	try {
-	ct.stop(-1);
+	    ct.stop(-1);
 	}
 	catch(Error e) {
-	if(!(e.getMessage().equals("Illegal timer #-1"))) {
-	throw new Error ("Illegal num value");
-	}
+	    if(!(e.getMessage().equals("Illegal timer #-1"))) {
+		throw new Error ("Illegal num value");
+	    }
 	}
 
 	try {
-	ct.stop(11);
+	    ct.stop(11);
 	}
 	catch(Error e) {
-	if(!(e.getMessage().equals("Illegal timer #11"))) {
-	throw new Error ("Illegal num value");
-	}
+	    if(!(e.getMessage().equals("Illegal timer #11"))) {
+		throw new Error ("Illegal num value");
+	    }
 	}
 
 	ct.stop(1);
@@ -132,13 +131,14 @@ public class CodeTimerTest
 
 	CodeTimer ct;
 	ct = new CodeTimer(numTimes);
+
 	try {
-	ct.getStats(title,-1);
+	    ct.getStats(title,-1);
 	}
 	catch(Error e) {
-	if(!(e.getMessage().equals("Illegal timer #-1"))) {
-	throw new Error ("Illegal num value");
-	}
+	    if(!(e.getMessage().equals("Illegal timer #-1"))) {
+		throw new Error ("Illegal num value");
+	    }
 	}
 	ct.addTime(0, time);
 	ct.addTime(1, time);
@@ -148,12 +148,12 @@ public class CodeTimerTest
 	assertNotNull("Message returned", ct.getStats(title1));
 
 	try {
-	assertNotNull("Message returned", ct.getStats(title2));
+	    assertNotNull("Message returned", ct.getStats(title2));
 	}
 	catch(Error e) {
-	if(!(e.getMessage().equals("Expected 10 titles, got 11"))) {
-	throw new Error ("Change title length");
-	}
+	    if(!(e.getMessage().equals("Expected 10 titles, got 11"))) {
+		throw new Error ("Change title length");
+	    }
 	}
 	
     }

@@ -242,15 +242,21 @@ public class SimpleOutputEngineTest
 	}
 
 	assertNull("output channel", engine.getChannel());
-	assertNotNull("depth of all output channel queues", engine.getDepth());
+
+	assertNotNull("depth of output channel queues", engine.getDepth());
+
 	assertEquals("Number of channels", 0, engine.getNumberOfChannels());
-	assertNotNull("number of records written", engine.getTotalRecordsSent());
-	assertNotNull("number of records written by all output channel queues", 
-		engine.getRecordsSent());
-	assertEquals("Has this engine been connected to any output channels?", 
-		false, engine.isConnected());
+
+	assertNotNull("no. of records written", engine.getTotalRecordsSent());
+
+	assertNotNull("no. of records written by all output channel queues", 
+	    engine.getRecordsSent());
+
+	assertTrue("Has this engine been connected to any output channels?", 
+	    engine.isConnected());
 
 	assertNotNull("number of records written", engine.getRecordsSent());
+
 	assertNotNull("String returned", engine.toString());
 	
     }

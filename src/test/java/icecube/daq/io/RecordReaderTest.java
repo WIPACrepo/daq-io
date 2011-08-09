@@ -49,11 +49,9 @@ public class RecordReaderTest
     {
 	ByteBuffer buf = ByteBuffer.allocate(10);
 	RecordReader rr;
-	rr = new RecordReader("subdir");
+	rr = new RecordReader("physics");
 	rr.open();
-	//assertEquals("length of record", 1, rr.readNextRecord(buf));
 	rr.readNextFixedLenghtRecord( 1, buf);
-
 	rr.close();
     }
     

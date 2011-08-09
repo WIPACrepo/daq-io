@@ -36,7 +36,6 @@ public class DispatchExceptionTest
     {
 	DispatchException de;
 	de = new DispatchException();
-
 	de = new DispatchException("Exception", new Error("Cause Unknown"));
 	de = new DispatchException(new Error("Cause Unknown"));
 

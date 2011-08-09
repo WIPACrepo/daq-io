@@ -54,17 +54,15 @@ public class PayloadFileReaderTest
 	pfr = new PayloadFileReader("payload");
 	pfr1 = new PayloadFileReader(file);
 	
-	assertEquals("is another payload available?", false, pfr1.hasNext());
+	assertFalse("is another payload available?", pfr1.hasNext());
 	assertNotNull("returns this object", pfr1.iterator());
-	//assertNull("Gets the next available payload", pfr.next());
-	//assertNotNull("Gets the next available payload", pfr.nextPayload());
 
 	try {
-	pfr1.remove();
+	    pfr1.remove();
 	} catch (Error e) {
-	if(!e.getMessage().equals("Unimplemented")) {
-	throw new Error("Unimplemented");
-	}
+	    if(!e.getMessage().equals("Unimplemented")) {
+		throw new Error("Unimplemented");
+	    }
 	}
 
 	pfr1.close();

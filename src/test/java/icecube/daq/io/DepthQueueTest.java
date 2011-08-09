@@ -41,9 +41,9 @@ public class DepthQueueTest
     public void testisEmpty()
     {
 	DepthQueue dq = new DepthQueue();
-	assertEquals("if queue is empty", true , dq.isEmpty());
+	assertTrue("if queue is empty", dq.isEmpty());
     }
-    public void testput() throws Exception
+    public void testSync() throws Exception
     {
 	ByteBuffer buf = ByteBuffer.allocate(12);
 	DepthQueue dq = new DepthQueue();

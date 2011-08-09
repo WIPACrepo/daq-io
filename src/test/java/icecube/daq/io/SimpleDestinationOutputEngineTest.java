@@ -65,8 +65,6 @@ class mockWritableByteChannel
     public SelectionKey register(Selector s,int i,Object o)
     {
 	throw new Error("Unimplemented");
-	//SelectionKey s;
-	//return s;
     }
     public SelectionKey keyFor(Selector s)
     {
@@ -111,24 +109,29 @@ public class SimpleDestinationOutputEngineTest
 	ISourceID sourceId;
 	sourceId = new SourceID(srcId);
 	channel = new mockWritableByteChannel();
-
 	ByteBuffer buf = ByteBuffer.allocate(10);
 	SimpleDestinationOutputEngine sd;
 	sd = new SimpleDestinationOutputEngine("electric", srcId, "function");
 	sd.allPayloadDestinationsClosed();
+
 	assertNull("reference to buffer manager", sd.getBufferManager());
 	assertNotNull("number of messages sent", sd.getMessagesSent());
-	assertNotNull("PayloadDestinationCollection", sd.getPayloadDestinationCollection());
-	//assertNotNull("Add an output channel", sd.addDataChannel( channel, sourceId));
+	assertNotNull("PayloadDestinationCollection", 
+	    sd.getPayloadDestinationCollection());
+
 	sd.payloadDestinationClosed(sourceId);
+
 	try {
-	sd.sendPayload( sourceId, buf);
+	    sd.sendPayload( sourceId, buf);
 	} catch (Exception e) {
-	if(!e.getMessage().equals("SourceID unknownComponent#1#1not registered")) {
-	throw new Error("SourceID unknownComponent#1#1not registered");
+	    if(!e.getMessage().
+		equals("SourceID unknownComponent#1#1not registered")) {
+	            throw new Error("SrcID unknownComponent#11not registered");
+	    }
 	}
-	}
-	assertNull("output channel associated with the specified source ID", sd.lookUpEngineBySourceID(sourceId));
+
+	assertNull("output channel associated with the specified source ID",
+            sd.lookUpEngineBySourceID(sourceId));
 	
     }
     

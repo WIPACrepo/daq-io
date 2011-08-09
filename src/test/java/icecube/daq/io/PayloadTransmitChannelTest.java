@@ -39,7 +39,7 @@ import junit.framework.Test;
 import junit.framework.TestSuite;
 import junit.textui.TestRunner;
 
-class mockWritableByteChannel
+/*class mockWritableByteChannel
     extends SelectableChannel
     implements WritableByteChannel
     
@@ -66,8 +66,6 @@ class mockWritableByteChannel
     public SelectionKey register(Selector s,int i,Object o)
     {
 	throw new Error("Unimplemented");
-	//SelectionKey s;
-	//return s;
     }
     public SelectionKey keyFor(Selector s)
     {
@@ -88,7 +86,7 @@ class mockWritableByteChannel
     public void implCloseChannel()
     {
     }
-}
+}*/
 
 class mockSelector
     extends Selector
@@ -242,7 +240,6 @@ public class PayloadTransmitChannelTest
 	final String myId = "payload";
 	
 	ByteBuffer buf = ByteBuffer.allocate(10);
-
 	PayloadTransmitChannel ptc;
 	WritableByteChannel channel;
         Selector sel;
@@ -254,44 +251,22 @@ public class PayloadTransmitChannelTest
 
 	ptc.enterGetBuffer();
 	ptc.exitGetBuffer();
-	//ptc.enterTransMsg();
-	//ptc.exitTransMsg();
 	ptc.enterTransDone();
 	ptc.exitTransDone();
 	ptc.enterError();
 	ptc.exitError();
 	ptc.notifyOnStop();
 	ptc.startEngine();
-	//ptc.flushOutQueue();
 	ptc.injectError();
 	ptc.processTimer();
-	//ptc.receiveByteBuffer( buf);
 	ptc.stopEngine();
 	ptc.sendLastAndStop();
 	ptc.close();
 	
-	//ptc.destinationClosed();
-
-	
 	assertEquals("depth", 1, ptc.getDepth());
-	assertEquals("output queued", true, ptc.isOutputQueued());
+	assertTrue("output queued", ptc.isOutputQueued());
 	assertNotNull("state name", ptc.presentState());
 
-/*
-	sd.allPayloadDestinationsClosed();
-	assertNull("reference to buffer manager", sd.getBufferManager());
-	assertNotNull("number of messages sent", sd.getMessagesSent());
-	assertNotNull("PayloadDestinationCollection", sd.getPayloadDestinationCollection());
-	sd.payloadDestinationClosed(sourceId);
-	try {
-	sd.sendPayload( sourceId, buf);
-	} catch (Exception e) {
-	if(!e.getMessage().equals("SourceID unknownComponent#1#1not registered")) {
-	throw new Error("SourceID unknownComponent#1#1not registered");
-	}
-	}
-	assertNull("output channel associated with the specified source ID", sd.lookUpEngineBySourceID(sourceId)); */
-	
     }
     
 

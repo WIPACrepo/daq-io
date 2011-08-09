@@ -49,7 +49,6 @@ public class ConvertEventsTest
     {
 
 	ConvertEvents ce;
-
 	ce = new ConvertEvents();
 
     }
