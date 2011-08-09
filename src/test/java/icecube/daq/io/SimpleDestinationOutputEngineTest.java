@@ -21,6 +21,10 @@ import icecube.daq.payload.impl.EventPayload_v5;
 import icecube.daq.payload.impl.EventPayload_v6;
 import icecube.daq.payload.impl.PayloadFactory;
 import icecube.daq.payload.impl.SourceID;
+import java.nio.channels.Selector;
+import java.nio.channels.spi.SelectorProvider;
+import java.nio.channels.SelectableChannel;
+import java.nio.channels.SelectionKey;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -33,6 +37,58 @@ import java.util.zip.DataFormatException;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 import junit.textui.TestRunner;
+
+class mockWritableByteChannel
+    extends SelectableChannel
+    implements WritableByteChannel
+    
+{
+    public mockWritableByteChannel()
+    {
+    }
+    public int write(ByteBuffer buf)
+    {
+	return 1;
+    }
+    public Object blockingLock()
+    {
+	throw new Error("Unimplemented");
+    }
+    public boolean isBlocking()
+    {
+	return false;
+    }
+    public SelectableChannel configureBlocking(boolean bool)
+    {
+	throw new Error("Unimplemented");
+    }
+    public SelectionKey register(Selector s,int i,Object o)
+    {
+	throw new Error("Unimplemented");
+	//SelectionKey s;
+	//return s;
+    }
+    public SelectionKey keyFor(Selector s)
+    {
+	throw new Error("Unimplemented");
+    }
+    public boolean isRegistered()
+    {
+	return false;
+    }
+    public int validOps()
+    {
+	return 1;
+    }
+    public SelectorProvider provider()
+    {
+	throw new Error("Unimplemented");
+    }
+    public void implCloseChannel()
+    {
+    }
+}
+
 
 public class SimpleDestinationOutputEngineTest
     extends LoggingCase
@@ -50,9 +106,11 @@ public class SimpleDestinationOutputEngineTest
      public void testMethods() throws Exception
     {
 	final int srcId = 1;
+	WritableByteChannel channel;
 	
 	ISourceID sourceId;
 	sourceId = new SourceID(srcId);
+	channel = new mockWritableByteChannel();
 
 	ByteBuffer buf = ByteBuffer.allocate(10);
 	SimpleDestinationOutputEngine sd;
@@ -61,6 +119,7 @@ public class SimpleDestinationOutputEngineTest
 	assertNull("reference to buffer manager", sd.getBufferManager());
 	assertNotNull("number of messages sent", sd.getMessagesSent());
 	assertNotNull("PayloadDestinationCollection", sd.getPayloadDestinationCollection());
+	//assertNotNull("Add an output channel", sd.addDataChannel( channel, sourceId));
 	sd.payloadDestinationClosed(sourceId);
 	try {
 	sd.sendPayload( sourceId, buf);

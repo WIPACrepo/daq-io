@@ -117,6 +117,7 @@ public class InputChannelTest
                          expStop, chan.getLimitToStopAllocation());
             assertEquals("Bad restart allocation limit",
                          expRestart, chan.getLimitToRestartAllocation());
+	    assertNotNull("IOChannel Parent", chan.getParent());
         }
     }
 

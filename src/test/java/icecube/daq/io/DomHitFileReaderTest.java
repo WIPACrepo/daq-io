@@ -105,14 +105,14 @@ public class DomHitFileReaderTest
 	}
     }
 
-  /*  public void testDOMHitFactory() throws Exception
+    public void testDOMHitFactory() throws Exception
     {
 	final int offset = 0;
 	ByteBuffer buf = ByteBuffer.allocate(12);
 
 	DomHitFactory dhf = new DomHitFactory();
 	assertNull("DomHit object returned", dhf.createPayload( offset, buf));
-    }*/
+    }
     /**
      * Main routine which runs text test in standalone mode.
      *

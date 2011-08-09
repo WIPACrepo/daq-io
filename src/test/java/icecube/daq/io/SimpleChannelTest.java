@@ -118,6 +118,7 @@ public class SimpleChannelTest
                          expStop, chan.getLimitToStopAllocation());
             assertEquals("Bad restart allocation limit",
                          expRestart, chan.getLimitToRestartAllocation());
+	    
         }
     }
 

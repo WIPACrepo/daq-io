@@ -252,15 +252,30 @@ public class PayloadTransmitChannelTest
 	bufMgr = new MyCache();
 	ptc = new PayloadTransmitChannel(myId, channel, sel, bufMgr);
 
-	ptc.stopEngine();
-	ptc.sendLastAndStop();
-	//ptc.startEngine();
+	ptc.enterGetBuffer();
+	ptc.exitGetBuffer();
+	//ptc.enterTransMsg();
+	//ptc.exitTransMsg();
+	ptc.enterTransDone();
+	ptc.exitTransDone();
+	ptc.enterError();
+	ptc.exitError();
+	ptc.notifyOnStop();
+	ptc.startEngine();
 	//ptc.flushOutQueue();
 	ptc.injectError();
 	ptc.processTimer();
-	ptc.close();
 	//ptc.receiveByteBuffer( buf);
+	ptc.stopEngine();
+	ptc.sendLastAndStop();
+	ptc.close();
+	
 	//ptc.destinationClosed();
+
+	
+	assertEquals("depth", 1, ptc.getDepth());
+	assertEquals("output queued", true, ptc.isOutputQueued());
+	assertNotNull("state name", ptc.presentState());
 
 /*
 	sd.allPayloadDestinationsClosed();

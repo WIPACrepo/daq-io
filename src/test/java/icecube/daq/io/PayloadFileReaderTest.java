@@ -51,11 +51,11 @@ public class PayloadFileReaderTest
 	File file = new File("subdir");
 	
 	PayloadFileReader pfr, pfr1;
-	pfr = new PayloadFileReader("subdir");
+	pfr = new PayloadFileReader("payload");
 	pfr1 = new PayloadFileReader(file);
 	
-	//assertEquals("is another payload available?", false, pfr.hasNext());
-	assertNotNull("returns this object", pfr.iterator());
+	assertEquals("is another payload available?", false, pfr1.hasNext());
+	assertNotNull("returns this object", pfr1.iterator());
 	//assertNull("Gets the next available payload", pfr.next());
 	//assertNotNull("Gets the next available payload", pfr.nextPayload());
 
@@ -67,7 +67,7 @@ public class PayloadFileReaderTest
 	}
 	}
 
-	pfr.close();
+	pfr1.close();
     }
     
 

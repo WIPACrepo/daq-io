@@ -230,6 +230,9 @@ public class PushSimpleReaderTest
         IOTestUtil.sendStopMsg(sinkChannel);
         IOTestUtil.waitUntilStopped(tstRdr, "stop msg");
         assertTrue("Observer didn't see sinkStop.", observer.gotSinkStop());
+	assertNotNull("number of messages received", tstRdr.getDequeuedMessages());
+	assertNotNull("total number of stop messages", tstRdr.getStopMessagesPropagated());
+	assertNotNull("total number of stop messages", tstRdr.getTotalStopsReceived());
     }
 
     public void testMultiOutputInput()

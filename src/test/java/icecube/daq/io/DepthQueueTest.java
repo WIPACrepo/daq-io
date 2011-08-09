@@ -48,11 +48,7 @@ public class DepthQueueTest
 	ByteBuffer buf = ByteBuffer.allocate(12);
 	DepthQueue dq = new DepthQueue();
 	dq.put(buf);
-    }
-    public void testtake() throws Exception
-    {
-	DepthQueue dq = new DepthQueue();
-	//dq.take();
+	dq.take();
     }
      
     /**

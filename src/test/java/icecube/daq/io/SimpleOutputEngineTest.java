@@ -232,6 +232,27 @@ public class SimpleOutputEngineTest
         } catch (Exception e) {
             // expect this to fail
         }
+	
+	try {
+	engine.clearError();
+	} catch(Error e) {
+	if(!e.getMessage().equals("Unimplemented")) {
+	    throw new Error("Unimplemented");
+	}
+	}
+
+	assertNull("output channel", engine.getChannel());
+	assertNotNull("depth of all output channel queues", engine.getDepth());
+	assertEquals("Number of channels", 0, engine.getNumberOfChannels());
+	assertNotNull("number of records written", engine.getTotalRecordsSent());
+	assertNotNull("number of records written by all output channel queues", 
+		engine.getRecordsSent());
+	assertEquals("Has this engine been connected to any output channels?", 
+		false, engine.isConnected());
+
+	assertNotNull("number of records written", engine.getRecordsSent());
+	assertNotNull("String returned", engine.toString());
+	
     }
 
     public void testOneByteTEPayload()
