@@ -37,19 +37,19 @@ import junit.textui.TestRunner;
 public class DomHitFileReaderTest
     extends LoggingCase
 {
-     public DomHitFileReaderTest(String name)
+    public DomHitFileReaderTest(String name)
     {
         super(name);
     }
-     public static Test suite()
+
+    public static Test suite()
     {
         return new TestSuite(DomHitFileReaderTest.class);
     }
 
-
-     public void testConstructor() throws Exception
+    public void testConstructor() throws Exception
     {
-	File file =  new File("subdir");
+	File file = new File("subdir");
 	FileInputStream fis = new FileInputStream(file);
 	DomHitFileReader dh;
 	dh = new DomHitFileReader("subdir");
@@ -104,13 +104,13 @@ public class DomHitFileReaderTest
 	}
     }
 
-    public void testDOMHitFactory() throws Exception
+    /*public void testDOMHitFactory() throws Exception
     {
 	final int offset = 0;
 	ByteBuffer buf = ByteBuffer.allocate(12);
 	DomHitFactory dhf = new DomHitFactory();
 	assertNull("DomHit object returned", dhf.createPayload( offset, buf));
-    }
+    }*/
     /**
      * Main routine which runs text test in standalone mode.
      *

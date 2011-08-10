@@ -24,11 +24,12 @@ import junit.textui.TestRunner;
 public class DepthQueueTest
     extends LoggingCase
 {
-     public DepthQueueTest(String name)
+    public DepthQueueTest(String name)
     {
         super(name);
     }
-     public static Test suite()
+
+    public static Test suite()
     {
         return new TestSuite(DepthQueueTest.class);
     }
@@ -38,11 +39,13 @@ public class DepthQueueTest
 	DepthQueue dq = new DepthQueue();
 	assertEquals("Current depth value returned", 0 , dq.getDepth());
     }
+
     public void testisEmpty()
     {
 	DepthQueue dq = new DepthQueue();
 	assertTrue("if queue is empty", dq.isEmpty());
     }
+
     public void testSync() throws Exception
     {
 	ByteBuffer buf = ByteBuffer.allocate(12);

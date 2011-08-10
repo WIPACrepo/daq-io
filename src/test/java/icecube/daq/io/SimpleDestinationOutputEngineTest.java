@@ -91,17 +91,17 @@ class mockWritableByteChannel
 public class SimpleDestinationOutputEngineTest
     extends LoggingCase
 {
-     public SimpleDestinationOutputEngineTest(String name)
+    public SimpleDestinationOutputEngineTest(String name)
     {
         super(name);
     }
-     public static Test suite()
+
+    public static Test suite()
     {
         return new TestSuite(SimpleDestinationOutputEngineTest.class);
     }
 
-
-     public void testMethods() throws Exception
+    public void testMethods() throws Exception
     {
 	final int srcId = 1;
 	WritableByteChannel channel;

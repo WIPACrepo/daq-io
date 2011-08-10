@@ -24,14 +24,16 @@ import junit.textui.TestRunner;
 public class DispatchExceptionTest
     extends LoggingCase
 {
-     public DispatchExceptionTest(String name)
+    public DispatchExceptionTest(String name)
     {
         super(name);
     }
-     public static Test suite()
+
+    public static Test suite()
     {
         return new TestSuite(DispatchExceptionTest.class);
     }
+
     public void testConstructor()
     {
 	DispatchException de;

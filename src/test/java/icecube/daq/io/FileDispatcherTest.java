@@ -437,7 +437,7 @@ public class FileDispatcherTest
 
     public void testGoodDest()
     {
-        final String goodDir = "subdir";
+        final String goodDir = ".";
 
         File subdirFile = new File(goodDir);
 

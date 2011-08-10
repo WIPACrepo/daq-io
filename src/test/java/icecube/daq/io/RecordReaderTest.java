@@ -21,8 +21,10 @@ import icecube.daq.payload.impl.EventPayload_v6;
 import icecube.daq.payload.impl.PayloadFactory;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 import java.util.zip.DataFormatException;
@@ -35,21 +37,25 @@ import junit.textui.TestRunner;
 public class RecordReaderTest
     extends LoggingCase
 {
-     public RecordReaderTest(String name)
+    public RecordReaderTest(String name)
     {
         super(name);
     }
-     public static Test suite()
+
+    public static Test suite()
     {
         return new TestSuite(RecordReaderTest.class);
     }
 
-
-     public void testMethods() throws Exception
+    public void testMethods() throws Exception
     {
+	String fileName;
 	ByteBuffer buf = ByteBuffer.allocate(10);
 	RecordReader rr;
-	rr = new RecordReader("physics");
+	
+	URL url = this.getClass().getResource("/subdir");
+	fileName = url.getFile();
+	rr = new RecordReader(fileName);
 	rr.open();
 	rr.readNextFixedLenghtRecord( 1, buf);
 	rr.close();

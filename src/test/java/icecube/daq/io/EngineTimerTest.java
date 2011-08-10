@@ -35,17 +35,17 @@ import junit.textui.TestRunner;
 public class EngineTimerTest
     extends LoggingCase
 {
-     public EngineTimerTest(String name)
+    public EngineTimerTest(String name)
     {
         super(name);
     }
-     public static Test suite()
+
+    public static Test suite()
     {
         return new TestSuite(EngineTimerTest.class);
     }
 
-
-     public void testMethods() throws Exception
+    public void testMethods() throws Exception
     {
 
 	EngineTimer et;

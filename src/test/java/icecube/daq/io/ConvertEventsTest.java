@@ -35,17 +35,17 @@ import junit.textui.TestRunner;
 public class ConvertEventsTest
     extends LoggingCase
 {
-     public ConvertEventsTest(String name)
+    public ConvertEventsTest(String name)
     {
         super(name);
     }
-     public static Test suite()
+
+    public static Test suite()
     {
         return new TestSuite(ConvertEventsTest.class);
     }
 
-
-     public void testConstructor() throws Exception
+    public void testConstructor() throws Exception
     {
 
 	ConvertEvents ce;

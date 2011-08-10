@@ -23,6 +23,7 @@ import icecube.daq.payload.impl.PayloadFactory;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 import java.util.zip.DataFormatException;
@@ -36,26 +37,28 @@ import junit.textui.TestRunner;
 public class PayloadFileReaderTest
     extends LoggingCase
 {
-     public PayloadFileReaderTest(String name)
+    public PayloadFileReaderTest(String name)
     {
         super(name);
     }
-     public static Test suite()
+
+    public static Test suite()
     {
         return new TestSuite  (PayloadFileReaderTest.class);
     }
 
-
-     public void testMethods() throws Exception
+    public void testMethods() throws Exception
     {
 	File file = new File("subdir");
-	
+	String fileName;
+	URL url = this.getClass().getResource("/subdir");
+	fileName = url.getFile();
 	PayloadFileReader pfr, pfr1;
-	pfr = new PayloadFileReader("payload");
+	pfr = new PayloadFileReader(fileName);
 	pfr1 = new PayloadFileReader(file);
 	
-	assertFalse("is another payload available?", pfr1.hasNext());
 	assertNotNull("returns this object", pfr1.iterator());
+		
 
 	try {
 	    pfr1.remove();

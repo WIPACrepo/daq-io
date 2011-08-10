@@ -24,11 +24,12 @@ import junit.textui.TestRunner;
 public class BufferWriterTest
     extends LoggingCase
 {
-     public BufferWriterTest(String name)
+    public BufferWriterTest(String name)
     {
         super(name);
     }
-     public static Test suite()
+
+    public static Test suite()
     {
         return new TestSuite(BufferWriterTest.class);
     }

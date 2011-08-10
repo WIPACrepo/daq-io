@@ -24,17 +24,17 @@ import junit.textui.TestRunner;
 public class CodeTimerTest
     extends LoggingCase
 {
-     public CodeTimerTest(String name)
+    public CodeTimerTest(String name)
     {
         super(name);
     }
-     public static Test suite()
+
+    public static Test suite()
     {
         return new TestSuite(CodeTimerTest.class);
     }
 
-
-     public void testConstructor()
+    public void testConstructor()
     {
 	final int numTimes = 10;
 	CodeTimer ct;
