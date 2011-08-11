@@ -48,11 +48,11 @@ public class SpliceablePayloadReader
         this.factory = factory;
     }
 
-    public InputChannel createChannel(SelectableChannel channel,
+    public InputChannel createChannel(SelectableChannel channel, String name,
                                       IByteBufferCache bufMgr, int bufSize)
         throws IOException
     {
-        return new SpliceableInputChannel(this, channel, bufMgr, bufSize,
+        return new SpliceableInputChannel(this, channel, name, bufMgr, bufSize,
                                           factory);
     }
 

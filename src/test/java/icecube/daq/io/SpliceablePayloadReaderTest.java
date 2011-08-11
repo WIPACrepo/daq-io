@@ -167,7 +167,7 @@ public class SpliceablePayloadReaderTest
         tstRdr.start();
         IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
-        tstRdr.addDataChannel(sourceChannel, bufMgr, 1024);
+        tstRdr.addDataChannel(sourceChannel, "OutInChan", bufMgr, 1024);
 
         Thread.sleep(100);
 
@@ -242,7 +242,7 @@ public class SpliceablePayloadReaderTest
         tstRdr.start();
         IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
-        tstRdr.addDataChannel(sourceChannel, bufMgr, 1024);
+        tstRdr.addDataChannel(sourceChannel, "MultiOIChan", bufMgr, 1024);
 
         Thread.sleep(100);
 

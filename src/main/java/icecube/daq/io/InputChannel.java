@@ -29,6 +29,7 @@ public abstract class InputChannel
 
     private IOChannelParent parent;
     private SelectableChannel channel;
+    private String name;
     private IByteBufferCache bufMgr;
     private ByteBuffer inputBuf;
     private int bufPos;
@@ -49,11 +50,12 @@ public abstract class InputChannel
     final int id = nextId++;
 
     public InputChannel(IOChannelParent parent, SelectableChannel channel,
-                        IByteBufferCache bufMgr, int bufSize)
+                        String name, IByteBufferCache bufMgr, int bufSize)
         throws IOException
     {
         this.parent = parent;
         this.channel = channel;
+        this.name = name + ":" + id;
         this.bufMgr = bufMgr;
         this.inputBuf = ByteBuffer.allocate(bufSize);
 

@@ -34,10 +34,10 @@ public class InputChannelTest
         extends InputChannel
     {
         public MockChannel(IOChannelParent parent, SelectableChannel channel,
-                         IByteBufferCache bufMgr, int bufSize)
+                           String name, IByteBufferCache bufMgr, int bufSize)
             throws IOException
         {
-            super(parent, channel, bufMgr, bufSize);
+            super(parent, channel, name, bufMgr, bufSize);
         }
 
         public void pushPayload(ByteBuffer payBuf)
@@ -95,7 +95,7 @@ public class InputChannelTest
             }
 
             InputChannel chan =
-                new MockChannel(parent, pipe.source(), bufMgr, 256);
+                new MockChannel(parent, pipe.source(), "AllocLim", bufMgr, 256);
 
             final long maxAlloc;
             if (vals[i] <= 0) {

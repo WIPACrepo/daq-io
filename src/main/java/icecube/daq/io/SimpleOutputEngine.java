@@ -123,7 +123,7 @@ public class SimpleOutputEngine
 
         int chanNum = nextChannelNum++;
 
-        String name = toString() + ":" + chanNum;
+        String name = engineFunction + ":" + chanNum;
 
         SimpleOutputChannel outChan;
         if (useTrackEngineStop) {

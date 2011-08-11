@@ -32,10 +32,10 @@ class SimplePayloadReader
         extends InputChannel
     {
         TestChannel(IOChannelParent parent, SelectableChannel channel,
-                    IByteBufferCache bufMgr, int bufSize)
+                    String name, IByteBufferCache bufMgr, int bufSize)
             throws IOException
         {
-            super(parent, channel, bufMgr, bufSize);
+            super(parent, channel, name, bufMgr, bufSize);
         }
 
         public void pushPayload(ByteBuffer buf)
@@ -58,11 +58,11 @@ class SimplePayloadReader
         super(name);
     }
 
-    public InputChannel createChannel(SelectableChannel channel,
+    public InputChannel createChannel(SelectableChannel channel, String name,
                                       IByteBufferCache bufMgr, int bufSize)
         throws IOException
     {
-        return new TestChannel(this, channel, bufMgr, bufSize);
+        return new TestChannel(this, channel, name, bufMgr, bufSize);
     }
 
     boolean hasPayloads()
@@ -318,7 +318,7 @@ public class PayloadReaderTest
         tstRdr.start();
         IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
-        tstRdr.addDataChannel(sourceChannel, bufMgr, 256);
+        tstRdr.addDataChannel(sourceChannel, "Basic", bufMgr, 256);
 
         tstRdr.startProcessing();
         IOTestUtil.waitUntilRunning(tstRdr);
@@ -421,7 +421,7 @@ public class PayloadReaderTest
         tstRdr.start();
         IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
-        tstRdr.addDataChannel(sourceChannel, bufMgr);
+        tstRdr.addDataChannel(sourceChannel, "OutIn", bufMgr);
 
         tstRdr.startProcessing();
         IOTestUtil.waitUntilRunning(tstRdr);
@@ -487,7 +487,7 @@ public class PayloadReaderTest
         tstRdr.start();
         IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
-        tstRdr.addDataChannel(sourceChannel, bufMgr, 1024);
+        tstRdr.addDataChannel(sourceChannel, "MultiOutIn", bufMgr, 1024);
 
         tstRdr.startProcessing();
         IOTestUtil.waitUntilRunning(tstRdr);
@@ -582,7 +582,8 @@ public class PayloadReaderTest
                 Pipe.SourceChannel sourceChannel = testPipe.source();
                 sourceChannel.configureBlocking(false);
 
-                tstRdr.addDataChannel(sourceChannel, bufMgr, bufLen);
+                tstRdr.addDataChannel(sourceChannel, "MS#" + bufLen, bufMgr,
+                                      bufLen);
 
                 tstRdr.startProcessing();
                 IOTestUtil.waitUntilRunning(tstRdr, " (msgSize " + msgSize +
@@ -681,7 +682,7 @@ public class PayloadReaderTest
         tstRdr.start();
         IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
-        tstRdr.addDataChannel(sourceChannel, bufMgr);
+        tstRdr.addDataChannel(sourceChannel, "Dispo", bufMgr);
 
         tstRdr.startProcessing();
         IOTestUtil.waitUntilRunning(tstRdr);
@@ -739,7 +740,7 @@ public class PayloadReaderTest
         tstRdr.start();
         IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
-        tstRdr.addDataChannel(sourceChannel, bufMgr);
+        tstRdr.addDataChannel(sourceChannel, "Getters", bufMgr);
 
         tstRdr.startProcessing();
         IOTestUtil.waitUntilRunning(tstRdr);

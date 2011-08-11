@@ -121,14 +121,14 @@ public abstract class PayloadReader
         newState = state;
     }
 
-    public InputChannel addDataChannel(SelectableChannel channel,
+    public InputChannel addDataChannel(SelectableChannel channel, String name,
                                        IByteBufferCache bufMgr)
         throws IOException
     {
-        return addDataChannel(channel, bufMgr, bufferSize);
+        return addDataChannel(channel, name, bufMgr, bufferSize);
     }
 
-    public InputChannel addDataChannel(SelectableChannel channel,
+    public InputChannel addDataChannel(SelectableChannel channel, String name,
                                        IByteBufferCache bufMgr, int bufSize)
         throws IOException
     {
@@ -141,7 +141,7 @@ if(DEBUG_ADD)System.err.println("AddChanTop");
         }
 
 if(DEBUG_ADD)System.err.println("AddChanCre "+channel);
-        InputChannel chanData = createChannel(channel, bufMgr, bufSize);
+        InputChannel chanData = createChannel(channel, name, bufMgr, bufSize);
 if(DEBUG_ADD)System.err.println("AddChan "+chanData);
         synchronized (newChanList) {
             newChanList.add(chanData);
@@ -205,7 +205,7 @@ if(DEBUG_NEW)System.err.println("ANend");
     {
         // disable blocking or receive engine will die
         chan.configureBlocking(false);
-        return addDataChannel(chan, bufCache, bufferSize);
+        return addDataChannel(chan, name, bufCache, bufferSize);
     }
 
     /**
@@ -235,6 +235,7 @@ if(DEBUG_NEW)System.err.println("ANend");
     }
 
     public abstract InputChannel createChannel(SelectableChannel channel,
+                                               String name,
                                                IByteBufferCache bufMgr,
                                                int bufSize)
         throws IOException;
@@ -302,6 +303,16 @@ if(DEBUG_NEW)System.err.println("ANend");
             byteLimit.add(new Long(cd.getLimitToStopAllocation()));
         }
         return (Long[]) byteLimit.toArray(new Long[0]);
+    }
+
+    /**
+     * Return reader name
+     *
+     * @return name
+     */
+    public String getName()
+    {
+        return name;
     }
 
     /**
