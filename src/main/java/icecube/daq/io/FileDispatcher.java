@@ -23,14 +23,6 @@ public class FileDispatcher implements Dispatcher {
 
     private static final Log LOG = LogFactory.getLog(FileDispatcher.class);
 
-    private static final String START_PREFIX =
-        DAQCmdInterface.DAQ_ONLINE_RUNSTART_FLAG;
-    private static final String STOP_PREFIX =
-        DAQCmdInterface.DAQ_ONLINE_RUNSTOP_FLAG;
-    private static final String SUBRUN_START_PREFIX =
-        DAQCmdInterface.DAQ_ONLINE_SUBRUNSTART_FLAG;
-    private static final String CLOSE_PREFIX = "Close:";
-
     private static final long KB_IN_MB = 1024;
 
     private String baseFileName;
@@ -84,7 +76,7 @@ public class FileDispatcher implements Dispatcher {
         }
 
         this.bufferCache = bufferCache;
-	
+
 	this.numBytesWritten=0;
     }
 
@@ -355,11 +347,11 @@ public class FileDispatcher implements Dispatcher {
         return runNumber;
     }
 
-    /** 
+    /**
      * Get the number of bytes written to disk
      *
      * @return a long value ( number of bytes written to disk )
-     */ 
+     */
     public long getNumBytesWritten() {
 	return numBytesWritten;
     }

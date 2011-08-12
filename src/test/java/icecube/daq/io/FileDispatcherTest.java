@@ -1,6 +1,5 @@
 package icecube.daq.io;
 
-import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.io.test.LoggingCase;
 import icecube.daq.io.test.MockBufferCache;
 import icecube.daq.payload.IByteBufferCache;
@@ -631,7 +630,7 @@ public class FileDispatcherTest
         }
 
         try {
-            fd.dataBoundary(DAQCmdInterface.DAQ_ONLINE_RUNSTOP_FLAG);
+            fd.dataBoundary(Dispatcher.STOP_PREFIX);
             fail("Should not be able to stop unstarted run");
         } catch (DispatchException de) {
             // expect this to fail
@@ -639,17 +638,17 @@ public class FileDispatcherTest
 
         assertEquals("Bad initial run number", 0, fd.getRunNumber());
 
-        fd.dataBoundary(DAQCmdInterface.DAQ_ONLINE_RUNSTART_FLAG + "123");
+        fd.dataBoundary(Dispatcher.START_PREFIX + "123");
         assertEquals("Incorrect run number", 123, fd.getRunNumber());
 
-        fd.dataBoundary(DAQCmdInterface.DAQ_ONLINE_RUNSTART_FLAG + "456");
+        fd.dataBoundary(Dispatcher.START_PREFIX + "456");
         assertEquals("Incorrect run number", 456, fd.getRunNumber());
 
-        fd.dataBoundary(DAQCmdInterface.DAQ_ONLINE_RUNSTOP_FLAG);
-        fd.dataBoundary(DAQCmdInterface.DAQ_ONLINE_RUNSTOP_FLAG);
+        fd.dataBoundary(Dispatcher.STOP_PREFIX);
+        fd.dataBoundary(Dispatcher.STOP_PREFIX);
 
         try {
-            fd.dataBoundary(DAQCmdInterface.DAQ_ONLINE_RUNSTOP_FLAG);
+            fd.dataBoundary(Dispatcher.STOP_PREFIX);
             fail("Shouldn't be able to stop more times than we started");
         } catch (DispatchException de) {
             // expect this to fail
@@ -682,7 +681,7 @@ public class FileDispatcherTest
             File tempFile = fd.getTempFile(destDirName, "physics");
 
             for (int i = 10; i < 15; i++) {
-                fd.dataBoundary(DAQCmdInterface.DAQ_ONLINE_RUNSTART_FLAG + i);
+                fd.dataBoundary(Dispatcher.START_PREFIX + i);
                 assertEquals("Incorrect run number", i, fd.getRunNumber());
 
                 IWriteablePayload payload = new AdjustablePayload(i);
@@ -716,7 +715,7 @@ public class FileDispatcherTest
 
                 checkDataDir(destDir, dataFiles, tempFile, expTempFile);
 
-                fd.dataBoundary(DAQCmdInterface.DAQ_ONLINE_RUNSTOP_FLAG);
+                fd.dataBoundary(Dispatcher.STOP_PREFIX);
 
                 if (expTempFile) {
                     checkDataDir(destDir, dataFiles + 1, tempFile, false);
@@ -748,7 +747,7 @@ public class FileDispatcherTest
         FileDispatcher fd = new SpecialDispatcher(destDir.getAbsolutePath(),
                                                   "physics", bufCache);
         fd.setMaxFileSize(maxSize);
-        fd.dataBoundary(DAQCmdInterface.DAQ_ONLINE_RUNSTART_FLAG + 1);
+        fd.dataBoundary(Dispatcher.START_PREFIX + 1);
 
         final int skipVal = 2;
 
@@ -766,7 +765,7 @@ public class FileDispatcherTest
             fd.dispatchEvent(payload);
         }
 
-        fd.dataBoundary(DAQCmdInterface.DAQ_ONLINE_RUNSTOP_FLAG);
+        fd.dataBoundary(Dispatcher.STOP_PREFIX);
 
         String[] children = destDir.list();
         for (int i = 0; i < children.length; i++) {
