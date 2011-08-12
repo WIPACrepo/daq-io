@@ -2,11 +2,10 @@ package icecube.daq.io;
 
 import icecube.daq.payload.impl.BasePayload;
 import icecube.daq.payload.impl.TriggerRequest;
-import icecube.daq.payload.IEventHitRecord;
 import icecube.daq.payload.IEventPayload;
+import icecube.daq.payload.IEventHitRecord;
 import icecube.daq.payload.IEventTriggerRecord;
 import icecube.daq.payload.ILoadablePayload;
-import icecube.daq.payload.PayloadException;
 import icecube.daq.payload.PayloadRegistry;
 import icecube.daq.payload.SourceIdRegistry;
 
@@ -22,6 +21,10 @@ import org.apache.log4j.BasicConfigurator;
 public class PayloadDumper
 {
     private static Log LOG = LogFactory.getLog(PayloadDumper.class);
+
+    public PayloadDumper
+    {
+    }
 
     public static void dumpComplex(ILoadablePayload payload)
     {

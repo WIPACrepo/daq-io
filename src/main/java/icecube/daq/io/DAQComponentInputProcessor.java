@@ -12,9 +12,11 @@ import java.io.IOException;
 
 /**
  * @author mcp
- * @version $Id: DAQComponentInputProcessor.java 2629 2008-02-11 05:48:36Z dglo $
+ * @version $Id: DAQComponentInputProcessor.java 
+ * 2629 2008-02-11 05:48:36Z dglo $
  */
-public interface DAQComponentInputProcessor extends DAQComponentIOProcess {
+public interface DAQComponentInputProcessor extends DAQComponentIOProcess 
+{
 
     int getServerPort();
 

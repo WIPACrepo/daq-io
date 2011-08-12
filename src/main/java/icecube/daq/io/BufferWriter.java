@@ -76,6 +76,8 @@ public class BufferWriter
      * @param baseName base filename
      *
      * @return handle to be used for writing buffers
+     *
+     * @throws IOException if there was a problem opening a file
      */
     public static final BufferWriter openNext(String baseName)
         throws IOException
@@ -98,6 +100,10 @@ public class BufferWriter
     /**
      * Write the buffer to the file.
      *
+     * @param buf buffer to be written to the file
+     *
+     * @return number of bytes written 
+     *
      * @throws IOException if there was a problem writing the buffer
      */
     public int write(ByteBuffer buf)
@@ -110,6 +116,8 @@ public class BufferWriter
      * Write the buffer to the file, preserving the current buffer position.
      *
      * @param buf buffer to be written
+     *
+     * @return call to writeAndRestore with offset the current buffer position  
      *
      * @throws IOException if there was a problem writing the buffer
      */
@@ -124,6 +132,8 @@ public class BufferWriter
      *
      * @param buf buffer to be written
      * @param offset buffer offset
+     *
+     * @return number of bytes written 
      *
      * @throws IOException if there was a problem writing the buffer
      */

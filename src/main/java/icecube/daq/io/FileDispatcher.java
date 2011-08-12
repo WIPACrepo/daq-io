@@ -3,7 +3,6 @@ package icecube.daq.io;
 import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IWriteablePayload;
-import icecube.daq.payload.PayloadException;
 import icecube.icebucket.util.DiskUsage;
 
 import java.io.File;
@@ -19,7 +18,8 @@ import org.apache.commons.logging.LogFactory;
 /**
  * Dispatch payload files to PnF
  */
-public class FileDispatcher implements Dispatcher {
+public class FileDispatcher implements Dispatcher 
+{
     public static final String DISPATCH_DEST_STORAGE = "/mnt/data/pdaqlocal";
 
     private static final Log LOG = LogFactory.getLog(FileDispatcher.class);
@@ -48,14 +48,16 @@ public class FileDispatcher implements Dispatcher {
     private String dispatchDestStorage;
     private int fileIndex;
     private long startingEventNum;
-    private long diskSize;          // measured in MB
-    private long diskAvailable;     // measured in MB
+    private long diskSize;
+    private long diskAvailable;
 
-    public FileDispatcher(String baseFileName) {
+    public FileDispatcher(String baseFileName) 
+    {
         this(getDefaultDispatchDirectory(baseFileName), baseFileName, null);
     }
 
-    public FileDispatcher(String baseFileName, IByteBufferCache bufferCache) {
+    public FileDispatcher(String baseFileName, IByteBufferCache bufferCache)
+    {
         this(getDefaultDispatchDirectory(baseFileName), baseFileName,
              bufferCache);
     }
@@ -70,7 +72,7 @@ public class FileDispatcher implements Dispatcher {
     {
         setDispatchDestStorage(destDir, true);
 
-        if (baseFileName == null){
+        if (baseFileName == null) {
             throw new IllegalArgumentException("baseFileName cannot be NULL!");
         }
 
@@ -79,14 +81,13 @@ public class FileDispatcher implements Dispatcher {
         if (LOG.isInfoEnabled()) {
             LOG.info("baseFileName is set to: " + baseFileName);
         }
-        if ( baseFileName.equalsIgnoreCase("tcal") ||
-                   baseFileName.equalsIgnoreCase("sn")){
+        if (baseFileName.equalsIgnoreCase("tcal") ||
+                   baseFileName.equalsIgnoreCase("sn")) {
             maxFileSize = 200000000;
         }
 
         this.bufferCache = bufferCache;
-
-	this.numBytesWritten=0;
+        this.numBytesWritten = 0;
     }
 
     /**
@@ -107,7 +108,8 @@ public class FileDispatcher implements Dispatcher {
      * @throws DispatchException is there is a problem in the Dispatch system.
      */
     public void dataBoundary()
-            throws DispatchException {
+        throws DispatchException
+    {
         throw new DispatchException("dataBoundary() called with no argument");
     }
 
@@ -122,10 +124,12 @@ public class FileDispatcher implements Dispatcher {
      * @param message a String explaining the reason for the boundary.
      * @throws DispatchException is there is a problem in the Dispatch system.
      */
-    public void dataBoundary(String message) throws DispatchException {
+    public void dataBoundary(String message) throws DispatchException 
+    {
 
         if (message == null) {
-            throw new DispatchException("dataBoundary() called with null argument!");
+            throw new DispatchException
+                ("dataBoundary() called with null argument!");
         }
 
         if (message.startsWith(START_PREFIX)) {
@@ -136,7 +140,8 @@ public class FileDispatcher implements Dispatcher {
             fileIndex = 0;
         } else if (message.startsWith(STOP_PREFIX)) {
             if (numStarts == 0) {
-                throw new DispatchException("FileDispatcher stopped while not running!");
+                throw new DispatchException
+                    ("FileDispatcher stopped while not running!");
             } else {
                 numStarts--;
                 if (numStarts < 0) {
@@ -171,7 +176,8 @@ public class FileDispatcher implements Dispatcher {
      * @param buffer the ByteBuffer containg the event.
      * @throws DispatchException is there is a problem in the Dispatch system.
      */
-    public void dispatchEvent(ByteBuffer buffer) throws DispatchException {
+    public void dispatchEvent(ByteBuffer buffer) throws DispatchException 
+    {
         synchronized (fileLock) {
             if (tempFile == null) {
                 tempFile = getTempFile(dispatchDestStorage, baseFileName);
@@ -209,7 +215,7 @@ public class FileDispatcher implements Dispatcher {
 
         ++totalDispatchedEvents;
         currFileSize += buffer.limit();
-	numBytesWritten += buffer.limit();
+        numBytesWritten += buffer.limit();
 
         if (currFileSize > maxFileSize) {
             moveToDest();
@@ -223,7 +229,8 @@ public class FileDispatcher implements Dispatcher {
      * @throws DispatchException is there is a problem in the Dispatch system.
      */
     public void dispatchEvent(IWriteablePayload event)
-        throws DispatchException {
+        throws DispatchException 
+    {
         if (bufferCache == null) {
             final String errMsg =
                 "Buffer cache is null! Cannot dispatch events!";
@@ -260,7 +267,8 @@ public class FileDispatcher implements Dispatcher {
      * @throws DispatchException is there is a problem in the Dispatch system.
      */
     public void dispatchEvents(ByteBuffer buffer, int[] indices)
-            throws DispatchException {
+        throws DispatchException 
+    {
         throw new UnsupportedOperationException("Unimplemented");
     }
 
@@ -278,7 +286,8 @@ public class FileDispatcher implements Dispatcher {
      * @throws DispatchException is there is a problem in the Dispatch system.
      */
     public void dispatchEvents(ByteBuffer buffer, int[] indices, int count)
-            throws DispatchException {
+        throws DispatchException 
+    {
         throw new UnsupportedOperationException("Unimplemented");
     }
 
@@ -308,12 +317,12 @@ public class FileDispatcher implements Dispatcher {
         }
 
         String dir;
-        if (baseFileName.equalsIgnoreCase("physics")){
+        if (baseFileName.equalsIgnoreCase("physics")) {
             dir = DISPATCH_DEST_STORAGE;
         } else if (baseFileName.equalsIgnoreCase("moni") ||
                    baseFileName.equalsIgnoreCase("tcal") ||
-                   baseFileName.equalsIgnoreCase("sn")){
-            // TODO: replace this later with the right directory
+                   baseFileName.equalsIgnoreCase("sn")) {
+            // to-do: replace this later with the right directory
             dir = DISPATCH_DEST_STORAGE;
         } else {
             throw new IllegalArgumentException(baseFileName +
@@ -360,8 +369,9 @@ public class FileDispatcher implements Dispatcher {
      *
      * @return a long value ( number of bytes written to disk )
      */
-    public long getNumBytesWritten() {
-	return numBytesWritten;
+    public long getNumBytesWritten() 
+    {
+        return numBytesWritten;
     }
 
     /**
@@ -369,7 +379,8 @@ public class FileDispatcher implements Dispatcher {
      *
      * @return a long value
      */
-    public long getTotalDispatchedEvents() {
+    public long getTotalDispatchedEvents() 
+    {
         return totalDispatchedEvents;
     }
 
@@ -406,7 +417,7 @@ public class FileDispatcher implements Dispatcher {
      */
     private void setDispatchDestStorage(String dirName, boolean fallback)
     {
-        if (dirName == null){
+        if (dirName == null) {
             throw new IllegalArgumentException("destDir cannot be NULL!");
         }
 
@@ -478,7 +489,8 @@ public class FileDispatcher implements Dispatcher {
      *
      * @param maxFileSize the maximum size of the dispatch file.
      */
-    public void setMaxFileSize(long maxFileSize) {
+    public void setMaxFileSize(long maxFileSize)
+    {
         if (maxFileSize <= 0L) {
             throw new IllegalArgumentException("Bad maximum file size " +
                                                maxFileSize);
@@ -493,7 +505,8 @@ public class FileDispatcher implements Dispatcher {
      *
      * @return the number of units still available in the disk.
      */
-    public long getDiskAvailable(){
+    public long getDiskAvailable()
+    {
         return diskAvailable;
     }
 
@@ -503,13 +516,15 @@ public class FileDispatcher implements Dispatcher {
      *
      * @return the total number of units in the disk.
      */
-    public long getDiskSize(){
+    public long getDiskSize() 
+    {
         return diskSize;
     }
 
-    private File getDestFile(){
+    private File getDestFile() 
+    {
         String fileName = baseFileName + "_" + runNumber + "_" + fileIndex +
-            "_" + startingEventNum + "_" + + totalDispatchedEvents;
+            "_" + startingEventNum + "_" +  + totalDispatchedEvents;
         File file = new File(dispatchDestStorage, fileName + ".dat");
 
         ++fileIndex;
@@ -517,11 +532,13 @@ public class FileDispatcher implements Dispatcher {
         return file;
     }
 
-    private void moveToDest() throws DispatchException {
-        synchronized (fileLock) {
+    private void moveToDest() throws DispatchException 
+    {
+        synchronized (fileLock) 
+        {
             try {
                 outChannel.close();
-            } catch(IOException ioe){
+            } catch (IOException ioe) {
                 LOG.error("Problem when closing file channel: ", ioe);
                 throw new DispatchException(ioe);
             }
@@ -542,7 +559,8 @@ public class FileDispatcher implements Dispatcher {
         checkDisk();
     }
 
-    private void checkDisk(){
+    private void checkDisk() 
+    {
         DiskUsage usage = DiskUsage.getUsage(dispatchDestStorage);
         if (null == usage ||
             null == usage.getVolume()) {
@@ -558,8 +576,15 @@ public class FileDispatcher implements Dispatcher {
      * A ShutdownHook for closing and renaming the dispatch file if it
      * is still open when invoked.
      */
-    private class ShutdownHook extends Thread {
-        public void run() {
+    private class ShutdownHook extends Thread 
+    {
+
+        public ShutdownHook
+        {
+        }
+
+        public void run() 
+        {
             LOG.debug("ShutdownHook invoked for " + baseFileName);
             if (outChannel != null && outChannel.isOpen()) {
                 LOG.warn("ShutdownHook: moving temp file for " + baseFileName);

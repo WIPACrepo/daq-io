@@ -1,7 +1,7 @@
 /*
  * interface: Dispatcher
  *
- * Version $Id: Dispatcher.java 12751 2011-03-04 18:16:53Z mnewcomb $
+ * Version $Id: Dispatcher.java 13267 2011-08-12 21:01:03Z seshadrivija $
  *
  * Date: April 1 2004
  *
@@ -19,7 +19,7 @@ import java.nio.ByteBuffer;
  * This interface specifies how events are dispatched from the DAQ system.
  *
  * @author patton
- * @version $Id: Dispatcher.java 12751 2011-03-04 18:16:53Z mnewcomb $
+ * @version $Id: Dispatcher.java 13267 2011-08-12 21:01:03Z seshadrivija $
  */
 public interface Dispatcher
 {
@@ -83,7 +83,8 @@ public interface Dispatcher
      * @param indices the 'position' of each event inside the buffer.
      * @throws DispatchException is there is a problem in the Dispatch system.
      */
-    void dispatchEvents(ByteBuffer buffer, int[] indices)throws DispatchException;
+    void dispatchEvents(ByteBuffer buffer, int[] indices)
+        throws DispatchException;
 
     /**
      * Copies the events in the buffer into this object. The buffer should be
@@ -97,7 +98,8 @@ public interface Dispatcher
      * the indices array.
      * @throws DispatchException is there is a problem in the Dispatch system.
      */
-    void dispatchEvents(ByteBuffer buffer, int[] indices, int count)throws DispatchException;
+    void dispatchEvents(ByteBuffer buffer, int[] indices, int count)
+        throws DispatchException;
 
     /**
      * Get the byte buffer cache being used.
@@ -123,7 +125,8 @@ public interface Dispatcher
     /**
      * Set the destination directory where the dispatch files will be saved.
      *
-     * @param dirName The absolute path of directory where the dispatch files will be stored.
+     * @param dirName The absolute path of directory 
+     * where the dispatch files will be stored.
      */
     void setDispatchDestStorage(String dirName);
 

@@ -16,10 +16,10 @@ public class EngineTimer
 
     private static final String[] TIME_NAMES = new String[] {
         "check",
-	"toploop",
-	"select",
-	"handle",
-	"dostates",
+        "toploop",
+        "select",
+        "handle",
+        "dostates",
     };
 
     /**

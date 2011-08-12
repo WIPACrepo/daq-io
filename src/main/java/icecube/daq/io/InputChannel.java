@@ -94,8 +94,10 @@ public abstract class InputChannel
 
     private ByteBuffer fillBuffer(int length)
     {
-final boolean DEBUG_FILL = false;
-if(DEBUG_FILL)System.err.println("FillTop "+inputBuf+" bufPos "+bufPos);
+        final boolean DEBUG_FILL = false;
+        if (DEBUG_FILL) {
+            System.err.println("FillTop " + inputBuf + " bufPos " + bufPos);
+        }
         ByteBuffer payloadBuf = bufMgr.acquireBuffer(length);
         if (payloadBuf == null) {
             LOG.error("Cannot acquire " + length + "-byte buffer");
@@ -132,7 +134,11 @@ if(DEBUG_FILL)System.err.println("FillTop "+inputBuf+" bufPos "+bufPos);
         bytesReceived += length;
         recordsReceived++;
 
-if(DEBUG_FILL)System.err.println("FillEnd "+inputBuf+" bufPos "+bufPos+" payBuf "+payloadBuf);
+        if (DEBUG_FILL) {
+            System.err.println("FillEnd " + inputBuf + " bufPos " + 
+                bufPos + " payBuf " + payloadBuf);
+        }
+
         return payloadBuf;
     }
 
@@ -201,8 +207,10 @@ if(DEBUG_FILL)System.err.println("FillEnd "+inputBuf+" bufPos "+bufPos+" payBuf 
     public void processSelect(SelectionKey selKey)
         throws IOException
     {
-final boolean DEBUG_SELECT = false;
-if(DEBUG_SELECT)System.err.println("SelTop "+inputBuf);
+        final boolean DEBUG_SELECT = false;
+        if (DEBUG_SELECT) {
+            System.err.println("SelTop " + inputBuf);
+        }
         int numBytes = ((ReadableByteChannel) channel).read(inputBuf);
         if (numBytes < 0) {
             channel.close();
@@ -210,10 +218,14 @@ if(DEBUG_SELECT)System.err.println("SelTop "+inputBuf);
             throw new ClosedChannelException();
         }
 
-if(DEBUG_SELECT)System.err.println("SelGot "+inputBuf);
+        if (DEBUG_SELECT) {
+            System.err.println("SelGot " + inputBuf);
+        }   
 
         if (stopped) {
-if(DEBUG_SELECT)System.err.println("SelStopping");
+            if (DEBUG_SELECT) {
+                System.err.println("SelStopping");
+            }
             // cancel our registration with the Selector
             selKey.cancel();
             // throw away input
@@ -223,10 +235,15 @@ if(DEBUG_SELECT)System.err.println("SelStopping");
         }
 
         while (true) {
-if(DEBUG_SELECT)System.err.println("SelLoop");
-            // if buffer does not contain enough bytes for the payload length...
+            if (DEBUG_SELECT) {
+                System.err.println("SelLoop");
+            }
+            // if buffer does not contain enough bytes for the payload length..
             if (inputBuf.position() < bufPos + INT_SIZE) {
-if(DEBUG_SELECT)System.err.println("  NotSize "+inputBuf+" bufPos "+bufPos);
+                if (DEBUG_SELECT) {
+                    System.err.println("  NotSize " + 
+                        inputBuf + " bufPos " + bufPos);
+                }
                 // if buffer cannot hold the payload length...
                 if (inputBuf.limit() < bufPos + INT_SIZE) {
                     // adjust/expand buffer to make room for payload length
@@ -238,11 +255,15 @@ if(DEBUG_SELECT)System.err.println("  NotSize "+inputBuf+" bufPos "+bufPos);
             }
 
             int length = inputBuf.getInt(bufPos);
-if(DEBUG_SELECT)System.err.println("  PayLen "+length);
+            if (DEBUG_SELECT) {
+                System.err.println("  PayLen " + length);
+            }
 
             // if it's an impossible length...
             if (length < INT_SIZE) {
-if(DEBUG_SELECT)System.err.println("  BadLen");
+                if (DEBUG_SELECT) {
+                    System.err.println("  BadLen");
+                }
                 // this really should not happen
                 LOG.error("Huh?  Saw " + length + "-byte payload!?!?");
                 if (length <= 0) {
@@ -256,7 +277,9 @@ if(DEBUG_SELECT)System.err.println("  BadLen");
 
             // if this is a stop message...
             if (length == INT_SIZE) {
-if(DEBUG_SELECT)System.err.println("  GotStop");
+                if (DEBUG_SELECT) {
+                    System.err.println("  GotStop");
+                }
                 stopped = true;
                 stopsReceived++;
                 notifyOnStop();
@@ -272,7 +295,9 @@ if(DEBUG_SELECT)System.err.println("  GotStop");
                                   bufMgr.getCurrentAquiredBytes() +
                                   " >= limit " + limitToStopAllocation);
                     }
-if(DEBUG_SELECT)System.err.println("  AllocStopped");
+                    if (DEBUG_SELECT) {
+                        System.err.println("  AllocStopped");
+                    }
                     allocationStopped = true;
                 }
 
@@ -293,7 +318,9 @@ if(DEBUG_SELECT)System.err.println("  AllocStopped");
                     break;
                 }
 
-if(DEBUG_SELECT)System.err.println("  RestartAlloc");
+                if (DEBUG_SELECT) {
+                    System.err.println("  RestartAlloc");
+                }
                 // restart allocation
                 allocationStopped = false;
                 if (LOG.isErrorEnabled()) {
@@ -305,7 +332,9 @@ if(DEBUG_SELECT)System.err.println("  RestartAlloc");
 
             // if buffer does not contain enough bytes for the payload length...
             if (inputBuf.position() < bufPos + length) {
-if(DEBUG_SELECT)System.err.println("  SmallBuf");
+                if (DEBUG_SELECT) {
+                    System.err.println("  SmallBuf");
+                }
                 // if buffer cannot hold the payload length...
                 if (inputBuf.limit() < bufPos + length) {
                     // adjust/expand buffer to make room for payload length
@@ -318,7 +347,9 @@ if(DEBUG_SELECT)System.err.println("  SmallBuf");
 
             ByteBuffer payBuf = fillBuffer(length);
             if (payBuf == null) {
-if(DEBUG_SELECT)System.err.println("  NullBuf");
+                if (DEBUG_SELECT) {
+                    System.err.println("  NullBuf");
+                }
                 break;
             }
 
@@ -330,7 +361,9 @@ if(DEBUG_SELECT)System.err.println("  NullBuf");
             //}
 
             payBuf.flip();
-if(DEBUG_SELECT)System.err.println("  Got "+payBuf);
+            if (DEBUG_SELECT) {
+                System.err.println("  Got " + payBuf);
+            }
             pushPayload(payBuf);
         }
     }

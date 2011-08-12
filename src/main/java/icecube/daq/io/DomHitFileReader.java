@@ -20,6 +20,10 @@ class DomHitFactory
 {
     private static Log LOG = LogFactory.getLog(DomHitFactory.class);
 
+    public DomHitFactory()
+    {
+    }
+
     IDomHit createPayload(int offset, ByteBuffer buf)
         throws DataFormatException, IOException
     {
@@ -211,6 +215,7 @@ public class DomHitFileReader
 
     /**
      * Get the next available hit.
+     * @return call to next hit or null when there are exceptions
      */
     public Object next()
     {
@@ -230,6 +235,7 @@ public class DomHitFileReader
      *
      * @throws IOException if there is a problem with the next hit
      * @throws IOException if the next hit cannot be read
+     * @throws DataFormatException 
      */
     public IDomHit nextHit()
         throws DataFormatException, IOException

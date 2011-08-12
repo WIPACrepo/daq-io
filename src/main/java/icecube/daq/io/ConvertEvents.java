@@ -26,7 +26,7 @@ import org.apache.log4j.PatternLayout;
 
 public class ConvertEvents
 {
-    private HashMap<IDOMID,Short> DOM2CHAN;
+    private HashMap<IDOMID, Short> DOM2CHAN;
 
     ConvertEvents()
         throws Exception
@@ -42,7 +42,7 @@ public class ConvertEvents
         }
 
         List<IEventHitRecord> hitRecList = new ArrayList<IEventHitRecord>();
-        for (Object obj: rdpList) {
+        for (Object obj : rdpList) {
             IReadoutDataPayload rdp = (IReadoutDataPayload) obj;
 
             try {
@@ -96,7 +96,7 @@ public class ConvertEvents
 
         DOMRegistry reg = DOMRegistry.loadRegistry(configRsrc.getPath());
 
-        DOM2CHAN = new HashMap<IDOMID,Short>();
+        DOM2CHAN = new HashMap<IDOMID, Short>();
         for (String mbStr : reg.keys()) {
             IDOMID mbId;
             try {

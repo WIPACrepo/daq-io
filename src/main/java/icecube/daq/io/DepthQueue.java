@@ -13,6 +13,10 @@ public class DepthQueue
     private LinkedQueue queue = new LinkedQueue();
     /** queue depth */
     private int depth;
+    
+    public DepthQueue()
+    {
+    }
 
     /**
      * Get the current queue depth.
