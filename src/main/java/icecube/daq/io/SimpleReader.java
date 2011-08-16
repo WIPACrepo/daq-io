@@ -211,7 +211,8 @@ public abstract class SimpleReader
         }
     }
 
-    public boolean[] getAllocationStopped() {
+    public boolean[] getAllocationStopped() 
+    {
         boolean[] array;
         synchronized (channelList) {
             array = new boolean[channelList.size()];
@@ -284,7 +285,8 @@ public abstract class SimpleReader
         return array;
     }
 
-    public long getTotalRecordsReceived() {
+    public long getTotalRecordsReceived() 
+    {
         long total = 0;
         synchronized (channelList) {
             for (SimpleChannel chan : channelList) {
@@ -348,7 +350,7 @@ public abstract class SimpleReader
             int numRetries = 0;
             IOException ex = null;
 
-            for ( ; numRetries < MAX_RETRIES; numRetries++) {
+            for (; numRetries < MAX_RETRIES; numRetries++) {
                 Iterator<ReverseConnection> iter = retries.iterator();
                 while (iter.hasNext()) {
                     ReverseConnection rc = iter.next();
@@ -552,7 +554,7 @@ public abstract class SimpleReader
         thread = new Thread(this);
         thread.setName(name);
         thread.start();
-   }
+    }
 
     /**
      * An internet port which input engine needs to connect to in order to

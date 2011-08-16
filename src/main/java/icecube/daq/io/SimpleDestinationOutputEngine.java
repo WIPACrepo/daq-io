@@ -1,7 +1,8 @@
 /*
  * class: SimpleDestinationOutputEngine
  *
- * Version $Id: SimpleDestinationOutputEngine.java 2629 2008-02-11 05:48:36Z dglo $
+ * Version $Id: SimpleDestinationOutputEngine.java 
+ *     2629 2008-02-11 05:48:36Z dglo $
  *
  * Date: Feb 22 2008
  *
@@ -18,7 +19,6 @@ import icecube.daq.payload.IPayloadDestinationCollectionController;
 import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.impl.SourceID;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 import java.util.HashMap;

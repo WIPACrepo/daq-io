@@ -2,8 +2,6 @@ package icecube.daq.io;
 
 import icecube.daq.payload.IByteBufferReceiver;
 
-import java.nio.ByteBuffer;
-
 /**
  * Output channel.
  */

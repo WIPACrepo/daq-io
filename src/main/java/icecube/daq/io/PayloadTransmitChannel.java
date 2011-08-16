@@ -1,7 +1,7 @@
 /*
  * class: PayloadTransmitChannel
  *
- * Version $Id: PayloadTransmitChannel.java 3439 2008-09-02 17:08:41Z dglo $
+ * Version $Id: PayloadTransmitChannel.java 13270 2011-08-16 18:50:16Z seshadrivija $
  *
  * Date: May 15 2005
  *
@@ -26,13 +26,15 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * This class provides the WritableByteChannel operations. It is also responsible
- * for returning buffers into the buffer cache.
+ * This class provides the WritableByteChannel operations. 
+ * It is also responsible for returning buffers into the buffer cache.
  *
  * @author mcp
- * @version $Id: PayloadTransmitChannel.java 3439 2008-09-02 17:08:41Z dglo $
+ * @version $Id: PayloadTransmitChannel.java 13270 2011-08-16 18:50:16Z seshadrivija $
  */
-public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutputChannel {
+public class PayloadTransmitChannel 
+    implements IByteBufferReceiver, QueuedOutputChannel 
+{
 
     // Log object for this class
     private static final Log log = LogFactory.getLog(PayloadTransmitChannel.class);
@@ -118,7 +120,8 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutput
     public PayloadTransmitChannel(String myID,
                                   WritableByteChannel channel,
                                   Selector sel,
-                                  IByteBufferCache bufMgr) {
+                                  IByteBufferCache bufMgr) 
+    {
         id = myID;
         presState = STATE_IDLE;
         cancelSelectorOnExit = false;
@@ -136,14 +139,17 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutput
         this.channel = channel;
     }
 
-    protected void enterIdle() {
+    protected void enterIdle() 
+    {
     }
 
-    protected void exitIdle() {
+    protected void exitIdle() 
+    {
         lastMsgAndStop = false;
     }
 
-    protected void enterGetBuffer() {
+    protected void enterGetBuffer() 
+    {
         if (outputQueue.isEmpty()) {
             if (debug && !queueStillEmpty) {
                 if (log.isInfoEnabled()) {
@@ -167,13 +173,15 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutput
         }
     }
 
-    protected void exitGetBuffer() {
+    protected void exitGetBuffer() 
+    {
     }
 
-    protected void enterTransMsg() {
+    protected void enterTransMsg() 
+    {
         try {
             ((SelectableChannel) channel).register(selector,
-                    SelectionKey.OP_WRITE, this);
+                SelectionKey.OP_WRITE, this);
             // make sure we don't cance the selector when we exit
             cancelSelectorOnExit = false;
         } catch (IOException e) {
@@ -185,7 +193,8 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutput
         buf.position(0);
         buf.limit(buf.getInt(0));
         if (buf.getInt(0) == INT_SIZE) {
-            // this is the last message, flag state machine to stop when complete
+            // this is the last message, 
+            // flag state machine to stop when complete
             lastMsgAndStop = true;
             if (debug) {
                 if (log.isInfoEnabled()) {
@@ -205,7 +214,8 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutput
         }
     }
 
-    protected void exitTransMsg() {
+    protected void exitTransMsg()
+    {
         // track some statistics
         bytesSent += buf.getInt(0);
         if (debug && log.isInfoEnabled()) {
@@ -227,7 +237,8 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutput
         cancelSelectorOnExit = true;
     }
 
-    protected void enterTransDone() {
+    protected void enterTransDone() 
+    {
         if (lastMsgAndStop) {
             transition(SIG_STOP);
         } else {
@@ -235,10 +246,12 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutput
         }
     }
 
-    protected void exitTransDone() {
+    protected void exitTransDone() 
+    {
     }
 
-    protected void enterError() {
+    protected void enterError()
+    {
         if (compObserver != null) {
             if (debug && log.isInfoEnabled()) {
                 log.info(id + ":XMIT:Error");
@@ -247,10 +260,12 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutput
         }
     }
 
-    protected void exitError() {
+    protected void exitError() 
+    {
     }
 
-    protected void notifyOnStop() {
+    protected void notifyOnStop() 
+    {
         if (compObserver != null) {
             if (debug && log.isInfoEnabled()) {
                 log.info(id + ":XMIT:Stop");
@@ -260,7 +275,8 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutput
     }
 
     // all the following methods are mutex locked and thread safe.
-    public void stopEngine() {
+    public void stopEngine() 
+    {
         try {
             stateMachineMUTEX.acquire();
             transition(SIG_STOP);
@@ -270,7 +286,8 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutput
         }
     }
 
-    public void sendLastAndStop() {
+    public void sendLastAndStop() 
+    {
         try {
             outputQueue.put(lastMessage);
         } catch (InterruptedException e) {
@@ -279,7 +296,8 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutput
         }
     }
 
-    public void startEngine() {
+    public void startEngine() 
+    {
         try {
             stateMachineMUTEX.acquire();
         } catch (InterruptedException ie) {
@@ -290,12 +308,14 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutput
         stateMachineMUTEX.release();
     }
 
-    public void flushOutQueue() {
+    public void flushOutQueue() 
+    {
         selector.wakeup();
     }
 
     public void registerComponentObserver(DAQComponentObserver compObserver,
-                                          String notificationID) {
+                                          String notificationID) 
+    {
         if (this.compObserver != null) {
             try {
                 throw new Error("StackTrace");
@@ -308,12 +328,14 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutput
         this.notificationID = notificationID;
     }
 
-    public String presentState() {
+    public String presentState() 
+    {
         // don't need to interlock this one.
         return STATE_NAME_MAP[presState];
     }
 
-    public void injectError() {
+    public void injectError() 
+    {
         try {
             stateMachineMUTEX.acquire();
             transition(SIG_ERROR);
@@ -324,13 +346,15 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutput
         }
     }
 
-    public void processTimer() {
+    public void processTimer() 
+    {
         if (presState == STATE_GETBUFFER) {
             enterGetBuffer();
         }
     }
 
-    public void processSelect(SelectionKey selKey) {
+    public void processSelect(SelectionKey selKey) 
+    {
         if (presState != STATE_TRANSMSG) {
             // should not be getting selects here
             selKey.cancel();
@@ -376,14 +400,15 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutput
         channel = null;
     }
 
-    private void transition(int signal) {
+    private void transition(int signal) 
+    {
         if (log.isDebugEnabled() && TRACE_STATE) {
             log.debug("PayloadTransmitEngine " + id +
-                    " state " + getStateName(presState) +
-                    " transition signal " + getSignalName(signal));
+                " state " + getStateName(presState) +
+                " transition signal " + getSignalName(signal));
         } else if (debug && log.isInfoEnabled()) {
             log.info(id + " " + getStateName(presState) + " -> " +
-                     getSignalName(signal));
+                getSignalName(signal));
         }
 
         // note, in order to simplify state machine operation, NO
@@ -391,192 +416,193 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutput
         // in state enter routines, since the present state flag
         // has been appropriately changed and things are reentrant
         switch (presState) {
-            case STATE_IDLE:
-                {
-                    switch (signal) {
-                        case SIG_ERROR:
-                            {
-                                exitIdle();
-                                doTransition(STATE_ERROR);
-                                enterError();
-                                break;
-                            }
-                        case SIG_GET_BUFFER:
-                            {
-                                exitIdle();
-                                doTransition(STATE_GETBUFFER);
-                                enterGetBuffer();
-                                break;
-                            }
-                        case SIG_CLOSE:
-                            {
-                                exitIdle();
-                                doTransition(STATE_CLOSED);
-                                enterClosed();
-                                break;
-                            }
-                        default:
-                            break;
-                    }
-                    break;
-                }
-            case STATE_GETBUFFER:
-                {
-                    switch (signal) {
-                        case SIG_ERROR:
-                            {
-                                exitGetBuffer();
-                                doTransition(STATE_ERROR);
-                                enterError();
-                                break;
-                            }
-                        case SIG_TRANSMIT:
-                            {
-                                exitGetBuffer();
-                                doTransition(STATE_TRANSMSG);
-                                enterTransMsg();
-                                break;
-                            }
-                        case SIG_STOP:
-                            {
-                                exitGetBuffer();
-                                doTransition(STATE_IDLE);
-                                notifyOnStop();
-                                enterIdle();
-                                break;
-                            }
-                        case SIG_CLOSE:
-                            {
-                                exitGetBuffer();
-                                doTransition(STATE_CLOSED);
-                                notifyOnStop();
-                                enterClosed();
-                                break;
-                            }
-                        default:
-                            break;
-                    }
-                    break;
-                }
-            case STATE_TRANSMSG:
-                {
-                    switch (signal) {
-                        case SIG_ERROR:
-                            {
-                                exitTransMsg();
-                                doTransition(STATE_ERROR);
-                                enterError();
-                                break;
-                            }
-                        case SIG_DONE:
-                            {
-                                exitTransMsg();
-                                doTransition(STATE_TRANSDONE);
-                                enterTransDone();
-                                break;
-                            }
-                        case SIG_STOP:
-                            {
-                                exitTransMsg();
-                                doTransition(STATE_IDLE);
-                                notifyOnStop();
-                                enterIdle();
-                                break;
-                            }
-                        case SIG_CLOSE:
-                            {
-                                exitTransMsg();
-                                doTransition(STATE_CLOSED);
-                                notifyOnStop();
-                                enterClosed();
-                                break;
-                            }
-                        default:
-                            break;
-                    }
-                    break;
-                }
-            case STATE_TRANSDONE:
-                {
-                    switch (signal) {
-                        case SIG_ERROR:
-                            {
-                                exitTransDone();
-                                doTransition(STATE_ERROR);
-                                enterError();
-                                break;
-                            }
-                        case SIG_RESTART:
-                            {
-                                exitTransDone();
-                                doTransition(STATE_GETBUFFER);
-                                enterGetBuffer();
-                                break;
-                            }
-                        case SIG_STOP:
-                            {
-                                exitTransDone();
-                                doTransition(STATE_IDLE);
-                                notifyOnStop();
-                                enterIdle();
-                                break;
-                            }
-                        case SIG_CLOSE:
-                            {
-                                exitTransDone();
-                                doTransition(STATE_CLOSED);
-                                notifyOnStop();
-                                enterClosed();
-                                break;
-                            }
-                        default:
-                            break;
-                    }
-                    break;
-                }
-            case STATE_ERROR:
-                {
-                    switch (signal) {
-                        case SIG_IDLE:
-                            {
-                                exitError();
-                                doTransition(STATE_IDLE);
-                                enterIdle();
-                                break;
-                            }
-                        case SIG_CLOSE:
-                            {
-                                exitError();
-                                doTransition(STATE_CLOSED);
-                                enterIdle();
-                                break;
-                            }
-                        default:
-                            break;
-                    }
-                    break;
-                }
-            case STATE_CLOSED:
-                {
-                    switch (signal) {
-                        case SIG_CLOSE:
-                            {
-                                // do nothing
-                                break;
-                            }
-                        default:
-                            break;
-                    }
-                    break;
-                }
+        case STATE_IDLE:
+        {
+            switch (signal) {
+            case SIG_ERROR:
+            {
+                exitIdle();
+                doTransition(STATE_ERROR);
+                enterError();
+                break;
+            }
+            case SIG_GET_BUFFER:
+            {
+                exitIdle();
+                doTransition(STATE_GETBUFFER);
+                enterGetBuffer();
+                break;
+            }
+            case SIG_CLOSE:
+            {
+                exitIdle();
+                doTransition(STATE_CLOSED);
+                enterClosed();
+                break;
+            }
             default:
-                {
-                    break;
-                }
+                break;
+            }
+            break;
+        }
+        case STATE_GETBUFFER:
+        {
+            switch (signal) {
+            case SIG_ERROR:
+            {   
+                exitGetBuffer();
+                doTransition(STATE_ERROR);
+                enterError();
+                break;
+            }
+            case SIG_TRANSMIT:
+            {
+                exitGetBuffer();
+                doTransition(STATE_TRANSMSG);
+                enterTransMsg();
+                break;
+            }
+            case SIG_STOP:
+            {
+                exitGetBuffer();
+                doTransition(STATE_IDLE);
+                notifyOnStop();
+                enterIdle();
+                break;
+            }
+            case SIG_CLOSE:
+            {
+                exitGetBuffer();
+                doTransition(STATE_CLOSED);
+                notifyOnStop();
+                enterClosed();
+                break;
+            }
+            default:
+                break;
+            }
+            break;
+        }
+        case STATE_TRANSMSG:
+        {
+            switch (signal) {
+            case SIG_ERROR:
+            {
+                exitTransMsg();
+                doTransition(STATE_ERROR);
+                enterError();
+                break;
+            }
+            case SIG_DONE:
+            {
+                exitTransMsg();
+                doTransition(STATE_TRANSDONE);
+                enterTransDone();
+                break;
+            }
+            case SIG_STOP:
+            {
+                exitTransMsg();
+                doTransition(STATE_IDLE);
+                notifyOnStop();
+                enterIdle();
+                break;
+            }
+            case SIG_CLOSE:
+            {
+                exitTransMsg();
+                doTransition(STATE_CLOSED);
+                notifyOnStop();
+                enterClosed();
+                break;
+            }
+            default:
+                break;
+            }
+            break;
+        }
+        case STATE_TRANSDONE:
+        {
+            switch (signal) {
+            case SIG_ERROR:
+            {
+                exitTransDone();
+                doTransition(STATE_ERROR);
+                enterError();
+                break;
+            }
+            case SIG_RESTART:
+            {
+                exitTransDone();
+                doTransition(STATE_GETBUFFER);
+                enterGetBuffer();
+                break;
+            }
+            case SIG_STOP:
+            {
+                exitTransDone();
+                doTransition(STATE_IDLE);
+                notifyOnStop();
+                enterIdle();
+                break;
+            }
+            case SIG_CLOSE:
+            {
+                exitTransDone();
+                doTransition(STATE_CLOSED);
+                notifyOnStop();
+                enterClosed();
+                break;
+            }
+            default:
+                break;
+            }
+            break;
+        }
+        case STATE_ERROR:
+        {
+            switch (signal) {
+            case SIG_IDLE:
+            {
+                exitError();
+                doTransition(STATE_IDLE);
+                enterIdle();
+                break;
+            }
+            case SIG_CLOSE:
+            {
+                exitError();
+                doTransition(STATE_CLOSED);
+                enterIdle();
+                break;
+            }
+            default:
+                break;
+            }
+            break;
+        }
+        case STATE_CLOSED:
+        {
+            switch (signal) {
+            case SIG_CLOSE:
+            {
+                // do nothing
+                break;
+            }
+            default:
+                break;
+            }
+            break;
+        }
+        default:
+        {
+            break;
+        }
         }
     }
 
-    private void doTransition(int nextState) {
+    private void doTransition(int nextState) 
+    {
         presState = nextState;
     }
 
@@ -585,12 +611,14 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutput
      *
      * @param tBuffer ByteBuffer the new buffer to be processed.
      */
-    public void receiveByteBuffer(ByteBuffer tBuffer) {
+    public void receiveByteBuffer(ByteBuffer tBuffer) 
+    {
         try {
             if (tBuffer.getInt(0) != tBuffer.limit()) {
                 if (tBuffer.getInt(0) > tBuffer.capacity()) {
-                    throw new RuntimeException("ByteBuffer corrupted - rec length: "
-                            + tBuffer.getInt(0) + " capacity: " + tBuffer.capacity());
+                    throw new RuntimeException(
+                        "ByteBuffer corrupted - rec length: " + 
+                        tBuffer.getInt(0) + " capacity: " + tBuffer.capacity());
                 }
                 tBuffer.limit(tBuffer.getInt(0));
             }
@@ -602,72 +630,76 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutput
         flushOutQueue();
     }
 
-    public void destinationClosed() {
+    public void destinationClosed() 
+    {
         flushOutQueue();
     }
 
-    public boolean isOutputQueued() {
+    public boolean isOutputQueued() 
+    {
         return !outputQueue.isEmpty();
     }
 
-    private static String getStateName(int state) {
+    private static String getStateName(int state) 
+    {
         final String name;
         switch (state) {
-            case STATE_IDLE:
-                name = STATE_IDLE_NAME;
-                break;
-            case STATE_GETBUFFER:
-                name = STATE_GETBUFFER_NAME;
-                break;
-            case STATE_TRANSMSG:
-                name = STATE_TRANSMSG_NAME;
-                break;
-            case STATE_TRANSDONE:
-                name = STATE_TRANSDONE_NAME;
-                break;
-            case STATE_ERROR:
-                name = STATE_ERROR_NAME;
-                break;
-            case STATE_CLOSED:
-                name = STATE_CLOSED_NAME;
-                break;
-            default:
-                name = "UNKNOWN#" + state;
-                break;
+        case STATE_IDLE:
+            name = STATE_IDLE_NAME;
+            break;
+        case STATE_GETBUFFER:
+            name = STATE_GETBUFFER_NAME;
+            break;
+        case STATE_TRANSMSG:
+            name = STATE_TRANSMSG_NAME;
+            break;
+        case STATE_TRANSDONE:
+            name = STATE_TRANSDONE_NAME;
+            break;
+        case STATE_ERROR:
+            name = STATE_ERROR_NAME;
+            break;
+        case STATE_CLOSED:
+            name = STATE_CLOSED_NAME;
+            break;
+        default:
+            name = "UNKNOWN#" + state;
+            break;
         }
         return name;
     }
 
-    private static String getSignalName(int signal) {
+    private static String getSignalName(int signal)
+    {
         final String name;
         switch (signal) {
-            case SIG_IDLE:
-                name = "IDLE";
-                break;
-            case SIG_GET_BUFFER:
-                name = "GET_BUFFER";
-                break;
-            case SIG_TRANSMIT:
-                name = "TRANSMIT";
-                break;
-            case SIG_DONE:
-                name = "DONE";
-                break;
-            case SIG_RESTART:
-                name = "RESTART";
-                break;
-            case SIG_STOP:
-                name = "STOP";
-                break;
-            case SIG_ERROR:
-                name = "ERROR";
-                break;
-            case SIG_CLOSE:
-                name = "CLOSE";
-                break;
-            default:
-                name = "UNKNOWN#" + signal;
-                break;
+        case SIG_IDLE:
+            name = "IDLE";
+            break;
+        case SIG_GET_BUFFER:
+            name = "GET_BUFFER";
+            break;
+        case SIG_TRANSMIT:
+            name = "TRANSMIT";
+            break;
+        case SIG_DONE:
+            name = "DONE";
+            break;
+        case SIG_RESTART:
+            name = "RESTART";
+            break;
+        case SIG_STOP:
+            name = "STOP";
+            break;
+        case SIG_ERROR:
+            name = "ERROR";
+            break;
+        case SIG_CLOSE:
+            name = "CLOSE";
+            break;
+        default:
+            name = "UNKNOWN#" + signal;
+            break;
         }
         return name;
     }

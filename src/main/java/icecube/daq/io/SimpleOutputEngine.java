@@ -428,7 +428,7 @@ public class SimpleOutputEngine
             regList.add(outChan);
             wakeup();
         }
-   }
+    }
 
     /**
      * Observer to notify when this engine stops.
@@ -509,7 +509,7 @@ public class SimpleOutputEngine
                 if (channelList.size() > 0) {
                     // check for stopped channels
                     synchronized (channelList) {
-                        for (int i = 0; i < channelList.size(); ) {
+                        for (int i = 0; i < channelList.size();) {
                             SimpleOutputChannel chan = channelList.get(i);
                             if (chan.isStopped()) {
                                 channelList.remove(i);
@@ -747,7 +747,7 @@ public class SimpleOutputEngine
          */
         public boolean isOutputQueued()
         {
-            return !outputQueue.isEmpty() ;
+            return !outputQueue.isEmpty();
         }
 
         /**
