@@ -107,6 +107,9 @@ public abstract class PayloadReader
     // <tt>true</tt> if reverse connections have been made
     private boolean madeReverseConnections;
 
+    // channel on which server listens for connections
+    private ServerSocketChannel serverChannel;
+
     public PayloadReader(String name)
     {
         this(name, DEFAULT_BUFFER_SIZE);
@@ -243,6 +246,12 @@ if(DEBUG_NEW)System.err.println("ANend");
     public void destroyProcessor()
     {
         thread = null;
+
+        try {
+            serverChannel.close();
+        } catch (IOException ioe) {
+            LOG.error("Cannot close " + name + " server channel", ioe);
+        }
 
         setState(RunState.DESTROYED);
     }
@@ -654,6 +663,13 @@ if(DEBUG_RUN)System.err.println("Ridle");
 if(DEBUG_RUN)System.err.println("Rbottom");
         }
 
+        try {
+            selector.close();
+            selector = null;
+        } catch (IOException ioe) {
+            // ignore errors
+        }
+
         state = RunState.DESTROYED;
 if(DEBUG_RUN)System.err.println("Rexit");
     }
@@ -756,13 +772,13 @@ if(DEBUG_SS)System.err.println("SSwait");
         }
 if(DEBUG_SS)System.err.println("SSwork");
 
-        ServerSocketChannel ssChan = ServerSocketChannel.open();
-        ssChan.configureBlocking(false);
+        serverChannel = ServerSocketChannel.open();
+        serverChannel.configureBlocking(false);
 
-        ssChan.socket().bind(null);
-        port = ssChan.socket().getLocalPort();
+        serverChannel.socket().bind(null);
+        port = serverChannel.socket().getLocalPort();
 
-        ssChan.register(selector, SelectionKey.OP_ACCEPT);
+        serverChannel.register(selector, SelectionKey.OP_ACCEPT);
 
 if(DEBUG_SS)System.err.println("SSready");
         synchronized (pauseThread) {

@@ -99,7 +99,7 @@ public class SimpleOutputEngine
         try {
             selector = Selector.open();
         } catch (IOException ioe) {
-            throw new Error("Cannot create Selector");
+            throw new Error("Cannot create Selector", ioe);
         }
     }
 
@@ -183,6 +183,15 @@ public class SimpleOutputEngine
                 channelList.clear();
                 handleEngineStop();
             }
+        }
+
+        if (selector != null) {
+            try {
+                selector.close();
+            } catch (IOException ioe) {
+                LOG.error("Cannot close selector", ioe);
+            }
+            selector = null;
         }
 
         state = State.DESTROYED;

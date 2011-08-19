@@ -404,16 +404,17 @@ public abstract class SimpleReader
     public void run()
     {
         Selector selector;
+        ServerSocketChannel serverChannel;
         try {
             selector = Selector.open();
 
-            ServerSocketChannel ssChan = ServerSocketChannel.open();
-            ssChan.configureBlocking(false);
+            serverChannel = ServerSocketChannel.open();
+            serverChannel.configureBlocking(false);
 
-            ssChan.socket().bind(null);
-            port = ssChan.socket().getLocalPort();
+            serverChannel.socket().bind(null);
+            port = serverChannel.socket().getLocalPort();
 
-            ssChan.register(selector, SelectionKey.OP_ACCEPT);
+            serverChannel.register(selector, SelectionKey.OP_ACCEPT);
         } catch (IOException ioe) {
             thread = null;
             throw new Error("Cannot initialize server thread", ioe);
@@ -468,6 +469,18 @@ public abstract class SimpleReader
                     }
                 }
             }
+        }
+
+        try {
+            serverChannel.close();
+        } catch (IOException ioe) {
+            // ignore errors
+        }
+
+        try {
+            selector.close();
+        } catch (IOException ioe) {
+            // ignore errors
         }
 
         serverStarted = false;
