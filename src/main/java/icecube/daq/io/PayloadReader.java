@@ -173,7 +173,9 @@ if(DEBUG_NEW)System.err.println("ANreg "+cd);
                 }
 
 if(DEBUG_NEW)System.err.println("ANadd "+cd);
-                chanList.add(cd);
+                synchronized (chanList) {
+                    chanList.add(cd);
+                }
 
                 if (isRunning()) {
                     cd.startReading();
@@ -247,10 +249,14 @@ if(DEBUG_NEW)System.err.println("ANend");
     {
         thread = null;
 
-        try {
-            serverChannel.close();
-        } catch (IOException ioe) {
-            LOG.error("Cannot close " + name + " server channel", ioe);
+        if (serverChannel != null) {
+            try {
+                serverChannel.close();
+            } catch (IOException ioe) {
+                LOG.error("Cannot close " + name + " server channel", ioe);
+            }
+
+            serverChannel = null;
         }
 
         setState(RunState.DESTROYED);
@@ -265,18 +271,22 @@ if(DEBUG_NEW)System.err.println("ANend");
 
     public synchronized Boolean[] getAllocationStopped() {
         ArrayList allocationStatus = new ArrayList();
-        for (InputChannel cd : chanList) {
-            Boolean bVal =
-                (cd.isAllocationStopped() ? Boolean.TRUE : Boolean.FALSE);
-            allocationStatus.add(bVal);
+        synchronized (chanList) {
+            for (InputChannel cd : chanList) {
+                Boolean bVal =
+                    (cd.isAllocationStopped() ? Boolean.TRUE : Boolean.FALSE);
+                allocationStatus.add(bVal);
+            }
         }
         return (Boolean[]) allocationStatus.toArray(new Boolean[0]);
     }
 
     public synchronized Long[] getBufferCurrentAcquiredBuffers() {
         ArrayList byteLimit = new ArrayList();
-        for (InputChannel cd : chanList) {
-            byteLimit.add(new Long(cd.getBufferCurrentAcquiredBuffers()));
+        synchronized (chanList) {
+            for (InputChannel cd : chanList) {
+                byteLimit.add(new Long(cd.getBufferCurrentAcquiredBuffers()));
+            }
         }
 
         return (Long[]) byteLimit.toArray(new Long[0]);
@@ -284,32 +294,40 @@ if(DEBUG_NEW)System.err.println("ANend");
 
     public synchronized Long[] getBufferCurrentAcquiredBytes() {
         ArrayList byteLimit = new ArrayList();
-        for (InputChannel cd : chanList) {
-            byteLimit.add(new Long(cd.getBufferCurrentAcquiredBytes()));
+        synchronized (chanList) {
+            for (InputChannel cd : chanList) {
+                byteLimit.add(new Long(cd.getBufferCurrentAcquiredBytes()));
+            }
         }
         return (Long[]) byteLimit.toArray(new Long[0]);
     }
 
     public synchronized Long[] getBytesReceived() {
         ArrayList byteCount = new ArrayList();
-        for (InputChannel cd : chanList) {
-            byteCount.add(new Long(cd.getBytesReceived()));
+        synchronized (chanList) {
+            for (InputChannel cd : chanList) {
+                byteCount.add(new Long(cd.getBytesReceived()));
+            }
         }
         return (Long[]) byteCount.toArray(new Long[0]);
     }
 
     public synchronized Long[] getLimitToRestartAllocation() {
         ArrayList byteLimit = new ArrayList();
-        for (InputChannel cd : chanList) {
-            byteLimit.add(new Long(cd.getLimitToRestartAllocation()));
+        synchronized (chanList) {
+            for (InputChannel cd : chanList) {
+                byteLimit.add(new Long(cd.getLimitToRestartAllocation()));
+            }
         }
         return (Long[]) byteLimit.toArray(new Long[0]);
     }
 
     public synchronized Long[] getLimitToStopAllocation() {
         ArrayList byteLimit = new ArrayList();
-        for (InputChannel cd : chanList) {
-            byteLimit.add(new Long(cd.getLimitToStopAllocation()));
+        synchronized (chanList) {
+            for (InputChannel cd : chanList) {
+                byteLimit.add(new Long(cd.getLimitToStopAllocation()));
+            }
         }
         return (Long[]) byteLimit.toArray(new Long[0]);
     }
@@ -353,16 +371,20 @@ if(DEBUG_NEW)System.err.println("ANend");
 
     public synchronized Long[] getStopMessagesReceived() {
         ArrayList recordCount = new ArrayList();
-        for (InputChannel cd : chanList) {
-            recordCount.add(new Long(cd.getStopMessagesReceived()));
+        synchronized (chanList) {
+            for (InputChannel cd : chanList) {
+                recordCount.add(new Long(cd.getStopMessagesReceived()));
+            }
         }
         return (Long[]) recordCount.toArray(new Long[0]);
     }
 
     public synchronized long getTotalRecordsReceived() {
         long total = 0;
-        for (InputChannel cd : chanList) {
-            total += cd.getRecordsReceived();
+        synchronized (chanList) {
+            for (InputChannel cd : chanList) {
+                total += cd.getRecordsReceived();
+            }
         }
         return total;
     }
@@ -395,7 +417,9 @@ if(DEBUG_NEW)System.err.println("ANend");
     List<InputChannel> listChannels()
     {
         List<InputChannel> list = new ArrayList<InputChannel>();
-        list.addAll(chanList);
+        synchronized (chanList) {
+            list.addAll(chanList);
+        }
         return list;
     }
 
@@ -465,13 +489,16 @@ if(DEBUG_NEW)System.err.println("ANend");
 
     private void removeChannel(InputChannel chanData)
     {
-        chanList.remove(chanData);
-        if (chanList.size() > 0) {
-            LOG.error("Closed " + name + " socket channel, " + chanList.size() +
-                      " channels remain");
-        } else {
-            LOG.error("Closed " + name + " socket channel, stopping reader");
-            channelStopFlag.set();
+        synchronized (chanList) {
+            chanList.remove(chanData);
+            if (chanList.size() > 0) {
+                LOG.error("Closed " + name + " socket channel, " +
+                          chanList.size() + " channels remain");
+            } else {
+                LOG.error("Closed " + name +
+                          " socket channel, stopping reader");
+                channelStopFlag.set();
+            }
         }
     }
 
@@ -497,9 +524,11 @@ if(DEBUG_RUN)System.err.println("Rstate "+state+"->"+newState);
 
                 switch (newState) {
                 case RUNNING:
-                    for (InputChannel cd : chanList) {
+                    synchronized (chanList) {
+                        for (InputChannel cd : chanList) {
 if(DEBUG_RUN)System.err.println("Rstart "+cd);
-                        cd.startReading();
+                            cd.startReading();
+                        }
                     }
                     break;
                 case IDLE:
@@ -628,24 +657,26 @@ if(DEBUG_RUN)System.err.println("Rproc chanData "+chanData);
 if(DEBUG_RUN)System.err.println("RchkStop "+chanList.size()+" chans "+chanList);
 
                 boolean running = false;
-                for (Iterator<InputChannel> iter = chanList.iterator();
-                     iter.hasNext(); )
-                {
-                    InputChannel chanData = iter.next();
+                synchronized (chanList) {
+                    for (Iterator<InputChannel> iter = chanList.iterator();
+                         iter.hasNext(); )
+                    {
+                        InputChannel chanData = iter.next();
 
-                    if (!chanData.isStopped()) {
+                        if (!chanData.isStopped()) {
 if(DEBUG_RUN)System.err.println("RchanRun "+chanData);
-                        running = true;
-                    } else {
+                            running = true;
+                        } else {
 if(DEBUG_RUN)System.err.println("Rkill "+chanData);
-                        try {
-                            chanData.close();
-                        } catch (IOException ioe) {
-                            LOG.error("Couldn't close input channel " +
-                                      chanData, ioe);
-                        }
+                            try {
+                                chanData.close();
+                            } catch (IOException ioe) {
+                                LOG.error("Couldn't close input channel " +
+                                          chanData, ioe);
+                            }
 
-                        iter.remove();
+                            iter.remove();
+                        }
                     }
                 }
 
