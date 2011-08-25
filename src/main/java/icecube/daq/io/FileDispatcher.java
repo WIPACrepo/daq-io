@@ -353,7 +353,7 @@ public class FileDispatcher implements Dispatcher {
      * @return a long value ( number of bytes written to disk )
      */
     public long getNumBytesWritten() {
-	return numBytesWritten;
+        return numBytesWritten;
     }
 
     /**
@@ -363,6 +363,16 @@ public class FileDispatcher implements Dispatcher {
      */
     public long getTotalDispatchedEvents() {
         return totalDispatchedEvents;
+    }
+
+    /**
+     * Does this dispatcher have one or more active STARTs?
+     *
+     * @return <tt>true</tt> if dispatcher has been started and not stopped
+     */
+    public boolean isStarted()
+    {
+        return numStarts > 0;
     }
 
     public WritableByteChannel openFile(File file)
