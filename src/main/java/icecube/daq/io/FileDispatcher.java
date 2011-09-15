@@ -3,6 +3,7 @@ package icecube.daq.io;
 import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IWriteablePayload;
+import icecube.daq.payload.PayloadException;
 import icecube.icebucket.util.DiskUsage;
 
 import java.io.File;
@@ -40,6 +41,7 @@ public class FileDispatcher implements Dispatcher
     private String dispatchDestStorage;
     private int fileIndex;
     private long startingEventNum;
+    // measured in MB
     private long diskSize;
     private long diskAvailable;
 
@@ -234,6 +236,8 @@ public class FileDispatcher implements Dispatcher
         int numWritten;
         try {
             numWritten = event.writePayload(false, 0, buffer);
+        } catch (PayloadException pe) {
+            throw new DispatchException("Couldn't write payload", pe);
         } catch (IOException ioe) {
             throw new DispatchException("Couldn't write payload", ioe);
         }
