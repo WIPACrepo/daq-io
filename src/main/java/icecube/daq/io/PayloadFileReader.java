@@ -71,6 +71,7 @@ public class PayloadFileReader
      * Open the file.
      *
      * @param file payload file
+     * @param cache byte buffer cache
      *
      * @throws IOException if the file cannot be opened
      */
@@ -211,8 +212,6 @@ public class PayloadFileReader
 
     /**
      * Get the next available payload.
-     *
-     * @return call to nextPayload or null if there is PayloadException
      */
     public Object next()
     {

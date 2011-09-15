@@ -182,7 +182,7 @@ public class PushPayloadReaderTest
         tstRdr.start();
         IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
-        tstRdr.addDataChannel(sourceChannel, bufMgr, 1024);
+        tstRdr.addDataChannel(sourceChannel, "OutIn", bufMgr, 1024);
 
         Thread.sleep(100);
 
@@ -254,7 +254,7 @@ public class PushPayloadReaderTest
         tstRdr.start();
         IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
-        tstRdr.addDataChannel(sourceChannel, bufMgr, 1024);
+        tstRdr.addDataChannel(sourceChannel, "MultiOutIn", bufMgr, 1024);
 
         Thread.sleep(100);
 

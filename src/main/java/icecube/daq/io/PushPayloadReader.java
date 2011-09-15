@@ -16,10 +16,10 @@ public abstract class PushPayloadReader
         private PushPayloadReader reader;
 
         PushInputChannel(IOChannelParent parent, SelectableChannel channel,
-                         IByteBufferCache bufMgr, int bufSize)
+                         String name, IByteBufferCache bufMgr, int bufSize)
             throws IOException
         {
-            super(parent, channel, bufMgr, bufSize);
+            super(parent, channel, name, bufMgr, bufSize);
 
             reader = (PushPayloadReader) parent;
         }
@@ -76,7 +76,7 @@ public abstract class PushPayloadReader
         super.channelStopped(chan);
     }
 
-    public InputChannel createChannel(SelectableChannel channel,
+    public InputChannel createChannel(SelectableChannel channel, String name,
                                       IByteBufferCache bufMgr, int bufSize)
         throws IOException
     {
@@ -86,7 +86,7 @@ public abstract class PushPayloadReader
         }
 
         InputChannel chan =
-            new PushInputChannel(this, channel, bufMgr, bufSize);
+            new PushInputChannel(this, channel, name, bufMgr, bufSize);
         pushChanList.add(chan);
         return chan;
     }

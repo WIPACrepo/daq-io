@@ -242,8 +242,8 @@ public class SpliceableInputChannelTest
         MockFactory factory = new MockFactory(bufMgr);
 
         SpliceableInputChannel chan =
-            new SpliceableInputChannel(parent, pipe.source(), bufMgr, 256,
-                                       factory);
+            new SpliceableInputChannel(parent, pipe.source(), "OOO",  bufMgr,
+                                       256, factory);
 
         final int type = 666;
         final long time = 123456L;

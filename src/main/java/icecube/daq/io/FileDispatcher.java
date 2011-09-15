@@ -18,19 +18,11 @@ import org.apache.commons.logging.LogFactory;
 /**
  * Dispatch payload files to PnF
  */
-public class FileDispatcher implements Dispatcher 
+public class FileDispatcher implements Dispatcher
 {
     public static final String DISPATCH_DEST_STORAGE = "/mnt/data/pdaqlocal";
 
     private static final Log LOG = LogFactory.getLog(FileDispatcher.class);
-
-    private static final String START_PREFIX =
-        DAQCmdInterface.DAQ_ONLINE_RUNSTART_FLAG;
-    private static final String STOP_PREFIX =
-        DAQCmdInterface.DAQ_ONLINE_RUNSTOP_FLAG;
-    private static final String SUBRUN_START_PREFIX =
-        DAQCmdInterface.DAQ_ONLINE_SUBRUNSTART_FLAG;
-    private static final String CLOSE_PREFIX = "Close:";
 
     private static final long KB_IN_MB = 1024;
 
@@ -51,7 +43,7 @@ public class FileDispatcher implements Dispatcher
     private long diskSize;
     private long diskAvailable;
 
-    public FileDispatcher(String baseFileName) 
+    public FileDispatcher(String baseFileName)
     {
         this(getDefaultDispatchDirectory(baseFileName), baseFileName, null);
     }
@@ -124,7 +116,7 @@ public class FileDispatcher implements Dispatcher
      * @param message a String explaining the reason for the boundary.
      * @throws DispatchException is there is a problem in the Dispatch system.
      */
-    public void dataBoundary(String message) throws DispatchException 
+    public void dataBoundary(String message) throws DispatchException
     {
 
         if (message == null) {
@@ -176,7 +168,7 @@ public class FileDispatcher implements Dispatcher
      * @param buffer the ByteBuffer containg the event.
      * @throws DispatchException is there is a problem in the Dispatch system.
      */
-    public void dispatchEvent(ByteBuffer buffer) throws DispatchException 
+    public void dispatchEvent(ByteBuffer buffer) throws DispatchException
     {
         synchronized (fileLock) {
             if (tempFile == null) {
@@ -229,7 +221,7 @@ public class FileDispatcher implements Dispatcher
      * @throws DispatchException is there is a problem in the Dispatch system.
      */
     public void dispatchEvent(IWriteablePayload event)
-        throws DispatchException 
+        throws DispatchException
     {
         if (bufferCache == null) {
             final String errMsg =
@@ -267,7 +259,7 @@ public class FileDispatcher implements Dispatcher
      * @throws DispatchException is there is a problem in the Dispatch system.
      */
     public void dispatchEvents(ByteBuffer buffer, int[] indices)
-        throws DispatchException 
+        throws DispatchException
     {
         throw new UnsupportedOperationException("Unimplemented");
     }
@@ -286,7 +278,7 @@ public class FileDispatcher implements Dispatcher
      * @throws DispatchException is there is a problem in the Dispatch system.
      */
     public void dispatchEvents(ByteBuffer buffer, int[] indices, int count)
-        throws DispatchException 
+        throws DispatchException
     {
         throw new UnsupportedOperationException("Unimplemented");
     }
@@ -369,7 +361,7 @@ public class FileDispatcher implements Dispatcher
      *
      * @return a long value ( number of bytes written to disk )
      */
-    public long getNumBytesWritten() 
+    public long getNumBytesWritten()
     {
         return numBytesWritten;
     }
@@ -379,9 +371,19 @@ public class FileDispatcher implements Dispatcher
      *
      * @return a long value
      */
-    public long getTotalDispatchedEvents() 
+    public long getTotalDispatchedEvents()
     {
         return totalDispatchedEvents;
+    }
+
+    /**
+     * Does this dispatcher have one or more active STARTs?
+     *
+     * @return <tt>true</tt> if dispatcher has been started and not stopped
+     */
+    public boolean isStarted()
+    {
+        return numStarts > 0;
     }
 
     public WritableByteChannel openFile(File file)
@@ -516,12 +518,12 @@ public class FileDispatcher implements Dispatcher
      *
      * @return the total number of units in the disk.
      */
-    public long getDiskSize() 
+    public long getDiskSize()
     {
         return diskSize;
     }
 
-    private File getDestFile() 
+    private File getDestFile()
     {
         String fileName = baseFileName + "_" + runNumber + "_" + fileIndex +
             "_" + startingEventNum + "_" +  + totalDispatchedEvents;
@@ -532,9 +534,9 @@ public class FileDispatcher implements Dispatcher
         return file;
     }
 
-    private void moveToDest() throws DispatchException 
+    private void moveToDest() throws DispatchException
     {
-        synchronized (fileLock) 
+        synchronized (fileLock)
         {
             try {
                 outChannel.close();
@@ -559,7 +561,7 @@ public class FileDispatcher implements Dispatcher
         checkDisk();
     }
 
-    private void checkDisk() 
+    private void checkDisk()
     {
         DiskUsage usage = DiskUsage.getUsage(dispatchDestStorage);
         if (null == usage ||
@@ -576,14 +578,14 @@ public class FileDispatcher implements Dispatcher
      * A ShutdownHook for closing and renaming the dispatch file if it
      * is still open when invoked.
      */
-    private class ShutdownHook extends Thread 
+    private class ShutdownHook extends Thread
     {
 
-        public ShutdownHook
+        public ShutdownHook()
         {
         }
 
-        public void run() 
+        public void run()
         {
             LOG.debug("ShutdownHook invoked for " + baseFileName);
             if (outChannel != null && outChannel.isOpen()) {

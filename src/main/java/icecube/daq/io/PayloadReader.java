@@ -107,6 +107,9 @@ public abstract class PayloadReader
     // <tt>true</tt> if reverse connections have been made
     private boolean madeReverseConnections;
 
+    // channel on which server listens for connections
+    private ServerSocketChannel serverChannel;
+
     public PayloadReader(String name)
     {
         this(name, DEFAULT_BUFFER_SIZE);
@@ -121,14 +124,14 @@ public abstract class PayloadReader
         newState = state;
     }
 
-    public InputChannel addDataChannel(SelectableChannel channel,
+    public InputChannel addDataChannel(SelectableChannel channel, String name,
                                        IByteBufferCache bufMgr)
         throws IOException
     {
-        return addDataChannel(channel, bufMgr, bufferSize);
+        return addDataChannel(channel, name, bufMgr, bufferSize);
     }
 
-    public InputChannel addDataChannel(SelectableChannel channel,
+    public InputChannel addDataChannel(SelectableChannel channel, String name,
                                        IByteBufferCache bufMgr, int bufSize)
         throws IOException
     {
@@ -146,7 +149,7 @@ public abstract class PayloadReader
             System.err.println("AddChanCre " + channel);
         }
 
-        InputChannel chanData = createChannel(channel, bufMgr, bufSize);
+        InputChannel chanData = createChannel(channel, name, bufMgr, bufSize);
         if (DEBUG_ADD) {
             System.err.println("AddChan " + chanData);
         }
@@ -187,7 +190,9 @@ public abstract class PayloadReader
                 if (DEBUG_NEW) {
                     System.err.println("ANadd " + cd);
                 }
-                chanList.add(cd);
+                synchronized (chanList) {
+                    chanList.add(cd);
+                }
 
                 if (isRunning()) {
                     cd.startReading();
@@ -224,7 +229,7 @@ public abstract class PayloadReader
     {
         // disable blocking or receive engine will die
         chan.configureBlocking(false);
-        return addDataChannel(chan, bufCache, bufferSize);
+        return addDataChannel(chan, name, bufCache, bufferSize);
     }
 
     /**
@@ -254,6 +259,7 @@ public abstract class PayloadReader
     }
 
     public abstract InputChannel createChannel(SelectableChannel channel,
+                                               String name,
                                                IByteBufferCache bufMgr,
                                                int bufSize)
         throws IOException;
@@ -261,6 +267,16 @@ public abstract class PayloadReader
     public void destroyProcessor()
     {
         thread = null;
+
+        if (serverChannel != null) {
+            try {
+                serverChannel.close();
+            } catch (IOException ioe) {
+                LOG.error("Cannot close " + name + " server channel", ioe);
+            }
+
+            serverChannel = null;
+        }
 
         setState(RunState.DESTROYED);
     }
@@ -272,61 +288,83 @@ public abstract class PayloadReader
         notifyClient();
     }
 
-    public synchronized Boolean[] getAllocationStopped() 
+    public synchronized Boolean[] getAllocationStopped()
     {
         ArrayList allocationStatus = new ArrayList();
-        for (InputChannel cd : chanList) {
-            Boolean bVal =
-                (cd.isAllocationStopped() ? Boolean.TRUE : Boolean.FALSE);
-            allocationStatus.add(bVal);
+        synchronized (chanList) {
+            for (InputChannel cd : chanList) {
+                Boolean bVal =
+                    (cd.isAllocationStopped() ? Boolean.TRUE : Boolean.FALSE);
+                allocationStatus.add(bVal);
+            }
         }
         return (Boolean[]) allocationStatus.toArray(new Boolean[0]);
     }
 
-    public synchronized Long[] getBufferCurrentAcquiredBuffers() 
+    public synchronized Long[] getBufferCurrentAcquiredBuffers()
     {
         ArrayList byteLimit = new ArrayList();
-        for (InputChannel cd : chanList) {
-            byteLimit.add(new Long(cd.getBufferCurrentAcquiredBuffers()));
+        synchronized (chanList) {
+            for (InputChannel cd : chanList) {
+                byteLimit.add(new Long(cd.getBufferCurrentAcquiredBuffers()));
+            }
         }
 
         return (Long[]) byteLimit.toArray(new Long[0]);
     }
 
-    public synchronized Long[] getBufferCurrentAcquiredBytes() 
+    public synchronized Long[] getBufferCurrentAcquiredBytes()
     {
         ArrayList byteLimit = new ArrayList();
-        for (InputChannel cd : chanList) {
-            byteLimit.add(new Long(cd.getBufferCurrentAcquiredBytes()));
+        synchronized (chanList) {
+            for (InputChannel cd : chanList) {
+                byteLimit.add(new Long(cd.getBufferCurrentAcquiredBytes()));
+            }
         }
         return (Long[]) byteLimit.toArray(new Long[0]);
     }
 
-    public synchronized Long[] getBytesReceived() 
+    public synchronized Long[] getBytesReceived()
     {
         ArrayList byteCount = new ArrayList();
-        for (InputChannel cd : chanList) {
-            byteCount.add(new Long(cd.getBytesReceived()));
+        synchronized (chanList) {
+            for (InputChannel cd : chanList) {
+                byteCount.add(new Long(cd.getBytesReceived()));
+            }
         }
         return (Long[]) byteCount.toArray(new Long[0]);
     }
 
-    public synchronized Long[] getLimitToRestartAllocation() 
+    public synchronized Long[] getLimitToRestartAllocation()
     {
         ArrayList byteLimit = new ArrayList();
-        for (InputChannel cd : chanList) {
-            byteLimit.add(new Long(cd.getLimitToRestartAllocation()));
+        synchronized (chanList) {
+            for (InputChannel cd : chanList) {
+                byteLimit.add(new Long(cd.getLimitToRestartAllocation()));
+            }
         }
         return (Long[]) byteLimit.toArray(new Long[0]);
     }
 
-    public synchronized Long[] getLimitToStopAllocation() 
+    public synchronized Long[] getLimitToStopAllocation()
     {
         ArrayList byteLimit = new ArrayList();
-        for (InputChannel cd : chanList) {
-            byteLimit.add(new Long(cd.getLimitToStopAllocation()));
+        synchronized (chanList) {
+            for (InputChannel cd : chanList) {
+                byteLimit.add(new Long(cd.getLimitToStopAllocation()));
+            }
         }
         return (Long[]) byteLimit.toArray(new Long[0]);
+    }
+
+    /**
+     * Return reader name
+     *
+     * @return name
+     */
+    public String getName()
+    {
+        return name;
     }
 
     /**
@@ -344,7 +382,7 @@ public abstract class PayloadReader
         return state.toString();
     }
 
-    public synchronized Long[] getRecordsReceived() 
+    public synchronized Long[] getRecordsReceived()
     {
         ArrayList recordCount = new ArrayList();
         for (InputChannel cd : chanList) {
@@ -353,25 +391,29 @@ public abstract class PayloadReader
         return (Long[]) recordCount.toArray(new Long[0]);
     }
 
-    public int getServerPort() 
+    public int getServerPort()
     {
         return port;
     }
 
-    public synchronized Long[] getStopMessagesReceived() 
+    public synchronized Long[] getStopMessagesReceived()
     {
         ArrayList recordCount = new ArrayList();
-        for (InputChannel cd : chanList) {
-            recordCount.add(new Long(cd.getStopMessagesReceived()));
+        synchronized (chanList) {
+            for (InputChannel cd : chanList) {
+                recordCount.add(new Long(cd.getStopMessagesReceived()));
+            }
         }
         return (Long[]) recordCount.toArray(new Long[0]);
     }
 
-    public synchronized long getTotalRecordsReceived() 
+    public synchronized long getTotalRecordsReceived()
     {
         long total = 0;
-        for (InputChannel cd : chanList) {
-            total += cd.getRecordsReceived();
+        synchronized (chanList) {
+            for (InputChannel cd : chanList) {
+                total += cd.getRecordsReceived();
+            }
         }
         return total;
     }
@@ -404,7 +446,9 @@ public abstract class PayloadReader
     List<InputChannel> listChannels()
     {
         List<InputChannel> list = new ArrayList<InputChannel>();
-        list.addAll(chanList);
+        synchronized (chanList) {
+            list.addAll(chanList);
+        }
         return list;
     }
 
@@ -474,13 +518,16 @@ public abstract class PayloadReader
 
     private void removeChannel(InputChannel chanData)
     {
-        chanList.remove(chanData);
-        if (chanList.size() > 0) {
-            LOG.error("Closed " + name + " socket channel, " + chanList.size() +
-                      " channels remain");
-        } else {
-            LOG.error("Closed " + name + " socket channel, stopping reader");
-            channelStopFlag.set();
+        synchronized (chanList) {
+            chanList.remove(chanData);
+            if (chanList.size() > 0) {
+                LOG.error("Closed " + name + " socket channel, " +
+                          chanList.size() + " channels remain");
+            } else {
+                LOG.error("Closed " + name +
+                          " socket channel, stopping reader");
+                channelStopFlag.set();
+            }
         }
     }
 
@@ -505,7 +552,7 @@ public abstract class PayloadReader
         while (thread != null) {
             if (DEBUG_RUN) {
                 System.err.println("Rtop " + state + " new " + newState);
-            } 
+            }
 
             if (newState != state) {
                 if (DEBUG_RUN) {
@@ -514,11 +561,13 @@ public abstract class PayloadReader
 
                 switch (newState) {
                 case RUNNING:
-                    for (InputChannel cd : chanList) {
+                    synchronized (chanList) {
+                        for (InputChannel cd : chanList) {
                         if (DEBUG_RUN) {
-                            System.err.println("Rstart " + cd); 
+                            System.err.println("Rstart " + cd);
                         }
-                        cd.startReading();
+                            cd.startReading();
+                        }
                     }
                     break;
                 case IDLE:
@@ -597,7 +646,7 @@ public abstract class PayloadReader
                 Iterator iter =  selector.selectedKeys().iterator();
                     if (DEBUG_RUN) {
                         System.err.println("RnotRun");
-                    }   
+                    }
                     while (iter.hasNext()) {
                     SelectionKey selKey = (SelectionKey) iter.next();
                     iter.remove();
@@ -656,7 +705,7 @@ public abstract class PayloadReader
                     } else {
                         try {
                             if (DEBUG_RUN) {
-                                System.err.println("Rproc chanData " + 
+                                System.err.println("Rproc chanData " +
                                     chanData);
                             }
                             chanData.processSelect(selKey);
@@ -674,34 +723,36 @@ public abstract class PayloadReader
 
             if (channelStopFlag.isSet()) {
                 channelStopFlag.clear();
-                if (DEBUG_RUN) { 
-                    System.err.println("RchkStop " + 
+                if (DEBUG_RUN) {
+                    System.err.println("RchkStop " +
                         chanList.size() + " chans " + chanList);
                 }
 
                 boolean running = false;
-                for (Iterator<InputChannel> iter = chanList.iterator();
-                     iter.hasNext(); )
-                {
-                    InputChannel chanData = iter.next();
+                synchronized (chanList) {
+                    for (Iterator<InputChannel> iter = chanList.iterator();
+                         iter.hasNext(); )
+                    {
+                        InputChannel chanData = iter.next();
 
-                    if (!chanData.isStopped()) {
+                        if (!chanData.isStopped()) {
                         if (DEBUG_RUN) {
                             System.err.println("RchanRun " + chanData);
                         }
-                        running = true;
-                    } else {
+                            running = true;
+                        } else {
                         if (DEBUG_RUN) {
                             System.err.println("Rkill " + chanData);
                         }
-                        try {
-                            chanData.close();
-                        } catch (IOException ioe) {
-                            LOG.error("Couldn't close input channel " +
-                                      chanData, ioe);
-                        }
+                            try {
+                                chanData.close();
+                            } catch (IOException ioe) {
+                                LOG.error("Couldn't close input channel " +
+                                          chanData, ioe);
+                            }
 
-                        iter.remove();
+                            iter.remove();
+                        }
                     }
                 }
 
@@ -717,12 +768,19 @@ public abstract class PayloadReader
                     notifyClient();
                     if (DEBUG_RUN) {
                         System.err.println("Ridle");
-                    }Errors	'{' should be on a new line.
+                    }
                 }
             }
             if (DEBUG_RUN) {
                 System.err.println("Rbottom");
             }
+        }
+
+        try {
+            selector.close();
+            selector = null;
+        } catch (IOException ioe) {
+            // ignore errors
         }
 
         state = RunState.DESTROYED;
@@ -734,12 +792,12 @@ public abstract class PayloadReader
     private void setState(RunState newState)
     {
         final boolean DEBUG_SET = false;
-        if (DEBUG_RUN) {
+        if (DEBUG_SET) {
             System.err.println("SSTtop");
         }
         synchronized (stateLock) {
             this.newState = newState;
-            if (DEBUG_RUN) {
+            if (DEBUG_SET) {
                 System.err.println("SSTnewState=" + newState);
             }
             stateLock.notify();
@@ -747,7 +805,7 @@ public abstract class PayloadReader
                 selector.wakeup();
             }
         }
-        if (DEBUG_RUN) {
+        if (DEBUG_SET) {
             System.err.println("SSTend");
         }
     }
@@ -800,7 +858,7 @@ public abstract class PayloadReader
         throws IOException
     {
         final boolean DEBUG_SS = false;
-        if (DEBUG_RUN) {
+        if (DEBUG_SS) {
             System.err.println("SStop");
         }
         // hack around Linux kernel bug:
@@ -809,21 +867,22 @@ public abstract class PayloadReader
         //     register the server socket, and then resume the thread
         //
         synchronized (pauseThread)
-            if (DEBUG_RUN) {
+        {
+            if (DEBUG_SS) {
                 System.err.println("SSinBlk");
             }
             if (pauseThread.isSet()) {
                 LOG.error("Thread is already paused -- this could be bad!");
             }
 
-            if (DEBUG_RUN) {
+            if (DEBUG_SS) {
                 System.err.println("SSsetFlag");
             }
             // indicate to worker thread that it should pause
             pauseThread.set();
 
             // make sure worker thread isn't stuck someplace
-            if (DEBUG_RUN) {
+            if (DEBUG_SS) {
                 System.err.println("SSnotify");
             }
             synchronized (stateLock) {
@@ -835,7 +894,7 @@ public abstract class PayloadReader
 
             // wait for thread to notify us that it has paused
             try {
-                if (DEBUG_RUN) {
+                if (DEBUG_SS) {
                     System.err.println("SSwait");
                 }
                 pauseThread.wait();
@@ -843,41 +902,41 @@ public abstract class PayloadReader
                 LOG.error("Couldn't wait for pauseThread", ex);
             }
         }
-        if (DEBUG_RUN) {
+        if (DEBUG_SS) {
             System.err.println("SSwork");
         }
 
-        ServerSocketChannel ssChan = ServerSocketChannel.open();
-        ssChan.configureBlocking(false);
+        serverChannel = ServerSocketChannel.open();
+        serverChannel.configureBlocking(false);
 
-        ssChan.socket().bind(null);
-        port = ssChan.socket().getLocalPort();
+        serverChannel.socket().bind(null);
+        port = serverChannel.socket().getLocalPort();
 
-        ssChan.register(selector, SelectionKey.OP_ACCEPT);
-        if (DEBUG_RUN) {
+        serverChannel.register(selector, SelectionKey.OP_ACCEPT);
+        if (DEBUG_SS) {
             System.err.println("SSready");
         }
         synchronized (pauseThread) {
             // turn off pause flag
             if (!pauseThread.isSet()) {
-                if (DEBUG_RUN) {
+                if (DEBUG_SS) {
                     System.err.println("SSerr");
                 }
                 LOG.error("Expected thread to be paused!");
             } else {
-                if (DEBUG_RUN) {
+                if (DEBUG_SS) {
                     System.err.println("SSclr");
                 }
                 pauseThread.clear();
             }
 
             // let the thread know that we're done
-            if (DEBUG_RUN) {
+            if (DEBUG_SS) {
                 System.err.println("Srenotify");
             }
             pauseThread.notify();
         }
-        if (DEBUG_RUN) {
+        if (DEBUG_SS) {
             System.err.println("SSdone");
         }
 

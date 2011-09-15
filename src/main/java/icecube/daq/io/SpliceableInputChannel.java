@@ -25,22 +25,30 @@ public class SpliceableInputChannel
     private static final Log LOG =
         LogFactory.getLog(SpliceableInputChannel.class);
 
+    private String parentName;
     private SpliceableFactory factory;
     private StrandTail strandTail;
     private Thread thread;
     private ArrayList<Spliceable> queue;
 
     SpliceableInputChannel(IOChannelParent parent, SelectableChannel channel,
-                           IByteBufferCache bufMgr, int bufSize,
+                           String name, IByteBufferCache bufMgr, int bufSize,
                            SpliceableFactory factory)
         throws IOException
     {
-        super(parent, channel, bufMgr, bufSize);
+        super(parent, channel, name, bufMgr, bufSize);
 
         if (factory == null) {
             final String errMsg = "SpliceableFactory cannot be null";
             throw new IllegalArgumentException(errMsg);
         }
+
+        if (parent instanceof SpliceablePayloadReader) {
+            parentName = "-" + ((SpliceablePayloadReader) parent).getName();
+        } else {
+            parentName = "";
+        }
+
         this.factory = factory;
         this.queue = new ArrayList<Spliceable>();
     }
@@ -210,7 +218,7 @@ public class SpliceableInputChannel
             LOG.error("Thread is already running!");
         } else {
             thread = new Thread(this);
-            thread.setName("QueueThread");
+            thread.setName("QueueThread" + parentName + "#" + id);
             thread.start();
         }
 

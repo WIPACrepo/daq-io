@@ -99,7 +99,7 @@ public class SimpleOutputEngine
         try {
             selector = Selector.open();
         } catch (IOException ioe) {
-            throw new Error("Cannot create Selector");
+            throw new Error("Cannot create Selector", ioe);
         }
     }
 
@@ -123,7 +123,7 @@ public class SimpleOutputEngine
 
         int chanNum = nextChannelNum++;
 
-        String name = toString() + ":" + chanNum;
+        String name = engineFunction + ":" + chanNum;
 
         SimpleOutputChannel outChan;
         if (useTrackEngineStop) {
@@ -183,6 +183,15 @@ public class SimpleOutputEngine
                 channelList.clear();
                 handleEngineStop();
             }
+        }
+
+        if (selector != null) {
+            try {
+                selector.close();
+            } catch (IOException ioe) {
+                LOG.error("Cannot close selector", ioe);
+            }
+            selector = null;
         }
 
         state = State.DESTROYED;
@@ -695,9 +704,7 @@ public class SimpleOutputEngine
         public void close()
             throws IOException
         {
-            WritableByteChannel tmpChan = channel;
-            channel = null;
-            tmpChan.close();
+            channel.close();
         }
 
         /**
@@ -803,7 +810,7 @@ public class SimpleOutputEngine
         void register(Selector sel)
             throws IOException
         {
-            if (channel != null) {
+            if (channel.isOpen()) {
                 ((SelectableChannel) channel).register(sel,
                                                        SelectionKey.OP_WRITE,
                                                        this);
@@ -840,7 +847,7 @@ public class SimpleOutputEngine
         void startProcessing()
         {
             // make sure the channel is non-blocking
-            if (channel instanceof SelectableChannel) {
+            if (channel.isOpen() && channel instanceof SelectableChannel) {
                 SelectableChannel selChan = (SelectableChannel) channel;
                 if (selChan.isBlocking()) {
                     try {
@@ -870,7 +877,7 @@ public class SimpleOutputEngine
         void transmit()
         {
             int bytesLeft = XMIT_GROUP_MAX_BYTES;
-            while (true) {
+            while (channel.isOpen()) {
                 ByteBuffer buf;
                 synchronized (outputQueue) {
                     buf = outputQueue.remove(0);
@@ -885,7 +892,7 @@ public class SimpleOutputEngine
                         bytesLeft = 0;
                         break;
                     }
-                } else if (channel == null) {
+                } else if (!channel.isOpen()) {
                     LOG.error("Channel " + name + " saw " + payLen +
                               "-byte payload after close");
                     break;
@@ -895,6 +902,14 @@ public class SimpleOutputEngine
 
                     int numWritten = 0;
                     while (numWritten < payLen) {
+                        if (!channel.isOpen()) {
+                            LOG.error("Channel " + name +
+                                      " closed while trying to write " +
+                                      (payLen - numWritten) + " of " +
+                                      payLen + " bytes");
+                            break;
+                        }
+
                         try {
                             int bytes = channel.write(buf);
                             brokenPipe = false;

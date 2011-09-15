@@ -1,7 +1,7 @@
 /*
  * interface: Dispatcher
  *
- * Version $Id: Dispatcher.java 13267 2011-08-12 21:01:03Z seshadrivija $
+ * Version $Id: Dispatcher.java 13361 2011-09-15 22:29:54Z dglo $
  *
  * Date: April 1 2004
  *
@@ -19,10 +19,15 @@ import java.nio.ByteBuffer;
  * This interface specifies how events are dispatched from the DAQ system.
  *
  * @author patton
- * @version $Id: Dispatcher.java 13267 2011-08-12 21:01:03Z seshadrivija $
+ * @version $Id: Dispatcher.java 13361 2011-09-15 22:29:54Z dglo $
  */
 public interface Dispatcher
 {
+    String START_PREFIX = "RunStart:";
+    String STOP_PREFIX = "RunStop:";
+    String SUBRUN_START_PREFIX = "SubrunStart:";
+    String CLOSE_PREFIX = "Close:";
+
     /**
      * Close current file (if open)
      *
@@ -115,12 +120,19 @@ public interface Dispatcher
     long getTotalDispatchedEvents();
 
 
-    /** 
+    /**
      * Get the number of bytes written to disk
      *
      * @return a long value ( number of bytes written to disk )
-     */ 
+     */
     long getNumBytesWritten();
+
+    /**
+     * Does this dispatcher have one or more active STARTs?
+     *
+     * @return <tt>true</tt> if dispatcher has been started and not stopped
+     */
+    boolean isStarted();
 
     /**
      * Set the destination directory where the dispatch files will be saved.

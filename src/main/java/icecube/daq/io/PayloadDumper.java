@@ -22,7 +22,7 @@ public class PayloadDumper
 {
     private static Log LOG = LogFactory.getLog(PayloadDumper.class);
 
-    public PayloadDumper
+    public PayloadDumper()
     {
     }
 
