@@ -36,7 +36,7 @@ public class FileDispatcher implements Dispatcher {
     private long numBytesWritten;
     private File tempFile;
     private Object fileLock = new Object();
-    private String dispatchDestStorage;
+    private File dispatchDir;
     private int fileIndex;
     private long startingEventNum;
     private long diskSize;          // measured in MB
@@ -77,7 +77,7 @@ public class FileDispatcher implements Dispatcher {
 
         this.bufferCache = bufferCache;
 
-	this.numBytesWritten=0;
+        this.numBytesWritten=0;
     }
 
     /**
@@ -113,10 +113,12 @@ public class FileDispatcher implements Dispatcher {
      * @param message a String explaining the reason for the boundary.
      * @throws DispatchException is there is a problem in the Dispatch system.
      */
-    public void dataBoundary(String message) throws DispatchException {
+    public void dataBoundary(String message) throws DispatchException
+    {
 
         if (message == null) {
-            throw new DispatchException("dataBoundary() called with null argument!");
+            throw new DispatchException("dataBoundary() called with null" +
+                                        " argument!");
         }
 
         if (message.startsWith(START_PREFIX)) {
@@ -127,7 +129,8 @@ public class FileDispatcher implements Dispatcher {
             fileIndex = 0;
         } else if (message.startsWith(STOP_PREFIX)) {
             if (numStarts == 0) {
-                throw new DispatchException("FileDispatcher stopped while not running!");
+                throw new DispatchException("FileDispatcher stopped while" +
+                                            " not running!");
             } else {
                 numStarts--;
                 if (numStarts < 0) {
@@ -165,7 +168,7 @@ public class FileDispatcher implements Dispatcher {
     public void dispatchEvent(ByteBuffer buffer) throws DispatchException {
         synchronized (fileLock) {
             if (tempFile == null) {
-                tempFile = getTempFile(dispatchDestStorage, baseFileName);
+                tempFile = getTempFile(dispatchDir, baseFileName);
                 currFileSize = tempFile.length();
             }
 
@@ -200,7 +203,7 @@ public class FileDispatcher implements Dispatcher {
 
         ++totalDispatchedEvents;
         currFileSize += buffer.limit();
-	numBytesWritten += buffer.limit();
+        numBytesWritten += buffer.limit();
 
         if (currFileSize > maxFileSize) {
             moveToDest();
@@ -322,11 +325,23 @@ public class FileDispatcher implements Dispatcher {
      */
     public String getDispatchDestinationDirectory()
     {
-        return dispatchDestStorage;
+        return dispatchDir.getPath();
     }
 
-    public static File getTempFile(String destDir, String baseFileName)
+    public static File getTempFile(String destDirName, String baseFileName)
+        throws DispatchException
     {
+        return getTempFile(new File(destDirName), baseFileName);
+    }
+
+    public static File getTempFile(File destDir, String baseFileName)
+        throws DispatchException
+    {
+        if (!destDir.exists()) {
+            throw new DispatchException("Destination directory \"" + destDir +
+                                        "\" does not exist");
+        }
+
         int extraNum = 0;
         String extraStr = "";
 
@@ -464,13 +479,13 @@ public class FileDispatcher implements Dispatcher {
             dirName = ".";
         }
 
-        dispatchDestStorage = dirName;
+        dispatchDir = new File(dirName);
         if (LOG.isInfoEnabled()) {
-            LOG.info("dispatchDestStorage is set to: " + dispatchDestStorage);
+            LOG.info("dispatchDestStorage is set to: " + dispatchDir);
         }
 
         if (tempFile != null) {
-            LOG.error("dispatchDestStorage " + dispatchDestStorage +
+            LOG.error("dispatchDestStorage " + dispatchDir +
                       " set after temp file " + tempFile + " was created");
         }
     }
@@ -512,7 +527,7 @@ public class FileDispatcher implements Dispatcher {
     private File getDestFile(){
         String fileName = baseFileName + "_" + runNumber + "_" + fileIndex +
             "_" + startingEventNum + "_" + + totalDispatchedEvents;
-        File file = new File(dispatchDestStorage, fileName + ".dat");
+        File file = new File(dispatchDir, fileName + ".dat");
 
         ++fileIndex;
 
@@ -545,7 +560,7 @@ public class FileDispatcher implements Dispatcher {
     }
 
     private void checkDisk(){
-        DiskUsage usage = DiskUsage.getUsage(dispatchDestStorage);
+        DiskUsage usage = DiskUsage.getUsage(dispatchDir.getPath());
         if (null == usage ||
             null == usage.getVolume()) {
             diskSize = -1;
