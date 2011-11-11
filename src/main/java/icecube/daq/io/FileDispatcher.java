@@ -29,6 +29,7 @@ public class FileDispatcher implements Dispatcher {
     private int numStarts;
     private WritableByteChannel outChannel;
     private IByteBufferCache bufferCache;
+    private long numDispatchedEvents;
     private long totalDispatchedEvents;
     private int runNumber;
     private long maxFileSize = 10000000;
@@ -115,18 +116,23 @@ public class FileDispatcher implements Dispatcher {
      */
     public void dataBoundary(String message) throws DispatchException
     {
-
         if (message == null) {
             throw new DispatchException("dataBoundary() called with null" +
                                         " argument!");
         }
 
         if (message.startsWith(START_PREFIX)) {
-            totalDispatchedEvents = 0;
-            startingEventNum = 0;
+            String runStr = message.substring(START_PREFIX.length());
+            try {
+                runNumber = Integer.parseInt(runStr);
+            } catch (java.lang.NumberFormatException nfe) {
+                throw new DispatchException("Cannot start run;" +
+                                            " bad run number \"" + runStr +
+                                            "\"");
+            }
+
+            startDispatch();
             ++numStarts;
-            runNumber = Integer.parseInt(message.substring(START_PREFIX.length()));
-            fileIndex = 0;
         } else if (message.startsWith(STOP_PREFIX)) {
             if (numStarts == 0) {
                 throw new DispatchException("FileDispatcher stopped while" +
@@ -139,15 +145,28 @@ public class FileDispatcher implements Dispatcher {
                     numStarts = 0;
                 }
 
-                if (outChannel != null && outChannel.isOpen()) {
-                    moveToDest();
-                }
+                moveToDest();
             }
         } else if (message.startsWith(SUBRUN_START_PREFIX) ||
                    message.startsWith(CLOSE_PREFIX))
         {
-            if (outChannel != null && outChannel.isOpen()) {
+            moveToDest();
+        } else if (message.startsWith(SWITCH_PREFIX)) {
+            String runStr = message.substring(SWITCH_PREFIX.length());
+
+            int newNumber;
+            try {
+                newNumber = Integer.parseInt(runStr);
+            } catch (java.lang.NumberFormatException nfe) {
+                throw new DispatchException("Cannot switch run;" +
+                                            " bad run number \"" + runStr +
+                                            "\"");
+            }
+
+            synchronized (fileLock) {
                 moveToDest();
+                runNumber = newNumber;
+                startDispatch();
             }
         } else {
             throw new DispatchException("Unknown dispatcher message: " +
@@ -201,6 +220,7 @@ public class FileDispatcher implements Dispatcher {
             }
         }
 
+        ++numDispatchedEvents;
         ++totalDispatchedEvents;
         currFileSize += buffer.limit();
         numBytesWritten += buffer.limit();
@@ -372,6 +392,14 @@ public class FileDispatcher implements Dispatcher {
     }
 
     /**
+     * Get the  number of events dispatched during this run
+     * @return a long value
+     */
+    public long getNumDispatchedEvents() {
+        return numDispatchedEvents;
+    }
+
+    /**
      * Get the total of the dispatched events
      *
      * @return a long value
@@ -526,7 +554,7 @@ public class FileDispatcher implements Dispatcher {
 
     private File getDestFile(){
         String fileName = baseFileName + "_" + runNumber + "_" + fileIndex +
-            "_" + startingEventNum + "_" + + totalDispatchedEvents;
+            "_" + startingEventNum + "_" + + numDispatchedEvents;
         File file = new File(dispatchDir, fileName + ".dat");
 
         ++fileIndex;
@@ -535,6 +563,10 @@ public class FileDispatcher implements Dispatcher {
     }
 
     private void moveToDest() throws DispatchException {
+        if (outChannel == null || !outChannel.isOpen()) {
+            return;
+        }
+
         synchronized (fileLock) {
             try {
                 outChannel.close();
@@ -553,13 +585,18 @@ public class FileDispatcher implements Dispatcher {
                 throw new DispatchException(errorMsg);
             }
 
-            startingEventNum = totalDispatchedEvents + 1;
+            startingEventNum = numDispatchedEvents + 1;
         }
 
         checkDisk();
     }
 
     private void checkDisk(){
+        if (!dispatchDir.exists()) {
+            // can't check disk if dispatch directory doesn't exist
+            return;
+        }
+
         DiskUsage usage = DiskUsage.getUsage(dispatchDir.getPath());
         if (null == usage ||
             null == usage.getVolume()) {
@@ -569,6 +606,13 @@ public class FileDispatcher implements Dispatcher {
         }
         diskSize = usage.getBlocks() / KB_IN_MB;
         diskAvailable = usage.getAvailable() / KB_IN_MB;
+    }
+
+    private void startDispatch()
+    {
+        numDispatchedEvents = 0;
+        startingEventNum = 0;
+        fileIndex = 0;
     }
 
     /**
@@ -595,6 +639,7 @@ public class FileDispatcher implements Dispatcher {
     {
         return "FileDispatcher[" + baseFileName + " starts " + numStarts +
             " run " + runNumber + " idx " + fileIndex +
+            " numDisp " + numDispatchedEvents +
             " totDisp " + totalDispatchedEvents + "]";
     }
 }

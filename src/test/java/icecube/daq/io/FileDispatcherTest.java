@@ -235,6 +235,8 @@ class RaceRunner
 public class FileDispatcherTest
     extends LoggingCase
 {
+    private File testDirectory;
+
     /**
      * Constructs an instance of this test.
      *
@@ -292,6 +294,28 @@ public class FileDispatcherTest
         }
 
         return true;
+    }
+
+    public static File createTempDirectory()
+        throws IOException
+    {
+        final File temp;
+
+        temp = File.createTempFile("fdtest", "dir");
+
+        if (!(temp.delete()))
+        {
+            throw new IOException("Could not delete temp file: " +
+                                  temp.getAbsolutePath());
+        }
+
+        if (!(temp.mkdir()))
+        {
+            throw new IOException("Could not create temp directory: " +
+                                  temp.getAbsolutePath());
+        }
+
+        return temp;
     }
 
     private static boolean deleteDirectory(File dir)
@@ -353,6 +377,12 @@ public class FileDispatcherTest
         File tempFile = FileDispatcher.getTempFile(".", "physics");
         if (tempFile.exists()) {
             tempFile.delete();
+        }
+
+        if (testDirectory != null) {
+            if (!deleteDirectory(testDirectory)) {
+                System.err.println("Couldn't tear down test directory");
+            }
         }
 
         super.tearDown();
@@ -468,10 +498,18 @@ public class FileDispatcherTest
     public void testDispatchEvent()
         throws DispatchException
     {
+        try {
+            testDirectory = createTempDirectory();
+        } catch (IOException ioe) {
+            fail("Cannot create temporary directory");
+        }
+
         IByteBufferCache bufCache = new MockBufferCache("DispEvt");
 
-        FileDispatcher fd = new FileDispatcher("physics", bufCache);
-        handleLogMessages();
+        FileDispatcher fd = new FileDispatcher(testDirectory.getAbsolutePath(),
+                                               "physics", bufCache);
+        assertEquals("Bad number of log messages",
+                     0, getNumberOfMessages());
 
         assertNotNull("ByteBuffer was null", fd.getByteBufferCache());
 
@@ -501,42 +539,25 @@ public class FileDispatcherTest
     public void testReadOnlyDir()
         throws DispatchException
     {
-        final String destDirName = "readOnlyDir";
-
-        File destDir = new File(destDirName);
-
-        final boolean preexist = destDir.isDirectory();
-
-        if (preexist) {
-            if (!destDir.delete()) {
-                fail("Read-only subdirectory " + destDir + " exists");
-            }
-        }
-
-        destDir.mkdir();
-        destDir.setReadOnly();
-
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
-
         try {
-            FileDispatcher fd =
-                new FileDispatcher(destDirName, "physics");
-            assertEquals("Unexpected destination directory",
-                         ".", fd.getDispatchDestinationDirectory());
-        } finally {
-            deleteDirectory(destDir);
+            testDirectory = createTempDirectory();
+        } catch (IOException ioe) {
+            fail("Cannot create temporary directory");
         }
+        testDirectory.setReadOnly();
 
+        FileDispatcher fd =
+            new FileDispatcher(testDirectory.getAbsolutePath(), "physics");
+        assertEquals("Unexpected destination directory",
+                     ".", fd.getDispatchDestinationDirectory());
         assertEquals("Bad number of log messages",
                      2, getNumberOfMessages());
         assertEquals("Unexpected log message 0",
-                     "Cannot write to " + destDirName + "!", getMessage(0));
-        assertEquals("Unexpected log message 1",
-                     destDirName + " does not exist!  Using current directory.",
+                     "Cannot write to " + testDirectory + "!", getMessage(0));
+        assertEquals("Unexpected log message 1", testDirectory +
+                     " does not exist!  Using current directory.",
                      getMessage(1));
         clearMessages();
-
     }
 
     public void testUnimplemented()
@@ -612,8 +633,18 @@ public class FileDispatcherTest
     public void testDataBoundary()
         throws DispatchException
     {
-        FileDispatcher fd = new FileDispatcher("physics");
-        handleLogMessages();
+        try {
+            testDirectory = createTempDirectory();
+        } catch (IOException ioe) {
+            fail("Cannot create temporary directory");
+        }
+
+        IByteBufferCache bufCache = new MockBufferCache("DispEvt");
+
+        FileDispatcher fd = new FileDispatcher(testDirectory.getAbsolutePath(),
+                                               "physics", bufCache);
+        assertEquals("Bad number of log messages",
+                     0, getNumberOfMessages());
 
         try {
             fd.dataBoundary(null);
@@ -638,11 +669,31 @@ public class FileDispatcherTest
 
         assertEquals("Bad initial run number", 0, fd.getRunNumber());
 
+        try {
+            fd.dataBoundary(Dispatcher.START_PREFIX + "ABC");
+        } catch (DispatchException de) {
+            // expect this to fail
+        }
+
         fd.dataBoundary(Dispatcher.START_PREFIX + "123");
         assertEquals("Incorrect run number", 123, fd.getRunNumber());
 
         fd.dataBoundary(Dispatcher.START_PREFIX + "456");
         assertEquals("Incorrect run number", 456, fd.getRunNumber());
+
+        fd.dispatchEvent(new AdjustablePayload(8));
+
+        fd.dataBoundary(Dispatcher.CLOSE_PREFIX);
+
+        fd.dispatchEvent(new AdjustablePayload(8));
+
+        fd.dataBoundary(Dispatcher.SUBRUN_START_PREFIX);
+
+        fd.dispatchEvent(new AdjustablePayload(8));
+
+        fd.dataBoundary(Dispatcher.SWITCH_PREFIX + "789");
+
+        fd.dispatchEvent(new AdjustablePayload(8));
 
         fd.dataBoundary(Dispatcher.STOP_PREFIX);
         fd.dataBoundary(Dispatcher.STOP_PREFIX);
@@ -658,94 +709,90 @@ public class FileDispatcherTest
     public void testFull()
         throws DispatchException
     {
-        final String destDirName = "renameDir";
-
-        File destDir = new File(destDirName);
-
-        final boolean preexist = destDir.isDirectory();
-
-        if (!preexist) {
-            destDir.mkdir();
+        try {
+            testDirectory = createTempDirectory();
+        } catch (IOException ioe) {
+            fail("Cannot create temporary directory");
         }
 
-        try {
-            IByteBufferCache bufCache = new MockBufferCache("Full");
+        IByteBufferCache bufCache = new MockBufferCache("Full");
 
-            FileDispatcher fd =
-                new FileDispatcher(destDirName, "physics", bufCache);
-            assertNotNull("ByteBuffer was null", fd.getByteBufferCache());
+        FileDispatcher fd = new FileDispatcher(testDirectory.getAbsolutePath(),
+                                               "physics", bufCache);
+        assertNotNull("ByteBuffer was null", fd.getByteBufferCache());
 
-            final int maxFileSize = 100;
-            fd.setMaxFileSize(maxFileSize);
+        final int maxFileSize = 100;
+        fd.setMaxFileSize(maxFileSize);
 
-            File tempFile = fd.getTempFile(destDirName, "physics");
+        File tempFile = fd.getTempFile(testDirectory, "physics");
 
-            for (int i = 10; i < 15; i++) {
-                fd.dataBoundary(Dispatcher.START_PREFIX + i);
-                assertEquals("Incorrect run number", i, fd.getRunNumber());
+        for (int i = 10; i < 15; i++) {
+            fd.dataBoundary(Dispatcher.START_PREFIX + i);
+            assertEquals("Incorrect run number", i, fd.getRunNumber());
 
-                IWriteablePayload payload = new AdjustablePayload(i);
+            IWriteablePayload payload = new AdjustablePayload(i);
 
-                assertEquals("Total dispatched events is not zero",
-                             0, fd.getTotalDispatchedEvents());
+            assertEquals("Number of dispatched events is not zero",
+                         0, fd.getNumDispatchedEvents());
+            assertEquals("Unexpected total number of dispatched events",
+                         (i - 10) * 20, fd.getTotalDispatchedEvents());
 
-                assertFalse("Temp file should not exist", tempFile.exists());
+            assertFalse("Temp file should not exist", tempFile.exists());
 
-                int dataFiles = 0;
-                int fileLen = 0;
-                for (int j = 0; j < 20; j++) {
-                    fd.dispatchEvent(payload);
-                    fileLen += i;
+            int dataFiles = 0;
+            int fileLen = 0;
+            for (int j = 0; j < 20; j++) {
+                fd.dispatchEvent(payload);
+                fileLen += i;
 
-                    assertEquals("Total dispatched events was not incremented",
-                                 j + 1, fd.getTotalDispatchedEvents());
+                assertEquals("Number of dispatched events was not incremented",
+                             j + 1, fd.getNumDispatchedEvents());
+                assertEquals("Number of dispatched events was not incremented",
+                             (i - 10) * 20 + j + 1,
+                             fd.getTotalDispatchedEvents());
 
-                    if (fileLen <= maxFileSize) {
-                        assertTrue("Temp file should exist",
-                                   tempFile.exists());
-                    } else {
-                        dataFiles++;
-                        fileLen = 0;
-                        assertFalse("Temp file should not exist",
-                                    tempFile.exists());
-                    }
+                if (fileLen <= maxFileSize) {
+                    assertTrue("Temp file should exist",
+                               tempFile.exists());
+                } else {
+                    dataFiles++;
+                    fileLen = 0;
+                    assertFalse("Temp file should not exist",
+                                tempFile.exists());
                 }
-
-                final boolean expTempFile = (fileLen > 0);
-
-                checkDataDir(destDir, dataFiles, tempFile, expTempFile);
-
-                fd.dataBoundary(Dispatcher.STOP_PREFIX);
-
-                if (expTempFile) {
-                    checkDataDir(destDir, dataFiles + 1, tempFile, false);
-                }
-
-                clearDirectory(destDir);
             }
-        } finally {
-            if (!preexist) {
-                deleteDirectory(destDir);
+
+            final boolean expTempFile = (fileLen > 0);
+
+            checkDataDir(testDirectory, dataFiles, tempFile, expTempFile);
+
+            fd.dataBoundary(Dispatcher.STOP_PREFIX);
+
+            if (expTempFile) {
+                checkDataDir(testDirectory, dataFiles + 1, tempFile, false);
             }
+
+            clearDirectory(testDirectory);
         }
     }
 
     public void testSpecialDisp()
         throws DispatchException
     {
-        File destDir = new File("raceDir");
-        if (destDir.isDirectory()) {
-            deleteDirectory(destDir);
+        try {
+            testDirectory = createTempDirectory();
+        } catch (IOException ioe) {
+            fail("Cannot create temporary directory");
         }
-        destDir.mkdir();
 
         IByteBufferCache bufCache = new MockBufferCache("Full");
 
         final int paySize = 4;
         final int maxSize = (paySize * 2) - 1;
 
-        FileDispatcher fd = new SpecialDispatcher(destDir.getAbsolutePath(),
-                                                  "physics", bufCache);
+        FileDispatcher fd =
+            new SpecialDispatcher(testDirectory.getAbsolutePath(), "physics",
+                                  bufCache);
         fd.setMaxFileSize(maxSize);
         fd.dataBoundary(Dispatcher.START_PREFIX + 1);
 
@@ -766,16 +813,6 @@ public class FileDispatcherTest
         }
 
         fd.dataBoundary(Dispatcher.STOP_PREFIX);
-
-        String[] children = destDir.list();
-        for (int i = 0; i < children.length; i++) {
-            File kidFile = new File(destDir, children[i]);
-            boolean success = deleteDirectory(kidFile);
-            if (!success) {
-                throw new Error("Cannot delete " + kidFile);
-            }
-        }
-        destDir.delete();
     }
 
     /**
