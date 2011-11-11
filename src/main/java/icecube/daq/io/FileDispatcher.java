@@ -3,7 +3,6 @@ package icecube.daq.io;
 import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IWriteablePayload;
-import icecube.icebucket.util.DiskUsage;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -23,7 +22,7 @@ public class FileDispatcher implements Dispatcher {
 
     private static final Log LOG = LogFactory.getLog(FileDispatcher.class);
 
-    private static final long KB_IN_MB = 1024;
+    private static final long BYTES_IN_MB = 1024 * 1024;
 
     private String baseFileName;
     private int numStarts;
@@ -594,18 +593,13 @@ public class FileDispatcher implements Dispatcher {
     private void checkDisk(){
         if (!dispatchDir.exists()) {
             // can't check disk if dispatch directory doesn't exist
-            return;
-        }
-
-        DiskUsage usage = DiskUsage.getUsage(dispatchDir.getPath());
-        if (null == usage ||
-            null == usage.getVolume()) {
             diskSize = -1;
             diskAvailable = -1;
             return;
         }
-        diskSize = usage.getBlocks() / KB_IN_MB;
-        diskAvailable = usage.getAvailable() / KB_IN_MB;
+
+        diskSize = dispatchDir.getTotalSpace() / BYTES_IN_MB;
+        diskAvailable = dispatchDir.getUsableSpace() / BYTES_IN_MB;
     }
 
     private void startDispatch()
