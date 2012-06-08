@@ -678,6 +678,9 @@ public class SimpleOutputEngine
         /** <tt>true</tt> if the remote end of this channel has been closed */
         private boolean brokenPipe;
 
+        /** Count of post-stop buffers queued */
+        private int numPostStopData;
+
         /**
          * Create a simple output channel.
          *
@@ -784,10 +787,18 @@ public class SimpleOutputEngine
          */
         public void receiveByteBuffer(ByteBuffer buf)
         {
+            final int warningFrequency = 10000;
             if (stopped) {
-                LOG.error("Queuing buffer after channel has been stopped");
+                if (++numPostStopData % warningFrequency == 1) {
+                    LOG.error("Queuing buffer after channel " + name +
+                              " has been stopped (num=" + numPostStopData +
+                              ")");
+                }
             } else if (parent.isStopped()) {
-                LOG.error("Queuing buffer after engine has stopped");
+                if (++numPostStopData % warningFrequency == 1) {
+                    LOG.error("Queuing buffer after engine " + parent +
+                              " has stopped (num=" + numPostStopData + ")");
+                }
             }
 
             synchronized (outputQueue) {
