@@ -1,6 +1,5 @@
 package icecube.daq.io;
 
-import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IWriteablePayload;
 

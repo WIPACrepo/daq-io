@@ -6,7 +6,6 @@ import icecube.daq.payload.IEventHitRecord;
 import icecube.daq.payload.IEventPayload;
 import icecube.daq.payload.IEventTriggerRecord;
 import icecube.daq.payload.ILoadablePayload;
-import icecube.daq.payload.PayloadException;
 import icecube.daq.payload.PayloadRegistry;
 import icecube.daq.payload.SourceIdRegistry;
 
