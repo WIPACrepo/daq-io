@@ -22,7 +22,7 @@ public abstract class InputChannel
     public static final long PERCENT_RESTART_ALLOCATION = 50;
 
     /** logging object */
-    private static final Log LOG = LogFactory.getLog(PayloadReader.class);
+    private static final Log LOG = LogFactory.getLog(InputChannel.class);
 
     /** size of initial integer payload length */
     private static final int INT_SIZE = 4;
