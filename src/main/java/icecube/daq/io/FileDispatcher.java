@@ -482,7 +482,9 @@ public class FileDispatcher implements Dispatcher {
                         // ignore close errors
                     }
 
-                    testFile.delete();
+                    if(!testFile.delete()) {
+			LOG.info("deleting: "+testFile.getPath()+" failed");
+		    }
                     break;
                 }
             }
