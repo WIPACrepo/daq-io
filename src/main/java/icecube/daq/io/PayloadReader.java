@@ -407,6 +407,13 @@ if(DEBUG_NEW)System.err.println("ANend");
         return state == RunState.ERROR;
     }
 
+    public boolean isPaused()
+    {
+        synchronized (pauseThread) {
+            return pauseThread.isSet();
+        }
+    }
+
     public boolean isRunning()
     {
         return state == RunState.RUNNING;
@@ -482,6 +489,35 @@ if(DEBUG_NEW)System.err.println("ANend");
     {
         if (compObserver != null) {
             compObserver.update(NormalState.STOPPED, DAQCmdInterface.SINK);
+        }
+    }
+
+
+    public void pause()
+    {
+        synchronized (pauseThread) {
+            if (pauseThread.isSet()) {
+                LOG.error("Thread is already paused!");
+                return;
+            }
+
+            // indicate to worker thread that it should pause
+            pauseThread.set();
+
+            // make sure worker thread isn't stuck someplace
+            synchronized (stateLock) {
+                stateLock.notify();
+                if (selector != null) {
+                    selector.wakeup();
+                }
+            }
+
+            // wait for thread to notify us that it has paused
+            try {
+                pauseThread.wait();
+            } catch (Exception ex) {
+                LOG.error("Couldn't wait for pauseThread", ex);
+            }
         }
     }
 
@@ -779,33 +815,8 @@ if(DEBUG_SS)System.err.println("SStop");
         //     called while a select is in progress, so we pause the thread,
         //     register the server socket, and then resume the thread
         //
-        synchronized (pauseThread) {
-if(DEBUG_SS)System.err.println("SSinBlk");
-            if (pauseThread.isSet()) {
-                LOG.error("Thread is already paused -- this could be bad!");
-            }
-
-if(DEBUG_SS)System.err.println("SSsetFlag");
-            // indicate to worker thread that it should pause
-            pauseThread.set();
-
-            // make sure worker thread isn't stuck someplace
-if(DEBUG_SS)System.err.println("SSnotify");
-            synchronized (stateLock) {
-                stateLock.notify();
-                if (selector != null) {
-                    selector.wakeup();
-                }
-            }
-
-            // wait for thread to notify us that it has paused
-            try {
-if(DEBUG_SS)System.err.println("SSwait");
-                pauseThread.wait();
-            } catch (Exception ex) {
-                LOG.error("Couldn't wait for pauseThread", ex);
-            }
-        }
+if(DEBUG_SS)System.err.println("SSpause");
+        pause();
 if(DEBUG_SS)System.err.println("SSwork");
 
         serverChannel = ServerSocketChannel.open();
@@ -817,23 +828,25 @@ if(DEBUG_SS)System.err.println("SSwork");
         serverChannel.register(selector, SelectionKey.OP_ACCEPT);
 
 if(DEBUG_SS)System.err.println("SSready");
+        unpause();
+if(DEBUG_SS)System.err.println("SSdone");
+
+        this.serverCache = serverCache;
+    }
+
+    public void unpause()
+    {
         synchronized (pauseThread) {
             // turn off pause flag
             if (!pauseThread.isSet()) {
-if(DEBUG_SS)System.err.println("SSerr");
                 LOG.error("Expected thread to be paused!");
             } else {
-if(DEBUG_SS)System.err.println("SSclr");
                 pauseThread.clear();
             }
 
             // let the thread know that we're done
-if(DEBUG_SS)System.err.println("SSrenotify");
             pauseThread.notify();
         }
-if(DEBUG_SS)System.err.println("SSdone");
-
-        this.serverCache = serverCache;
     }
 
     public String toString()
