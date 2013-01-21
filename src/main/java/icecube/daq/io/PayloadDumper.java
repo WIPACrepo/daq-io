@@ -27,8 +27,7 @@ public class PayloadDumper
         try {
             payload.loadPayload();
         } catch (Exception ex) {
-            LOG.error("Couldn't load payload");
-            ex.printStackTrace();
+            LOG.error("Couldn't load payload", ex);
             return;
         }
 
@@ -103,8 +102,7 @@ public class PayloadDumper
         try {
             payload.loadPayload();
         } catch (Exception ex) {
-            LOG.error("Couldn't load payload");
-            ex.printStackTrace();
+            LOG.error("Couldn't load payload", ex);
             return;
         }
 
