@@ -222,6 +222,11 @@ public class PayloadByteReader
                                        nextNum + " in " + file);
         }
 
+        // found stop message
+        if (len == 4) {
+            return null;
+        }
+
         // Sender expects a separate buffer for each payload
         ByteBuffer buf = ByteBuffer.allocate(len);
         buf.limit(len);
