@@ -110,6 +110,9 @@ public abstract class PayloadReader
     // channel on which server listens for connections
     private ServerSocketChannel serverChannel;
 
+    // total records received by channels which have been removed
+    private int totalReceivedFromRemovedChannels;
+
     public PayloadReader(String name)
     {
         this(name, DEFAULT_BUFFER_SIZE);
@@ -380,7 +383,7 @@ if(DEBUG_NEW)System.err.println("ANend");
     }
 
     public synchronized long getTotalRecordsReceived() {
-        long total = 0;
+        long total = totalReceivedFromRemovedChannels;
         synchronized (chanList) {
             for (InputChannel cd : chanList) {
                 total += cd.getRecordsReceived();
@@ -668,6 +671,8 @@ if(DEBUG_RUN)System.err.println("RchanRun "+chanData);
                             running = true;
                         } else {
 if(DEBUG_RUN)System.err.println("Rkill "+chanData);
+                            totalReceivedFromRemovedChannels +=
+                                chanData.getRecordsReceived();
                             try {
                                 chanData.close();
                             } catch (IOException ioe) {
