@@ -434,6 +434,11 @@ public class SimpleOutputEngine
     private void registerChannel(SimpleOutputChannel outChan)
     {
         synchronized (regList) {
+            if (selector == null) {
+                throw new Error("Engine has been closed; cannot register " +
+                                outChan);
+            }
+
             regList.add(outChan);
             wakeup();
         }
@@ -642,7 +647,9 @@ public class SimpleOutputEngine
      */
     private void wakeup()
     {
-        selector.wakeup();
+        if (selector != null) {
+            selector.wakeup();
+        }
     }
 
     /**
