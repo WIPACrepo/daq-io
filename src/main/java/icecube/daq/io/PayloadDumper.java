@@ -6,6 +6,7 @@ import icecube.daq.payload.IEventHitRecord;
 import icecube.daq.payload.IEventPayload;
 import icecube.daq.payload.IEventTriggerRecord;
 import icecube.daq.payload.ILoadablePayload;
+import icecube.daq.payload.ITriggerRequestPayload;
 import icecube.daq.payload.PayloadRegistry;
 import icecube.daq.payload.SourceIdRegistry;
 
@@ -34,6 +35,9 @@ public class PayloadDumper
         switch (payload.getPayloadType()) {
         case PayloadRegistry.PAYLOAD_ID_EVENT_V5:
             dumpEvent((IEventPayload) payload, false);
+            break;
+        case PayloadRegistry.PAYLOAD_ID_TRIGGER_REQUEST:
+            dumpTriggerRequest((ITriggerRequestPayload) payload, "   ");
             break;
         default:
             System.out.println("Not handling payload type " +
@@ -153,6 +157,29 @@ public class PayloadDumper
             }
 
             System.out.println("  - hit " + hstr);
+        }
+    }
+
+    public static void dumpTriggerRequest(ITriggerRequestPayload trigReq,
+                                          String indent)
+    {
+        System.out.println(indent + trigReq);
+
+        List compList;
+        try {
+            compList = trigReq.getPayloads();
+        } catch (Exception ex) {
+            LOG.error("Couldn't get composite payloads", ex);
+            return;
+        }
+
+        for (Object obj : compList) {
+            if (obj instanceof ITriggerRequestPayload) {
+                dumpTriggerRequest((ITriggerRequestPayload) obj,
+                                   indent + "   ");
+            } else {
+                System.out.println(indent + "   " + obj);
+            }
         }
     }
 
