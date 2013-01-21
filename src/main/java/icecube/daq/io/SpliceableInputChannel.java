@@ -89,6 +89,10 @@ public class SpliceableInputChannel
 
         thread = null;
 
+        synchronized (queue) {
+            queue.notifyAll();
+        }
+
         super.notifyOnStop();
     }
 
