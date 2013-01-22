@@ -855,7 +855,12 @@ public class SimpleOutputEngine
         public void sendLastAndStop()
         {
             if (!stopped) {
-                queueStopMessage();
+                if (selector == null) {
+                    LOG.error("Cannot queue stop message after engine has" +
+                              " been destroyed");
+                } else {
+                    queueStopMessage();
+                }
             }
         }
 
