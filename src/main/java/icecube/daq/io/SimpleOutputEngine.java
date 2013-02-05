@@ -196,6 +196,10 @@ public class SimpleOutputEngine
             }
         }
 
+        if (observer != null) {
+            observer.update(NormalState.DESTROYED, DAQCmdInterface.SOURCE);
+        }
+
         state = State.DESTROYED;
     }
 
@@ -447,12 +451,17 @@ public class SimpleOutputEngine
    }
 
     /**
-     * Observer to notify when this engine stops.
+     * Observer to notify when this engine changes state.
      *
      * @param compObserver observer
      */
     public void registerComponentObserver(DAQComponentObserver compObserver)
     {
+        if (compObserver != null && observer != null) {
+            LOG.error("Overriding observer " + observer + " with new " +
+                      compObserver);
+        }
+
         observer = compObserver;
     }
 
@@ -493,8 +502,16 @@ public class SimpleOutputEngine
 
         // stop immediately if there are no channels
         if (channelList.size() > 0) {
+            if (observer != null) {
+                observer.update(NormalState.RUNNING, DAQCmdInterface.SOURCE);
+            }
+
             state = State.RUNNING;
         } else {
+            if (observer != null) {
+                observer.update(NormalState.STOPPED, DAQCmdInterface.SOURCE);
+            }
+
             state = State.STOPPED;
         }
 
@@ -567,6 +584,10 @@ public class SimpleOutputEngine
         }
 
         if (state == State.RUNNING) {
+            if (observer != null) {
+                observer.update(NormalState.STOPPED, DAQCmdInterface.SOURCE);
+            }
+
             state = State.STOPPED;
         }
     }
@@ -582,6 +603,11 @@ public class SimpleOutputEngine
 
         synchronized (channelList) {
             if (channelList.size() == 0) {
+                if (observer != null) {
+                    observer.update(NormalState.STOPPED,
+                                    DAQCmdInterface.SOURCE);
+                }
+
                 state = State.STOPPED;
             } else {
                 for (SimpleOutputChannel outChan : channelList) {
