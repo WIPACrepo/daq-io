@@ -943,7 +943,9 @@ public class SimpleOutputEngine
                             }
                             numWritten += bytes;
                         } catch (IOException ioe) {
-                            if (ioe.getMessage().endsWith("Broken pipe")) {
+                            if (ioe.getMessage() != null &&
+                                ioe.getMessage().endsWith("Broken pipe"))
+                            {
                                 if (!brokenPipe) {
                                     brokenPipe = true;
                                     LOG.error("Channel " + name + " failed",
