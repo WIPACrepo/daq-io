@@ -903,6 +903,10 @@ public class SimpleOutputEngine
             while (channel.isOpen()) {
                 ByteBuffer buf;
                 synchronized (outputQueue) {
+                    if (outputQueue.size() == 0) {
+                        LOG.error("Cannot transmit; no records found");
+                        break;
+                    }
                     buf = outputQueue.remove(0);
                 }
 
