@@ -845,7 +845,7 @@ public class SimpleOutputEngine
         public void registerComponentObserver(DAQComponentObserver observer,
                                               String notificationID)
         {
-            // do nothing
+            throw new Error("Unimplemented");
         }
 
         /**
