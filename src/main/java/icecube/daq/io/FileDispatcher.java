@@ -330,7 +330,7 @@ public class FileDispatcher implements Dispatcher {
             dir = DISPATCH_DEST_STORAGE;
         } else {
             throw new IllegalArgumentException(baseFileName +
-                                               " is unvalid name!");
+                                               " is invalid name!");
         }
 
         return dir;
