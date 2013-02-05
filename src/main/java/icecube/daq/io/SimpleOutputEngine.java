@@ -1031,6 +1031,10 @@ public class SimpleOutputEngine
 
         int getRecordLength(ByteBuffer buf)
         {
+            if (buf.limit() < 4) {
+                return 0;
+            }
+
             return buf.getInt(0);
         }
 
