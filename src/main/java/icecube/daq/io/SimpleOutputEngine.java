@@ -186,12 +186,14 @@ public class SimpleOutputEngine
         }
 
         if (selector != null) {
+            Selector tmpSel = selector;
+            selector = null;
+
             try {
-                selector.close();
+                tmpSel.close();
             } catch (IOException ioe) {
                 LOG.error("Cannot close selector", ioe);
             }
-            selector = null;
         }
 
         state = State.DESTROYED;
