@@ -7,6 +7,7 @@ import icecube.daq.payload.impl.PayloadFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Iterator;
 
 import org.apache.commons.logging.Log;
@@ -153,7 +154,12 @@ public class PayloadFileReader
             throw new PayloadException("Reader for has been closed");
         }
 
-        return factory.getPayload(rdr.nextBuffer(), 0);
+        ByteBuffer buf = rdr.nextBuffer();
+        if (buf == null) {
+            return null;
+        }
+
+        return factory.getPayload(buf, 0);
     }
 
     /**
