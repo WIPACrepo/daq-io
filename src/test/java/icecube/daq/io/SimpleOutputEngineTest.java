@@ -257,12 +257,8 @@ public class SimpleOutputEngineTest
 
         final String notificationId = "OneByteTE";
 
-        MockObserver xmitObserver = new MockObserver("OneByteTEXmit");
-        xmitObserver.setSourceNotificationId(notificationId);
-
         QueuedOutputChannel transmitEng =
             engine.addDataChannel(testPipe.sink(), cacheMgr);
-        transmitEng.registerComponentObserver(xmitObserver, notificationId);
 
         assertEquals("Bad number of log messages", 0, getNumberOfMessages());
 
@@ -345,12 +341,8 @@ public class SimpleOutputEngineTest
 
         final String notificationId = "OutputLoop";
 
-        MockObserver xmitObserver = new MockObserver("OutputLoopXmit");
-        xmitObserver.setSourceNotificationId(notificationId);
-
         QueuedOutputChannel transmitEng =
             engine.addDataChannel(testPipe.sink(), cacheMgr);
-        transmitEng.registerComponentObserver(xmitObserver, notificationId);
 
         assertEquals("Bad number of log messages", 0, getNumberOfMessages());
 
@@ -440,11 +432,7 @@ public class SimpleOutputEngineTest
 
         final String notificationId = "ServerOutput";
 
-        MockObserver xmitObserver = new MockObserver("ServerOutputXmit");
-        xmitObserver.setSourceNotificationId(notificationId);
-
         QueuedOutputChannel transmitEng = engine.connect(cacheMgr, sock, 1);
-        transmitEng.registerComponentObserver(xmitObserver, notificationId);
 
         assertEquals("Bad number of log messages", 0, getNumberOfMessages());
 
@@ -549,11 +537,7 @@ public class SimpleOutputEngineTest
 
         final String notificationId = "ServerOutput";
 
-        MockObserver xmitObserver = new MockObserver("ServerOutputXmit");
-        xmitObserver.setSourceNotificationId(notificationId);
-
         QueuedOutputChannel transmitEng = engine.connect(cacheMgr, sock, 1);
-        transmitEng.registerComponentObserver(xmitObserver, notificationId);
 
         assertEquals("Bad number of log messages", 0, getNumberOfMessages());
 
@@ -645,11 +629,7 @@ public class SimpleOutputEngineTest
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
 
-        MockObserver xmitObserver = new MockObserver("DisconnectXmit");
-        xmitObserver.setSourceNotificationId(testName);
-
         QueuedOutputChannel transmitEng = engine.connect(cacheMgr, sock, 1);
-        transmitEng.registerComponentObserver(xmitObserver, testName);
 
         assertEquals("Bad number of log messages", 0, getNumberOfMessages());
 
