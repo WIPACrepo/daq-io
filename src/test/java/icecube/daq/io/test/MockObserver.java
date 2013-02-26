@@ -8,6 +8,8 @@ import icecube.daq.io.NormalState;
 public class MockObserver
     implements DAQComponentObserver
 {
+    private String name;
+
     private String sinkId;
     private boolean sinkStopCalled;
     private boolean sinkErrorCalled;
@@ -15,6 +17,11 @@ public class MockObserver
     private String sourceId;
     private boolean sourceStopCalled;
     private boolean sourceErrorCalled;
+
+    public MockObserver(String name)
+    {
+        this.name = name;
+    }
 
     public boolean gotSinkError()
     {
@@ -60,11 +67,16 @@ public class MockObserver
                 {
                     sinkStopCalled = true;
                 } else {
-                    throw new Error("Unexpected stop notification \"" +
+                    throw new Error("Unexpected " + name +
+                                    " stop notification \"" +
                                     notificationId + "\"");
                 }
+            } else if (state == NormalState.RUNNING ||
+                       state == NormalState.DESTROYED)
+            {
+                // ignore some standard states
             } else {
-                throw new Error("Unexpected notification state " +
+                throw new Error("Unexpected " + name + " notification state " +
                                 state);
             }
         } else if (object instanceof ErrorState) {
@@ -79,22 +91,24 @@ public class MockObserver
                 {
                     sinkErrorCalled = true;
                 } else {
-                    throw new Error("Unexpected error notification \"" +
+                    throw new Error("Unexpected " + name +
+                                    " error notification \"" +
                                     notificationId + "\"");
                 }
             } else {
-                throw new Error("Unexpected notification state " +
+                throw new Error("Unexpected " + name + " notification state " +
                                 state);
             }
         } else {
-            throw new Error("Unexpected notification object " +
+            throw new Error("Unexpected " + name + " notification object " +
                             object.getClass().getName());
         }
     }
 
     public String toString()
     {
-        return "Observer[Sink=" + sinkId +
+        return "Observer[name=" + name +
+            ":Sink=" + sinkId +
             (sinkStopCalled ? ",stop" : ",!stop") +
             (sinkErrorCalled ? ",error" : ",!error") + "]" +
             ":Src=" + sourceId +

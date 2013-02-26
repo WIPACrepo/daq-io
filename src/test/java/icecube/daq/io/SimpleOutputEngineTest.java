@@ -238,16 +238,16 @@ public class SimpleOutputEngineTest
         throws Exception
     {
         // buffer caching manager
-        IByteBufferCache cacheMgr = new MockBufferCache("OutLoop");
+        IByteBufferCache cacheMgr = new MockBufferCache("OneByteTECache");
 
         // create a pipe for use in testing
         Pipe testPipe = Pipe.open();
         testPipe.sink().configureBlocking(false);
         testPipe.source().configureBlocking(true);
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("OneByteTE");
 
-        engine = new SimpleOutputEngine("OutputLoop", 0, "test", true);
+        engine = new SimpleOutputEngine("OneByteTE", 0, "test", true);
         engine.registerComponentObserver(observer);
         engine.start();
         IOTestUtil.waitUntilStopped(engine, "creation");
@@ -255,9 +255,9 @@ public class SimpleOutputEngineTest
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
 
-        final String notificationId = "OutputLoop";
+        final String notificationId = "OneByteTE";
 
-        MockObserver xmitObserver = new MockObserver();
+        MockObserver xmitObserver = new MockObserver("OneByteTEXmit");
         xmitObserver.setSourceNotificationId(notificationId);
 
         QueuedOutputChannel transmitEng =
@@ -333,7 +333,7 @@ public class SimpleOutputEngineTest
         testPipe.sink().configureBlocking(false);
         testPipe.source().configureBlocking(true);
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("OutputLoop");
 
         engine = new SimpleOutputEngine("OutputLoop", 0, "test");
         engine.registerComponentObserver(observer);
@@ -345,7 +345,7 @@ public class SimpleOutputEngineTest
 
         final String notificationId = "OutputLoop";
 
-        MockObserver xmitObserver = new MockObserver();
+        MockObserver xmitObserver = new MockObserver("OutputLoopXmit");
         xmitObserver.setSourceNotificationId(notificationId);
 
         QueuedOutputChannel transmitEng =
@@ -424,7 +424,7 @@ public class SimpleOutputEngineTest
 
         int port = createServer(sel);
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("BrokenPipe");
 
         engine = new SimpleOutputEngine("ServerOutput", 0, "test");
         engine.registerComponentObserver(observer);
@@ -440,7 +440,7 @@ public class SimpleOutputEngineTest
 
         final String notificationId = "ServerOutput";
 
-        MockObserver xmitObserver = new MockObserver();
+        MockObserver xmitObserver = new MockObserver("ServerOutputXmit");
         xmitObserver.setSourceNotificationId(notificationId);
 
         QueuedOutputChannel transmitEng = engine.connect(cacheMgr, sock, 1);
@@ -533,7 +533,7 @@ public class SimpleOutputEngineTest
 
         int port = createServer(sel);
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("ServerOutput");
 
         engine = new SimpleOutputEngine("ServerOutput", 0, "test");
         engine.registerComponentObserver(observer);
@@ -549,7 +549,7 @@ public class SimpleOutputEngineTest
 
         final String notificationId = "ServerOutput";
 
-        MockObserver xmitObserver = new MockObserver();
+        MockObserver xmitObserver = new MockObserver("ServerOutputXmit");
         xmitObserver.setSourceNotificationId(notificationId);
 
         QueuedOutputChannel transmitEng = engine.connect(cacheMgr, sock, 1);
@@ -631,7 +631,7 @@ public class SimpleOutputEngineTest
 
         int port = createServer(sel);
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("Disconnect");
 
         engine = new SimpleOutputEngine(testName, 0, "test");
         engine.registerComponentObserver(observer);
@@ -645,7 +645,7 @@ public class SimpleOutputEngineTest
         assertEquals("Bad number of log messages",
                      0, getNumberOfMessages());
 
-        MockObserver xmitObserver = new MockObserver();
+        MockObserver xmitObserver = new MockObserver("DisconnectXmit");
         xmitObserver.setSourceNotificationId(testName);
 
         QueuedOutputChannel transmitEng = engine.connect(cacheMgr, sock, 1);

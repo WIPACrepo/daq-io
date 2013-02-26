@@ -413,7 +413,7 @@ public class PayloadReaderTest
         Pipe.SourceChannel sourceChannel = testPipe.source();
         sourceChannel.configureBlocking(false);
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("OutputInput");
 
         tstRdr = new SimplePayloadReader("OutputInput");
         tstRdr.registerComponentObserver(observer);
@@ -479,7 +479,7 @@ public class PayloadReaderTest
         Pipe.SourceChannel sourceChannel = testPipe.source();
         sourceChannel.configureBlocking(false);
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("MultiOutputInput");
 
         tstRdr = new SimplePayloadReader("MultiOutputInput");
         tstRdr.registerComponentObserver(observer);
@@ -557,7 +557,7 @@ public class PayloadReaderTest
         // buffer caching manager
         IByteBufferCache bufMgr = new MockBufferCache("MultiSzOutIn");
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("MultiSzOutIn");
 
         tstRdr = new SimplePayloadReader("MultiSize");
         tstRdr.registerComponentObserver(observer);
@@ -674,7 +674,7 @@ public class PayloadReaderTest
         Pipe.SourceChannel sourceChannel = testPipe.source();
         sourceChannel.configureBlocking(false);
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("Disposing");
 
         tstRdr = new SimplePayloadReader("Disposing");
         tstRdr.registerComponentObserver(observer);
@@ -732,7 +732,7 @@ public class PayloadReaderTest
         Pipe.SourceChannel sourceChannel = testPipe.source();
         sourceChannel.configureBlocking(false);
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("Getters");
 
         tstRdr = new SimplePayloadReader("Getters");
         tstRdr.registerComponentObserver(observer);

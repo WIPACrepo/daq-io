@@ -414,7 +414,7 @@ public class SimpleReaderTest
         Pipe.SourceChannel sourceChannel = testPipe.source();
         sourceChannel.configureBlocking(false);
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("OutIn");
 
         tstRdr = new SimpleTestReader("OutputInput");
         tstRdr.registerComponentObserver(observer);
@@ -480,7 +480,7 @@ public class SimpleReaderTest
         Pipe.SourceChannel sourceChannel = testPipe.source();
         sourceChannel.configureBlocking(false);
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("MultiOutIn");
 
         tstRdr = new SimpleTestReader("MultiOutputInput");
         tstRdr.registerComponentObserver(observer);
@@ -558,7 +558,7 @@ public class SimpleReaderTest
         // buffer caching manager
         IByteBufferCache bufMgr = new MockBufferCache("MultiSzOutIn");
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("MultiSzOutIn");
 
         tstRdr = new SimpleTestReader("MultiSize");
         tstRdr.registerComponentObserver(observer);
@@ -684,7 +684,7 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
         Pipe.SourceChannel sourceChannel = testPipe.source();
         sourceChannel.configureBlocking(false);
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("Disposing");
 
         tstRdr = new SimpleTestReader("Disposing");
         tstRdr.registerComponentObserver(observer);
@@ -742,7 +742,7 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
         Pipe.SourceChannel sourceChannel = testPipe.source();
         sourceChannel.configureBlocking(false);
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("Getters");
 
         tstRdr = new SimpleTestReader("Getters");
         tstRdr.registerComponentObserver(observer);
@@ -1106,7 +1106,7 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
         Pipe.SourceChannel sourceChannel = testPipe.source();
         sourceChannel.configureBlocking(false);
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("OutputInput");
 
         tstRdr = new SimpleTestReader("OutputInput");
         tstRdr.registerComponentObserver(observer);

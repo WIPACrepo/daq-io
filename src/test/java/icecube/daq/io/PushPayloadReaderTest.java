@@ -174,7 +174,7 @@ public class PushPayloadReaderTest
         Pipe.SourceChannel sourceChannel = testPipe.source();
         sourceChannel.configureBlocking(false);
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("OutIn");
 
         tstRdr = new MockPushReader("OutIn", bufMgr);
         tstRdr.registerComponentObserver(observer);
@@ -246,7 +246,7 @@ public class PushPayloadReaderTest
         Pipe.SourceChannel sourceChannel = testPipe.source();
         sourceChannel.configureBlocking(false);
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("MultiOutIn");
 
         tstRdr = new MockPushReader("MultiOutIn", bufMgr);
         tstRdr.registerComponentObserver(observer);

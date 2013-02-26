@@ -159,7 +159,7 @@ public class SpliceableSimpleReaderTest
         MockSplicer splicer = new MockSplicer();
         MockSpliceableFactory factory = new MockSpliceableFactory();
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("OutIn");
 
         tstRdr = new SpliceableSimpleReader("OutputInput", splicer, factory);
         tstRdr.registerComponentObserver(observer);
@@ -234,7 +234,7 @@ public class SpliceableSimpleReaderTest
         MockSplicer splicer = new MockSplicer();
         MockSpliceableFactory factory = new MockSpliceableFactory();
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("MultiOutIn");
 
         tstRdr = new SpliceableSimpleReader("OutputInput", splicer, factory);
         tstRdr.registerComponentObserver(observer);
