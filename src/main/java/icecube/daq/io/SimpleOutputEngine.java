@@ -831,8 +831,9 @@ public class SimpleOutputEngine
                 }
             } else if (parent.isStopped()) {
                 if (++numPostStopData % warningFrequency == 1) {
-                    LOG.error("Queuing buffer after engine " + parent +
-                              " has stopped (num=" + numPostStopData + ")");
+                    LOG.error("Queuing " + buf.limit() + "-byte buffer after" +
+                              " engine " + parent + " has stopped (num=" +
+                              numPostStopData + ")");
                 }
             }
 
