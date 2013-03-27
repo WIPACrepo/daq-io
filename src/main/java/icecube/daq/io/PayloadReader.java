@@ -269,6 +269,12 @@ if(DEBUG_NEW)System.err.println("ANend");
     {
         setState(RunState.IDLE);
 
+        synchronized (chanList) {
+            for (InputChannel cd : chanList) {
+                cd.notifyOnStop();
+            }
+        }
+
         notifyClient();
     }
 
