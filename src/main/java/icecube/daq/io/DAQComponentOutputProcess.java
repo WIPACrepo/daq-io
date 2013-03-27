@@ -1,7 +1,7 @@
 /*
  * class: DAQComponentOutputProcess
  *
- * Version $Id: DAQComponentOutputProcess.java 2950 2008-04-18 23:20:55Z dglo $
+ * Version $Id: DAQComponentOutputProcess.java 14365 2013-03-27 16:05:22Z dglo $
  *
  * Date: March 24 2005
  *
@@ -18,7 +18,7 @@ import java.nio.channels.WritableByteChannel;
 /**
  * This represents the engine for the transmit channels.
  *
- * @version $Id: DAQComponentOutputProcess.java 2950 2008-04-18 23:20:55Z dglo $
+ * @version $Id: DAQComponentOutputProcess.java 14365 2013-03-27 16:05:22Z dglo $
  * @author mcp
  */
 public interface DAQComponentOutputProcess
@@ -34,6 +34,8 @@ public interface DAQComponentOutputProcess
 
     void disconnect()
         throws IOException;
+
+    void forcedStopProcessing();
 
     long[] getRecordsSent();
 
