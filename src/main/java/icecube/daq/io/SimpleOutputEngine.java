@@ -269,17 +269,19 @@ public class SimpleOutputEngine
      */
     public OutputChannel getChannel()
     {
-        if (channelList.size() == 0) {
-            return null;
-        }
+        synchronized (channelList) {
+            if (channelList.size() == 0) {
+                return null;
+            }
 
-        if (channelList.size() != 1) {
-            throw new Error("Engine " + toString() +
-                            " should only contain one channel, not " +
-                            channelList.size());
-        }
+            if (channelList.size() != 1) {
+                throw new Error("Engine " + toString() +
+                                " should only contain one channel, not " +
+                                channelList.size());
+            }
 
-        return channelList.get(0);
+            return channelList.get(0);
+        }
     }
 
     /**
