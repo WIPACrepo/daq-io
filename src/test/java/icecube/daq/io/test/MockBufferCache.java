@@ -24,7 +24,7 @@ private static final boolean DEBUG = false;
         this.maxBytesAlloc = maxBytesAlloc;
     }
 
-    public synchronized ByteBuffer acquireBuffer(int bytes)
+    public ByteBuffer acquireBuffer(int bytes)
     {
         bufsAlloc++;
         bytesAlloc += bytes;
@@ -102,7 +102,7 @@ if(DEBUG)System.err.println("ALO*"+bytes+"(#"+bufsAlloc+"*"+bytesAlloc+")");
         returnBuffer(buf.capacity());
     }
 
-    public synchronized void returnBuffer(int bytes)
+    public void returnBuffer(int bytes)
     {
         bufsAlloc--;
         bytesAlloc -= bytes;
