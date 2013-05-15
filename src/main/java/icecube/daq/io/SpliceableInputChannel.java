@@ -105,7 +105,7 @@ public class SpliceableInputChannel
                           payBuf.limit() + ", capacity " + payBuf.capacity() +
                           ") to create payload (length " +
                           (payBuf.limit() < 4 ? -1 : payBuf.getInt(0)) +
-                          ", capacity " +
+                          ", type " +
                           (payBuf.limit() < 8 ? -1 : payBuf.getInt(4)) + ")");
             }
 
