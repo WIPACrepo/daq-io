@@ -263,7 +263,11 @@ public class SpliceableInputChannelTest
 
             chan.pushPayload(buf);
 
-            for (int q = 0; q < 10 && chan.getQueueDepth() > 0; q++) {
+            for (int q = 0; q < 10 &&
+                 (chan.getQueueDepth() > 0 ||
+                  bufMgr.getCurrentAquiredBytes() != expBytes);
+                 q++)
+            {
                 try {
                     Thread.sleep(100);
                 } catch (InterruptedException ie) {
