@@ -40,8 +40,6 @@ public class PayloadFileReader
     }
 
     /**
-     * Open the file.
-    /**
      * Open the named file.
      *
      * @param name file name
@@ -151,7 +149,8 @@ public class PayloadFileReader
         throws PayloadException
     {
         if (rdr == null) {
-            throw new PayloadException("Reader for has been closed");
+            throw new PayloadException("Reader for " + rdr.getFile() +
+                                       " has been closed");
         }
 
         ByteBuffer buf = rdr.nextBuffer();
