@@ -17,7 +17,7 @@ import org.apache.commons.logging.LogFactory;
  * Read payloads from a file.
  */
 public class PayloadFileReader
-    implements DAQFileReader
+    implements Iterator<IPayload>, Iterable<IPayload>
 {
     private static final Log LOG = LogFactory.getLog(PayloadFileReader.class);
 
@@ -128,7 +128,7 @@ public class PayloadFileReader
     /**
      * Get the next available payload.
      */
-    public Object next()
+    public IPayload next()
     {
         try {
             return nextPayload();

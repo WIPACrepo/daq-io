@@ -2,11 +2,14 @@ package icecube.daq.io;
 
 import icecube.daq.payload.PayloadException;
 
+import java.io.BufferedInputStream;
+import java.io.DataInputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.InputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.ReadableByteChannel;
 import java.util.Iterator;
 
 import org.apache.commons.logging.Log;
@@ -16,7 +19,7 @@ import org.apache.commons.logging.LogFactory;
  * Read payload bytes from a file.
  */
 public class PayloadByteReader
-    implements Iterator<ByteBuffer>
+    implements Iterator<ByteBuffer>, Iterable<ByteBuffer>
 {
     private static final Log LOG = LogFactory.getLog(PayloadByteReader.class);
 
@@ -25,10 +28,8 @@ public class PayloadByteReader
 
     /** Input file */
     private File file;
-    /** Input channel */
-    private ReadableByteChannel chan;
-    /** ByteBuffer used to read the payload length */
-    private ByteBuffer lenBuf;
+    /** Input stream */
+    private DataInputStream stream;
 
     /** Next payload number (used for error reporting) */
     private int nextNum;
@@ -60,10 +61,21 @@ public class PayloadByteReader
     public PayloadByteReader(File file)
         throws IOException
     {
-        this.file = file;
+        this(file, new FileInputStream(file));
+    }
 
-        FileInputStream stream = new FileInputStream(file);
-        chan = stream.getChannel();
+    /**
+     * Open the file.
+     *
+     * @param file payload file
+     *
+     * @throws IOException if the file cannot be opened
+     */
+    public PayloadByteReader(File file, InputStream stream)
+        //throws IOException
+    {
+        this.file = file;
+        this.stream = new DataInputStream(new BufferedInputStream(stream));
     }
 
     /**
@@ -74,11 +86,11 @@ public class PayloadByteReader
     public void close()
         throws IOException
     {
-        if (chan != null) {
+        if (stream != null) {
             try {
-                chan.close();
+                stream.close();
             } finally {
-                chan = null;
+                stream = null;
             }
         }
     }
@@ -187,36 +199,20 @@ public class PayloadByteReader
     private ByteBuffer readPayload()
         throws PayloadException
     {
-        if (lenBuf == null) {
-            lenBuf = ByteBuffer.allocate(4);
-        } else {
-            lenBuf.rewind();
-        }
-
         // count this payload
         nextNum++;
 
-        int numBytes;
+        int len;
         try {
-            numBytes = chan.read(lenBuf);
+            len = stream.readInt();
+        } catch (EOFException eof) {
+            return null;
         } catch (IOException ioe) {
             throw new PayloadException("Couldn't read length of payload #" +
                                        nextNum + " in " + file, ioe);
         }
 
-        if (numBytes < 0) {
-            // return null at end of file
-            return null;
-        }
-
-        if (numBytes < 4) {
-            throw new PayloadException("Only got " + numBytes +
-                                       " of length for payload #" +
-                                       nextNum + " in " + file);
-        }
-
         // get payload length
-        int len = lenBuf.getInt(0);
         if (len < 4 || len > MAX_PAYLOAD_LEN) {
             throw new PayloadException("Bad length " + len + " for payload #" +
                                        nextNum + " in " + file);
@@ -236,7 +232,8 @@ public class PayloadByteReader
         for (int i = 0; i < 10 && buf.position() < buf.capacity(); i++) {
             int rtnval;
             try {
-                rtnval = chan.read(buf);
+                rtnval = stream.read(buf.array(), buf.position(),
+                                     len - buf.position());
             } catch (IOException ioe) {
                 throw new PayloadException("Couldn't read " + len +
                                            " data bytes for payload #" +
@@ -252,28 +249,37 @@ public class PayloadByteReader
                                            file);
             }
 
-            if (buf.position() < buf.capacity()) {
-                LOG.error("Partial read of payload #" + nextNum +
-                          " in " + file);
+            // set the new buffer position
+            buf.position(buf.position() + rtnval);
             }
+
+        if (buf.position() < buf.capacity()) {
+            final String msg =
+                String.format("Got %d of %d bytes for payload #%d in %s",
+                              buf.position(), buf.capacity(), nextNum, file);
+            LOG.error(msg);
         }
 
         if (buf.position() != len) {
-            throw new PayloadException("Expected to read " + len +
-                                       " bytes, not " + buf.position() +
-                                       " for payload #" + nextNum +
-                                       " in " + file);
+            final String msg =
+                String.format("Expected to read %d bytes, not %d for" +
+                              " payload #%d in %s", len, buf.position(),
+                              nextNum, file);
+            throw new PayloadException(msg);
         }
 
         if (len < 32) {
-            throw new PayloadException("Got short payload #" + nextNum +
-                                       " (" + len + " bytes) in " + file);
+            final String msg =
+                String.format("Got short payload #%d (%d bytes) in %s",
+                              nextNum, len, file);
+            throw new PayloadException(msg);
         }
 
         if (buf.getInt(0) == 32 && buf.getLong(24) == Long.MAX_VALUE) {
-            throw new PayloadException("Found unexpected STOP message " +
-                                       " at payload #" + nextNum +
-                                       " in " + file);
+            final String msg =
+                String.format("Found unexpected STOP message at" +
+                              " payload #%d in %s", nextNum, file);
+            throw new PayloadException(msg);
         }
 
         return buf;

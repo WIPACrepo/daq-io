@@ -68,7 +68,7 @@ class DomHitFactory
  * Read dom hits from a file.
  */
 public class DomHitFileReader
-    implements DAQFileReader
+    implements Iterable<IDomHit>, Iterator<IDomHit>
 {
     /** Input channel */
     private ReadableByteChannel chan;
@@ -212,7 +212,7 @@ public class DomHitFileReader
     /**
      * Get the next available hit.
      */
-    public Object next()
+    public IDomHit next()
     {
         try {
             return nextHit();
