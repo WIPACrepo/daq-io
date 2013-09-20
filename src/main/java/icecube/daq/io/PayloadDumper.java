@@ -7,9 +7,11 @@ import icecube.daq.payload.IEventPayload;
 import icecube.daq.payload.IEventTriggerRecord;
 import icecube.daq.payload.ILoadablePayload;
 import icecube.daq.payload.ITriggerRequestPayload;
+import icecube.daq.payload.PayloadChecker;
 import icecube.daq.payload.PayloadRegistry;
 import icecube.daq.payload.SourceIdRegistry;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -22,6 +24,8 @@ import org.apache.log4j.BasicConfigurator;
 public class PayloadDumper
 {
     private static Log LOG = LogFactory.getLog(PayloadDumper.class);
+
+    private static final String INDENT = "   ";
 
     public static void dumpComplex(ILoadablePayload payload)
     {
@@ -37,7 +41,7 @@ public class PayloadDumper
             dumpEvent((IEventPayload) payload, false);
             break;
         case PayloadRegistry.PAYLOAD_ID_TRIGGER_REQUEST:
-            dumpTriggerRequest((ITriggerRequestPayload) payload, "   ");
+            dumpTriggerRequest((ITriggerRequestPayload) payload, INDENT);
             break;
         default:
             System.out.println("Not handling payload type " +
@@ -176,9 +180,9 @@ public class PayloadDumper
         for (Object obj : compList) {
             if (obj instanceof ITriggerRequestPayload) {
                 dumpTriggerRequest((ITriggerRequestPayload) obj,
-                                   indent + "   ");
+                                   indent + INDENT);
             } else {
-                System.out.println(indent + "   " + obj);
+                System.out.println(indent + INDENT + obj);
             }
         }
     }
@@ -204,23 +208,152 @@ public class PayloadDumper
     {
         BasicConfigurator.configure();
 
+        boolean usage = false;
+
         boolean dumpHex = false;
         boolean dumpFull = false;
 
+        boolean getMax = false;
+        long maxPayloads = Long.MAX_VALUE;
+
+        boolean getCfg = false;
+        String runCfgName = null;
+
+        boolean getCfgDir = false;
+        File configDir = null;
+
+        ArrayList<File> files = new ArrayList<File>();
+
         for (int i = 0; i < args.length; i++) {
-            if (args[i].startsWith("-")) {
-                if (args[i].charAt(1) == 'h') {
-                    dumpHex = true;
-                } else if (args[i].charAt(1) == 'f') {
-                    dumpFull = true;
+            if (getMax) {
+                try {
+                    long tmp = Long.parseLong(args[i]);
+                    maxPayloads = tmp;
+                } catch (NumberFormatException nfe) {
+                    System.err.println("Bad number of payloads \"" + args[i] +
+                                       "\"");
+                    usage = true;
+                }
+
+                getMax = false;
+                continue;
+            }
+
+            if (getCfg) {
+                runCfgName = args[i];
+                getCfg = false;
+                continue;
+            }
+
+            if (getCfgDir) {
+                File tmpCfgDir = new File(args[i]);
+                if (tmpCfgDir.isDirectory()) {
+                    configDir = tmpCfgDir;
                 } else {
-                    throw new Error("Unknown option \"" + args[i] + "\"");
+                    System.err.println("Bad config directory \"" +
+                                       tmpCfgDir + "\"");
+                    usage = true;
+                }
+
+                getCfgDir = false;
+                continue;
+            }
+
+            if (args[i].length() > 1 && args[i].charAt(0) == '-') {
+                switch(args[i].charAt(1)) {
+                case 'D':
+                    if (args[i].length() == 2) {
+                        getCfgDir = true;
+                    } else {
+                        File tmpCfgDir = new File(args[i].substring(2));
+                        if (tmpCfgDir.isDirectory()) {
+                            configDir = tmpCfgDir;
+                        } else {
+                            System.err.println("Bad config directory \"" +
+                                               tmpCfgDir + "\"");
+                            usage = true;
+                        }
+                    }
+                    break;
+                case 'c':
+                    if (args[i].length() == 2) {
+                        getCfg = true;
+                    } else {
+                        runCfgName = args[i].substring(2);
+                    }
+                    break;
+                case 'f':
+                    dumpFull = true;
+                    break;
+                case 'h':
+                    dumpHex = true;
+                    break;
+                case 'n':
+                    if (args[i].length() == 2) {
+                        getMax = true;
+                } else {
+                        try {
+                            long tmp = Long.parseLong(args[i].substring(2));
+                            maxPayloads = tmp;
+                        } catch (NumberFormatException nfe) {
+                            System.err.println("Bad number of payloads \"" +
+                                               args[i].substring(2) + "\"");
+                            usage = true;
+                        }
+                    }
+                    break;
+                default:
+                    System.err.println("Bad option \"" + args[i] +
+                                       "\"; valid options are -h(ex) and" +
+                                       " -f(ull)");
+                    usage = true;
+                    break;
                 }
 
                 continue;
             }
 
-            DAQFileReader rdr = new PayloadFileReader(args[i]);
+            File f = new File(args[i]);
+            if (f.exists()) {
+                files.add(f);
+            } else {
+                System.err.println("Ignoring nonexistent file \"" + f + "\"");
+                usage = true;
+            }
+        }
+
+        if (runCfgName != null) {
+            if (configDir == null) {
+                configDir = new File(System.getenv("HOME"), "config");
+                if (!configDir.isDirectory()) {
+                    System.err.println("Cannot find default config " +
+                                       "directory " + configDir);
+                    System.err.println("Please specify config directory (-D)");
+                    configDir = null;
+                    usage = true;
+                }
+            }
+
+            if (configDir != null) {
+                PayloadChecker.configure(configDir, runCfgName);
+            }
+        }
+
+        if (usage) {
+            System.err.println("Usage: ");
+            System.err.println("java PayloadDumper");
+            System.err.println(" [-D configDir]");
+            System.err.println(" [-c runConfigName)]");
+            System.err.println(" [-f(ullDump)]");
+            System.err.println(" [-h(exDump)]");
+            System.err.println(" [-n numToDump]");
+            System.err.println(" payloadFile ...");
+            System.exit(1);
+        }
+
+        for (File f : files) {
+            long numPayloads = 0;
+            PayloadFileReader rdr = new PayloadFileReader(f);
             for (Object obj : rdr) {
                 ILoadablePayload payload = (ILoadablePayload) obj;
 
@@ -235,6 +368,10 @@ public class PayloadDumper
                     dumpSimple(payload);
                 } else {
                     dumpComplex(payload);
+                }
+
+                if (++numPayloads >= maxPayloads) {
+                    break;
                 }
             }
         }
