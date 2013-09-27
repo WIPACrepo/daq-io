@@ -23,6 +23,9 @@ public class FileDispatcher implements Dispatcher {
 
     private static final long BYTES_IN_MB = 1024 * 1024;
 
+    /** Avoid multiple warnings for unusual base names */
+    private static boolean warnedName;
+
     private String baseFileName;
     private int numStarts;
     private WritableByteChannel outChannel;
@@ -320,17 +323,15 @@ public class FileDispatcher implements Dispatcher {
             throw new IllegalArgumentException("baseFileName cannot be NULL!");
         }
 
-        String dir;
-        if (baseFileName.equalsIgnoreCase("physics")){
-            dir = DISPATCH_DEST_STORAGE;
-        } else if (baseFileName.equalsIgnoreCase("moni") ||
-                   baseFileName.equalsIgnoreCase("tcal") ||
-                   baseFileName.equalsIgnoreCase("sn")){
-            // TODO: replace this later with the right directory
-            dir = DISPATCH_DEST_STORAGE;
-        } else {
-            throw new IllegalArgumentException(baseFileName +
-                                               " is invalid name!");
+        String dir = DISPATCH_DEST_STORAGE;
+        if (!warnedName &&
+            !baseFileName.equalsIgnoreCase("physics") &&
+            !baseFileName.equalsIgnoreCase("moni") &&
+            !baseFileName.equalsIgnoreCase("tcal") &&
+            !baseFileName.equalsIgnoreCase("sn"))
+        {
+            LOG.error("Dispatching to unusual base name " + baseFileName);
+            warnedName = true;
         }
 
         return dir;
@@ -483,8 +484,8 @@ public class FileDispatcher implements Dispatcher {
                     }
 
                     if(!testFile.delete()) {
-			LOG.info("deleting: "+testFile.getPath()+" failed");
-		    }
+                        LOG.info("deleting: "+testFile.getPath()+" failed");
+                    }
                     break;
                 }
             }

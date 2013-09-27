@@ -329,32 +329,45 @@ public class FileDispatcherTest
 
     private void handleLogMessages()
     {
+        handleLogMessages(null);
+    }
+
+    private void handleLogMessages(String unusualBase)
+    {
         File destDir = new File(FileDispatcher.DISPATCH_DEST_STORAGE);
 
-        int expMsgs;
+        int expMsgs = 0;
         if (!destDir.isDirectory()) {
-            expMsgs = 1;
+            expMsgs++;
         } else if (!destDir.canWrite()) {
-            expMsgs = 2;
-        } else {
-            expMsgs = 0;
+            expMsgs += 2;
+        }
+        if (unusualBase != null) {
+            expMsgs++;
         }
 
         assertEquals("Bad number of log messages",
                      expMsgs, getNumberOfMessages());
-        if (expMsgs > 1) {
-            assertEquals("Unexpected log message 0",
-                         "Cannot write to " +
-                         FileDispatcher.DISPATCH_DEST_STORAGE + "!",
-                         getMessage(0));
-        }
-        if (expMsgs > 0) {
-            final int msgNum = expMsgs - 1;
 
-            assertEquals("Unexpected log message " + msgNum,
+        int nextMsg = 0;
+        if (unusualBase != null) {
+            assertEquals("Unexpected log message " + nextMsg,
+                         "Dispatching to unusual base name " + unusualBase,
+                         getMessage(nextMsg));
+            nextMsg++;
+        }
+        if (!destDir.isDirectory()) {
+            assertEquals("Unexpected log message " + nextMsg,
                          FileDispatcher.DISPATCH_DEST_STORAGE +
                          " does not exist!  Using current directory.",
-                         getMessage(msgNum));
+                         getMessage(nextMsg));
+            nextMsg++;
+        } else if (!destDir.canWrite()) {
+            assertEquals("Unexpected log message " + nextMsg,
+                         "Cannot write to " +
+                         FileDispatcher.DISPATCH_DEST_STORAGE + "!",
+                         getMessage(nextMsg));
+            nextMsg++;
         }
 
         clearMessages();
@@ -409,17 +422,6 @@ public class FileDispatcherTest
         }
     }
 
-    public void testBadBase()
-    {
-        FileDispatcher fd;
-        try {
-            fd = new FileDispatcher("foo");
-            fail("Should not succeed for bogus base file name");
-        } catch (IllegalArgumentException iae) {
-            // expect this to fail
-        }
-    }
-
     public void testNullDest()
     {
         try {
@@ -462,6 +464,21 @@ public class FileDispatcherTest
         } catch (IllegalArgumentException iae) {
             // expect failure
         }
+    }
+
+    public void testBadBase()
+    {
+        try {
+            testDirectory = createTempDirectory();
+        } catch (IOException ioe) {
+            fail("Cannot create temporary directory");
+        }
+
+        final String baseName = "foo";
+
+        FileDispatcher fd = new FileDispatcher(baseName);
+
+        handleLogMessages(baseName);
     }
 
     public void testGoodDest()
