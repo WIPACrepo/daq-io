@@ -6,6 +6,7 @@ import icecube.daq.payload.IEventHitRecord;
 import icecube.daq.payload.IEventPayload;
 import icecube.daq.payload.IEventTriggerRecord;
 import icecube.daq.payload.ILoadablePayload;
+import icecube.daq.payload.IReadoutRequest;
 import icecube.daq.payload.ITriggerRequestPayload;
 import icecube.daq.payload.PayloadChecker;
 import icecube.daq.payload.PayloadRegistry;
@@ -105,6 +106,19 @@ public class PayloadDumper
         }
     }
 
+    public static void dumpReadoutRequest(IReadoutRequest rReq, String indent)
+    {
+        System.out.println(indent + rReq);
+
+        List elems = rReq.getReadoutRequestElements();
+        if (elems != null) {
+            final String i2 = indent + INDENT;
+            for (Object obj : elems) {
+                System.out.println(i2 + obj);
+            }
+        }
+    }
+
     public static void dumpSimple(ILoadablePayload payload)
     {
         try {
@@ -168,6 +182,13 @@ public class PayloadDumper
                                           String indent)
     {
         System.out.println(indent + trigReq);
+
+        IReadoutRequest rReq = trigReq.getReadoutRequest();
+        if (rReq != null) {
+            dumpReadoutRequest(rReq, indent + INDENT);
+        } else {
+            System.out.println(indent + "--- No ReadoutRequest data");
+        }
 
         List compList;
         try {
@@ -291,7 +312,7 @@ public class PayloadDumper
                 case 'n':
                     if (args[i].length() == 2) {
                         getMax = true;
-                } else {
+                    } else {
                         try {
                             long tmp = Long.parseLong(args[i].substring(2));
                             maxPayloads = tmp;
@@ -324,13 +345,24 @@ public class PayloadDumper
 
         if (runCfgName != null) {
             if (configDir == null) {
-                configDir = new File(System.getenv("HOME"), "config");
-                if (!configDir.isDirectory()) {
-                    System.err.println("Cannot find default config " +
-                                       "directory " + configDir);
-                    System.err.println("Please specify config directory (-D)");
-                    configDir = null;
-                    usage = true;
+                String pcfg = System.getenv("PDAQ_CONFIG");
+                if (pcfg != null) {
+                    configDir = new File(pcfg);
+                    if (!configDir.exists()) {
+                        configDir = null;
+                    }
+                }
+
+                if (configDir == null) {
+                    configDir = new File(System.getenv("HOME"), "config");
+                    if (!configDir.isDirectory()) {
+                        System.err.println("Cannot find default config " +
+                                           "directory " + configDir);
+                        System.err.println("Please specify config directory" +
+                                           " (-D)");
+                        configDir = null;
+                        usage = true;
+                    }
                 }
             }
 
