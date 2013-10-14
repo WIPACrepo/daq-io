@@ -52,7 +52,7 @@ class AdjustablePayload
 
     public int getPayloadLength()
     {
-        return len;
+        return length();
     }
 
     public IUTCTime getPayloadTimeUTC()
@@ -73,6 +73,11 @@ class AdjustablePayload
     int getValue()
     {
         return value;
+    }
+
+    public int length()
+    {
+        return len;
     }
 
     public void recycle()

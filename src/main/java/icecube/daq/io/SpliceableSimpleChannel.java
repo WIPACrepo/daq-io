@@ -108,7 +108,7 @@ public class SpliceableSimpleChannel
                         LOG.error("Couldn't push payload type " +
                                   payload.getPayloadType() +
                                   ", length " +
-                                  payload.getPayloadLength() +
+                                  payload.length() +
                                   ", time " +
                                   payload.getPayloadTimeUTC() +
                                   "; recycling", ex);

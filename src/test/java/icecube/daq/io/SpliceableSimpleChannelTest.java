@@ -140,7 +140,7 @@ public class SpliceableSimpleChannelTest
 
         public int getPayloadLength()
         {
-            return len;
+            return length();
         }
 
         public IUTCTime getPayloadTimeUTC()
@@ -160,6 +160,11 @@ public class SpliceableSimpleChannelTest
         public long getUTCTime()
         {
             return time;
+        }
+
+        public int length()
+        {
+            return len;
         }
 
         public void loadPayload()

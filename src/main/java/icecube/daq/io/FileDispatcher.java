@@ -245,7 +245,7 @@ public class FileDispatcher implements Dispatcher {
 
             throw new DispatchException(errMsg);
         }
-        final int evtLen = event.getPayloadLength();
+        final int evtLen = event.length();
         ByteBuffer buffer = bufferCache.acquireBuffer(evtLen);
         int numWritten;
         try {
