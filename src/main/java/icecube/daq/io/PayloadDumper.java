@@ -233,6 +233,7 @@ public class PayloadDumper
 
         boolean dumpHex = false;
         boolean dumpFull = false;
+        boolean validate = false;
 
         boolean getMax = false;
         long maxPayloads = Long.MAX_VALUE;
@@ -270,6 +271,8 @@ public class PayloadDumper
                 File tmpCfgDir = new File(args[i]);
                 if (tmpCfgDir.isDirectory()) {
                     configDir = tmpCfgDir;
+                } else if (args[i].charAt(1) == 'v') {
+                    validate = true;
                 } else {
                     System.err.println("Bad config directory \"" +
                                        tmpCfgDir + "\"");
@@ -400,6 +403,12 @@ public class PayloadDumper
                     dumpSimple(payload);
                 } else {
                     dumpComplex(payload);
+                }
+
+                if (validate) {
+                    if (!PayloadChecker.validatePayload(payload, true)) {
+                        System.err.println("***** Payload was not valid");
+                    }
                 }
 
                 if (++numPayloads >= maxPayloads) {
