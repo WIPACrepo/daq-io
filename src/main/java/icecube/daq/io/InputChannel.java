@@ -83,7 +83,7 @@ public abstract class InputChannel
         }
 
         if (inputBuf.limit() != inputBuf.capacity()) {
-            LOG.error("******** Reset limit to capacity");
+            LOG.error("******** Reset " + name + " limit to capacity");
             inputBuf.limit(inputBuf.capacity());
         }
     }
@@ -100,7 +100,8 @@ final boolean DEBUG_FILL = false;
 if(DEBUG_FILL)System.err.println("FillTop "+inputBuf+" bufPos "+bufPos);
         ByteBuffer payloadBuf = bufMgr.acquireBuffer(length);
         if (payloadBuf == null) {
-            LOG.error("Cannot acquire " + length + "-byte buffer");
+            LOG.error("Cannot acquire " + name + " " + length +
+                      "-byte buffer");
             return null;
         }
 
@@ -112,7 +113,7 @@ if(DEBUG_FILL)System.err.println("FillTop "+inputBuf+" bufPos "+bufPos);
         int lim = inputBuf.limit();
 
         if (lim != inputBuf.capacity()) {
-            LOG.error("Surprise!  Input buffer " + inputBuf +
+            LOG.error("Surprise!  " + name + " input buffer " + inputBuf +
                       " capacity != limit");
         }
 
@@ -246,7 +247,8 @@ if(DEBUG_SELECT)System.err.println("  PayLen "+length);
             if (length < INT_SIZE) {
 if(DEBUG_SELECT)System.err.println("  BadLen");
                 // this really should not happen
-                LOG.error("Huh?  Saw " + length + "-byte payload!?!?");
+                LOG.error("Huh?  Saw " + length + "-byte payload for " +
+                          name);
                 if (length <= 0) {
                     length = 4;
                 }
@@ -270,7 +272,8 @@ if(DEBUG_SELECT)System.err.println("  GotStop");
             if (bufMgr.getCurrentAquiredBytes() >= limitToStopAllocation) {
                 if (!allocationStopped) {
                     if (LOG.isErrorEnabled()) {
-                        LOG.error("Channel#" + id + " stopped: AcqBytes " +
+                        LOG.error(name + " channel#" + id +
+                                  " stopped: AcqBytes " +
                                   bufMgr.getCurrentAquiredBytes() +
                                   " >= limit " + limitToStopAllocation);
                     }
@@ -299,7 +302,8 @@ if(DEBUG_SELECT)System.err.println("  RestartAlloc");
                 // restart allocation
                 allocationStopped = false;
                 if (LOG.isErrorEnabled()) {
-                    LOG.error("Channel#" + id + " restarted: AcqBytes " +
+                    LOG.error(name + " channel#" + id +
+                              " restarted: AcqBytes " +
                               bufMgr.getCurrentAquiredBytes() + " <= limit " +
                               limitToRestartAllocation);
                 }
