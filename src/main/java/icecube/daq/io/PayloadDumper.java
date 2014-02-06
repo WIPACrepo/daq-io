@@ -375,14 +375,15 @@ public class PayloadDumper
         }
 
         if (usage) {
-            System.err.println("Usage: ");
-            System.err.println("java PayloadDumper");
-            System.err.println(" [-D configDir]");
-            System.err.println(" [-c runConfigName)]");
-            System.err.println(" [-f(ullDump)]");
-            System.err.println(" [-h(exDump)]");
-            System.err.println(" [-n numToDump]");
-            System.err.println(" payloadFile ...");
+            System.err.print("Usage: ");
+            System.err.print("java PayloadDumper");
+            System.err.print(" [-D configDir]");
+            System.err.print(" [-c runConfigName)]");
+            System.err.print(" [-f(ullDump)]");
+            System.err.print(" [-h(exDump)]");
+            System.err.print(" [-n numToDump]");
+            System.err.print(" payloadFile ...");
+            System.err.println();
             System.exit(1);
         }
 
@@ -395,7 +396,7 @@ public class PayloadDumper
                 if (dumpHex) {
                     ByteBuffer buf = payload.getPayloadBacking();
                     if (buf != null) {
-                        System.err.println(BasePayload.toHexString(buf, 0));
+                        System.out.println(BasePayload.toHexString(buf, 0));
                     }
                 }
 
