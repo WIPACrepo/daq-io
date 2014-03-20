@@ -162,15 +162,15 @@ public class HitSpoolReader
             // only match files for specified hub
             if (hubId > 0) {
                 boolean matched = false;
-                if (!matched) {
-                    matched = dirList[i].getName().startsWith("HitSpool-") &&
-                        dirList[i].getName().endsWith(".dat");
+                if (!matched && fullStr != null) {
+                    matched = dirList[i].getName().startsWith(fullStr);
                 }
                 if (!matched && hubStr != null) {
                     matched = dirList[i].getName().startsWith(hubStr);
                 }
-                if (!matched && fullStr != null) {
-                    matched = dirList[i].getName().startsWith(fullStr);
+                if (!matched) {
+                    matched = dirList[i].getName().startsWith("HitSpool-") &&
+                        dirList[i].getName().endsWith(".dat");
                 }
                 if (!matched) {
                     continue;
