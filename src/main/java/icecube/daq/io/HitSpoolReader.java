@@ -1,7 +1,14 @@
 package icecube.daq.io;
 
+import icecube.daq.common.DAQCmdInterface;
+
 import icecube.daq.payload.IPayload;
+import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.PayloadException;
+import icecube.daq.payload.SourceIdRegistry;
+import icecube.daq.payload.impl.BasePayload;
+import icecube.daq.payload.impl.DOMHit;
+import icecube.daq.payload.impl.DOMHitFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -326,17 +333,22 @@ public class HitSpoolReader
         throw new Error("Unimplemented");
     }
 
-    enum ArgType { NONE, MODULUS, HUBNUM };
+    enum ArgType { NONE, HUBNUM, MODULUS, NUM_TO_PRINT };
 
     public static void main(String[] args)
     {
         org.apache.log4j.BasicConfigurator.configure();
 
-        int modulus = 1000;
+        boolean dumpHex = false;
         int hubNum = Integer.MIN_VALUE;
+        int modulus = 1000;
+        int numToPrint = Integer.MAX_VALUE;
+        boolean verbose = false;
+        ArrayList<String> files = new ArrayList<String>();
 
         ArgType parseType = ArgType.NONE;
 
+        boolean usage = false;
         for (int i = 0; i < args.length; i++) {
             if (args[i].length() == 0) {
                 System.err.println("Ignoring empty argument");
@@ -347,15 +359,19 @@ public class HitSpoolReader
                 try {
                     int val = Integer.parseInt(args[i]);
                     switch (parseType) {
+                    case HUBNUM:
+                        hubNum = val;
+                        break;
                     case MODULUS:
                         modulus = val;
                         break;
-                    case HUBNUM:
-                        hubNum = val;
+                    case NUM_TO_PRINT:
+                        numToPrint = val;
                         break;
                     default:
                         System.err.format("Found %d for unknown argument" +
                                           " type %s\n", val, parseType);
+                        usage = true;
                         break;
                     }
                 } catch (NumberFormatException nfe) {
@@ -371,24 +387,34 @@ public class HitSpoolReader
                 if (args[i].length() == 1) {
                     System.err.println("Ignoring empty option '-'");
                 } else {
-                    if (args[i].charAt(1) == 'm') {
-                        parseType = ArgType.MODULUS;
-                    } else if (args[i].charAt(1) == 'h') {
+                    if (args[i].charAt(1) == 'h') {
                         parseType = ArgType.HUBNUM;
+                    } else if (args[i].charAt(1) == 'm') {
+                        parseType = ArgType.MODULUS;
+                    } else if (args[i].charAt(1) == 'n') {
+                        parseType = ArgType.NUM_TO_PRINT;
+                    } else if (args[i].charAt(1) == 'v') {
+                        verbose = true;
+                    } else if (args[i].charAt(1) == 'x') {
+                        dumpHex = true;
                     } else {
                         System.err.format("Bad option '%s'\n", args[i]);
+                        usage = true;
                         continue;
                     }
 
                     if (args[i].length() > 2) {
                         try {
-                            int val = Integer.parseInt(args[i]);
+                            int val = Integer.parseInt(args[i].substring(2));
                             switch (parseType) {
+                            case HUBNUM:
+                                hubNum = val;
+                                break;
                             case MODULUS:
                                 modulus = val;
                                 break;
-                            case HUBNUM:
-                                hubNum = val;
+                            case NUM_TO_PRINT:
+                                numToPrint = val;
                                 break;
                             default:
                                 System.err.format("Found %d for unknown" +
@@ -410,11 +436,35 @@ public class HitSpoolReader
                 continue;
             }
 
+            files.add(args[i]);
+        }
+
+        if (usage) {
+            System.err.printf("Usage: %s", HitSpoolReader.class.getName());
+            System.err.printf(" [-h <hubNumber>]");
+            System.err.printf(" [-m(odulus to count payloads)]");
+            System.err.printf(" [-n <numberToPrint>]");
+            System.err.printf(" [-v(erbose)]");
+            System.err.printf(" [-x(dumpHex)]");
+            System.err.printf(" file/directory ...");
+            System.err.println();
+            System.exit(1);
+        }
+
+        ISourceID sourceId = null;
+        if (verbose) {
+            final String compName = DAQCmdInterface.DAQ_STRING_HUB;
+
+            sourceId = SourceIdRegistry.getISourceIDFromNameAndId(compName,
+                                                                  hubNum);
+        }
+
+        for (String arg : files) {
             HitSpoolReader rdr;
             try {
-                rdr = new HitSpoolReader(args[i], hubNum);
+                rdr = new HitSpoolReader(arg, hubNum);
             } catch (IOException ioe) {
-                System.out.println("Cannot open " + args[i]);
+                System.out.println("Cannot open " + arg);
                 ioe.printStackTrace(System.out);
                 continue;
             }
@@ -422,24 +472,42 @@ public class HitSpoolReader
             int num = 0;
             for (ByteBuffer buf : rdr) {
                 num++;
+                if (num > numToPrint) {
+                    break;
+                }
+
                 if (num % modulus == 0) {
-                    System.out.format("\r%d", num);
+                    if (!verbose) {
+                        System.out.format("\r%d", num);
+                    } else if (dumpHex) {
+                        System.out.println(BasePayload.toHexString(buf, 0));
+                    } else {
+                        DOMHit tinyHit;
+                        try {
+                            tinyHit = DOMHitFactory.getHit(sourceId, buf, 0);
+                            System.out.println(tinyHit.toString());
+                        } catch (PayloadException pe) {
+                            System.err.println("Couldn't get hit from buffer");
+                            pe.printStackTrace();
+                            tinyHit = null;
+                        }
+                    }
                 }
             }
 
             try {
                 rdr.close();
             } catch (IOException ioe) {
-                System.out.println("Cannot close " + args[i]);
+                System.out.println("Cannot close " + arg);
                 ioe.printStackTrace(System.out);
             }
 
             if (hubNum > 0) {
                 System.out.format("\rRead %d payloads for hub %d from %s\n",
-                                  num, hubNum, args[i]);
+                                  num, hubNum, arg);
             } else {
                 System.out.format("\rRead %d payloads from %s\n",
-                                  num, args[i]);
+                                  num, arg);
             }
         }
     }
