@@ -10,12 +10,12 @@
 
 package icecube.daq.io;
 
-import icecube.daq.oldpayload.ByteBufferPayloadDestination;
-import icecube.daq.oldpayload.PayloadDestinationCollection;
+import icecube.daq.payload.ByteBufferPayloadDestination;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IPayloadDestinationCollection;
 import icecube.daq.payload.IPayloadDestinationCollectionController;
 import icecube.daq.payload.ISourceID;
+import icecube.daq.payload.PayloadDestinationCollection;
 import icecube.daq.payload.impl.SourceID;
 
 import java.nio.ByteBuffer;

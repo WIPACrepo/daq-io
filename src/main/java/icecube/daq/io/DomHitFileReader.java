@@ -1,9 +1,10 @@
 package icecube.daq.io;
 
-import icecube.daq.oldpayload.impl.DomHitDeltaCompressedFormatPayload;
-import icecube.daq.oldpayload.impl.DomHitEngineeringFormatPayload;
 import icecube.daq.payload.IDomHit;
+import icecube.daq.payload.PayloadFormatException;
 import icecube.daq.payload.PayloadRegistry;
+import icecube.daq.payload.impl.DeltaCompressedHitData;
+import icecube.daq.payload.impl.EngineeringHitData;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -11,7 +12,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 import java.util.Iterator;
-import java.util.zip.DataFormatException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -21,7 +21,7 @@ class DomHitFactory
     private static Log LOG = LogFactory.getLog(DomHitFactory.class);
 
     IDomHit createPayload(int offset, ByteBuffer buf)
-        throws DataFormatException, IOException
+        throws IOException, PayloadFormatException
     {
         if (offset != 0) {
             throw new Error("Offset should always be zero");
@@ -42,18 +42,23 @@ class DomHitFactory
         final int type = buf.getInt(offset + 4);
         switch (type) {
         case 2:
-            DomHitEngineeringFormatPayload engHit =
-                new DomHitEngineeringFormatPayload();
-            engHit.initialize(offset + 0, buf);
+            throw new Error("EngineeringHit reader unimplemented");
+/*
+            EngineeringHitData engHit = new EngineeringHitData(buf, offset);
             return engHit;
+*/
         case 3:
         case PayloadRegistry.PAYLOAD_ID_DELTA_HIT:
-            DomHitDeltaCompressedFormatPayload deltaHit =
-                new DomHitDeltaCompressedFormatPayload();
+            throw new Error("DeltaCompressedHit reader unimplemented");
+/*
             // XXX rewrite payload type to match real payload type
-            buf.putInt(offset + 4, deltaHit.getPayloadType());
-            deltaHit.initialize(offset + 0, buf);
+            final int payType =
+                PayloadRegistry.PAYLOAD_ID_COMPRESSED_HIT_DATA;
+            buf.putInt(offset + 4, payType);
+            DeltaCompressedHitData deltaHit =
+                new DeltaCompressedHitData(buf, offset);
             return deltaHit;
+*/
         default:
             break;
         }
@@ -154,7 +159,7 @@ public class DomHitFileReader
      * @throws IOException if the next hit cannot be read
      */
     private void getNextHit()
-        throws DataFormatException, IOException
+        throws IOException, PayloadFormatException
     {
         if (lenBuf == null) {
             lenBuf = ByteBuffer.allocate(4);
@@ -168,7 +173,7 @@ public class DomHitFileReader
         if (numBytes >= 4) {
             int len = lenBuf.getInt(0);
             if (len < 4) {
-                throw new DataFormatException("Bad length " + len);
+                throw new PayloadFormatException("Bad length " + len);
             }
 
             ByteBuffer buf = ByteBuffer.allocate(len);
@@ -189,7 +194,7 @@ public class DomHitFileReader
         if (!gotNext) {
             try {
                 getNextHit();
-            } catch (DataFormatException dfe) {
+            } catch (PayloadFormatException pfe) {
                 nextHit = null;
             } catch (IOException ioe) {
                 nextHit = null;
@@ -216,7 +221,7 @@ public class DomHitFileReader
     {
         try {
             return nextHit();
-        } catch (DataFormatException ioe) {
+        } catch (PayloadFormatException ioe) {
             return null;
         } catch (IOException ioe) {
             return null;
@@ -232,7 +237,7 @@ public class DomHitFileReader
      * @throws IOException if the next hit cannot be read
      */
     public IDomHit nextHit()
-        throws DataFormatException, IOException
+        throws IOException, PayloadFormatException
     {
         if (!gotNext) {
             getNextHit();

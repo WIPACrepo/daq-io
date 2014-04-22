@@ -13,7 +13,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
-import java.util.zip.DataFormatException;
 
 import junit.framework.Test;
 import junit.framework.TestSuite;
@@ -801,6 +800,8 @@ public class FileDispatcherTest
     public void testSpecialDisp()
         throws DispatchException
     {
+        setVerbose(true);
+
         try {
             testDirectory = createTempDirectory();
         } catch (IOException ioe) {

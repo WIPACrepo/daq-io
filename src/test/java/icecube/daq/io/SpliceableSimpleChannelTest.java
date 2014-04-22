@@ -17,7 +17,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Pipe;
 import java.nio.channels.SelectableChannel;
 import java.util.List;
-import java.util.zip.DataFormatException;
 
 import junit.framework.Test;
 import junit.framework.TestSuite;
@@ -168,7 +167,6 @@ public class SpliceableSimpleChannelTest
         }
 
         public void loadPayload()
-            throws IOException, DataFormatException
         {
             throw new Error("Unimplemented");
         }
