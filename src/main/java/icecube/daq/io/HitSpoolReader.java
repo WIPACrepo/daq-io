@@ -145,10 +145,10 @@ public class HitSpoolReader
 
         final String hubStr;
         final String fullStr;
-        if (hubId >= 200 && hubId < 300) {
+        if (SourceIdRegistry.isIcetopHubSourceID(hubId)) {
             hubStr = null;
             fullStr = String.format("ithub%02d", hubId - 200);
-        } else if (hubId > 0) {
+        } else if (SourceIdRegistry.isIniceHubSourceID(hubId)) {
             hubStr = String.format("hub%02d", hubId);
             fullStr = String.format("ichub%02d", hubId);
         } else {
