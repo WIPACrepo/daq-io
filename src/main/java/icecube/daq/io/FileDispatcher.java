@@ -251,8 +251,7 @@ public class FileDispatcher implements Dispatcher {
         try {
             numWritten = event.writePayload(false, 0, buffer);
         } catch (IOException ioe) {
-            ioe.printStackTrace();
-            throw new DispatchException("Couldn't write payload", ioe);
+            throw new DispatchException("Couldn't write payload " + event, ioe);
         }
         if (numWritten != evtLen) {
             throw new DispatchException("Expected payload to be " + evtLen +
