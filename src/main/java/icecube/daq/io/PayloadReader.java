@@ -388,6 +388,11 @@ if(DEBUG_NEW)System.err.println("ANend");
         return (Long[]) recordCount.toArray(new Long[0]);
     }
 
+    public String getStringExtra()
+    {
+        return "";
+    }
+
     public synchronized long getTotalRecordsReceived() {
         long total = totalReceivedFromRemovedChannels;
         synchronized (chanList) {
@@ -858,7 +863,7 @@ if(DEBUG_SS)System.err.println("SSdone");
     public String toString()
     {
         return name + "[" + state + "," + chanList.size() + " chan," +
-            getTotalRecordsReceived() + " sent]";
+            getTotalRecordsReceived() + " sent" + getStringExtra() + "]";
     }
 
     /**

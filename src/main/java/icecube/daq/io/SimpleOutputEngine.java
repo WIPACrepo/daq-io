@@ -483,7 +483,7 @@ public class SimpleOutputEngine
                 try {
                     chan.close();
                 } catch (IOException ioe) {
-                    LOG.error("Couldn't close stopped channel", ioe);
+                    LOG.error("Couldn't close stopped channel " + chan, ioe);
                 }
             }
 
@@ -827,7 +827,8 @@ public class SimpleOutputEngine
             final int warningFrequency = 10000;
             if (stopped) {
                 if (++numPostStopData % warningFrequency == 1) {
-                    LOG.error("Queuing buffer after channel " + name +
+                    LOG.error("Queuing " + buf.limit() +
+                              "-byte buffer after channel " + name +
                               " has been stopped (num=" + numPostStopData +
                               ")");
                 }

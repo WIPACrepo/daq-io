@@ -76,6 +76,11 @@ public class SpliceablePayloadReader
         return (Integer[]) strandDepth.toArray(new Integer[0]);
     }
 
+    public String getStringExtra()
+    {
+        return ",depth " + getTotalStrandDepth();
+    }
+
     public synchronized int getTotalStrandDepth()
     {
         int totalDepth = 0;
