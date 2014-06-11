@@ -3,7 +3,6 @@ package icecube.daq.io;
 import icecube.daq.io.test.LoggingCase;
 import icecube.daq.io.test.MockBufferCache;
 import icecube.daq.payload.IByteBufferCache;
-import icecube.daq.payload.IPayloadDestination;
 import icecube.daq.payload.IUTCTime;
 import icecube.daq.payload.IWriteablePayload;
 import icecube.daq.payload.Poolable;
@@ -92,12 +91,6 @@ class AdjustablePayload
     void setValue(int val)
     {
         value = val;
-    }
-
-    public int writePayload(boolean b0, IPayloadDestination buf)
-        throws IOException
-    {
-        throw new Error("Unimplemented");
     }
 
     public int writePayload(boolean b0, int offset, ByteBuffer buf)
