@@ -11,6 +11,7 @@ import icecube.daq.payload.ITriggerRequestPayload;
 import icecube.daq.payload.PayloadChecker;
 import icecube.daq.payload.PayloadRegistry;
 import icecube.daq.payload.SourceIdRegistry;
+import icecube.daq.util.LocatePDAQ;
 
 import java.io.File;
 import java.io.IOException;
@@ -348,24 +349,13 @@ public class PayloadDumper
 
         if (runCfgName != null) {
             if (configDir == null) {
-                String pcfg = System.getenv("PDAQ_CONFIG");
-                if (pcfg != null) {
-                    configDir = new File(pcfg);
-                    if (!configDir.exists()) {
-                        configDir = null;
-                    }
-                }
-
-                if (configDir == null) {
-                    configDir = new File(System.getenv("HOME"), "config");
-                    if (!configDir.isDirectory()) {
-                        System.err.println("Cannot find default config " +
-                                           "directory " + configDir);
-                        System.err.println("Please specify config directory" +
-                                           " (-D)");
-                        configDir = null;
-                        usage = true;
-                    }
+                try {
+                    configDir = LocatePDAQ.findConfigDirectory();
+                } catch (IllegalArgumentException iae) {
+                    System.err.println("Cannot find configuration directory");
+                    System.err.println("Please specify config directory (-D)");
+                    configDir = null;
+                    usage = true;
                 }
             }
 
