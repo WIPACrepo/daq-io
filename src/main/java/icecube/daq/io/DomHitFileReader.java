@@ -3,8 +3,8 @@ package icecube.daq.io;
 import icecube.daq.payload.IDomHit;
 import icecube.daq.payload.PayloadFormatException;
 import icecube.daq.payload.PayloadRegistry;
-import icecube.daq.payload.impl.DeltaCompressedHitData;
-import icecube.daq.payload.impl.EngineeringHitData;
+//import icecube.daq.payload.impl.DeltaCompressedHitData;
+//import icecube.daq.payload.impl.EngineeringHitData;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -18,7 +18,7 @@ import org.apache.commons.logging.LogFactory;
 
 class DomHitFactory
 {
-    private static Log LOG = LogFactory.getLog(DomHitFactory.class);
+    private static final Log LOG = LogFactory.getLog(DomHitFactory.class);
 
     IDomHit createPayload(int offset, ByteBuffer buf)
         throws IOException, PayloadFormatException

@@ -25,7 +25,7 @@ import org.apache.log4j.BasicConfigurator;
 
 public class PayloadDumper
 {
-    private static Log LOG = LogFactory.getLog(PayloadDumper.class);
+    private static final Log LOG = LogFactory.getLog(PayloadDumper.class);
 
     private static final String INDENT = "   ";
 
@@ -209,7 +209,7 @@ public class PayloadDumper
         }
     }
 
-    private static final String getSourceName(int srcId)
+    private static String getSourceName(int srcId)
     {
         switch (srcId) {
         case SourceIdRegistry.ICETOP_TRIGGER_SOURCE_ID:

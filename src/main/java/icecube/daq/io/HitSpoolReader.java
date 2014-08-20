@@ -2,7 +2,6 @@ package icecube.daq.io;
 
 import icecube.daq.common.DAQCmdInterface;
 
-import icecube.daq.payload.IPayload;
 import icecube.daq.payload.ISourceID;
 import icecube.daq.payload.PayloadException;
 import icecube.daq.payload.SourceIdRegistry;
