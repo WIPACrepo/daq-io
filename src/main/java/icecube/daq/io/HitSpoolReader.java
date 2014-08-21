@@ -30,8 +30,6 @@ public class HitSpoolReader
 {
     private static final Log LOG = LogFactory.getLog(HitSpoolReader.class);
 
-    /** Main file/directory */
-    private File baseFile;
     /** hub ID */
     private int hubId;
     /** List of hitspool files */
@@ -90,7 +88,6 @@ public class HitSpoolReader
     public HitSpoolReader(File baseFile, int hubId)
         throws IOException
     {
-        this.baseFile = baseFile;
         this.hubId = hubId;
 
         if (baseFile.isDirectory()) {

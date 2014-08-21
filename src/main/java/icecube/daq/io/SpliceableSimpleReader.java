@@ -59,7 +59,7 @@ public class SpliceableSimpleReader
     public synchronized Integer[] getStrandDepth()
     {
         // a negative number indicates a null strand end
-        Integer nullDepth = new Integer(-1);
+        Integer nullDepth = Integer.valueOf(-1);
 
         ArrayList strandDepth = new ArrayList();
         for (SimpleChannel chan : listChannels()) {
@@ -69,7 +69,7 @@ public class SpliceableSimpleReader
             if (!sChan.hasStrandTail()) {
                 depth = nullDepth;
             } else {
-                depth = new Integer(sChan.getStrandTailDepth());
+                depth = Integer.valueOf(sChan.getStrandTailDepth());
             }
             strandDepth.add(depth);
         }

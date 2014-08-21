@@ -294,7 +294,7 @@ if(DEBUG_NEW)System.err.println("ANend");
         ArrayList byteLimit = new ArrayList();
         synchronized (chanList) {
             for (InputChannel cd : chanList) {
-                byteLimit.add(new Long(cd.getBufferCurrentAcquiredBuffers()));
+                byteLimit.add(Long.valueOf(cd.getBufferCurrentAcquiredBuffers()));
             }
         }
 
@@ -305,7 +305,7 @@ if(DEBUG_NEW)System.err.println("ANend");
         ArrayList byteLimit = new ArrayList();
         synchronized (chanList) {
             for (InputChannel cd : chanList) {
-                byteLimit.add(new Long(cd.getBufferCurrentAcquiredBytes()));
+                byteLimit.add(Long.valueOf(cd.getBufferCurrentAcquiredBytes()));
             }
         }
         return (Long[]) byteLimit.toArray(new Long[0]);
@@ -315,7 +315,7 @@ if(DEBUG_NEW)System.err.println("ANend");
         ArrayList byteCount = new ArrayList();
         synchronized (chanList) {
             for (InputChannel cd : chanList) {
-                byteCount.add(new Long(cd.getBytesReceived()));
+                byteCount.add(Long.valueOf(cd.getBytesReceived()));
             }
         }
         return (Long[]) byteCount.toArray(new Long[0]);
@@ -325,7 +325,7 @@ if(DEBUG_NEW)System.err.println("ANend");
         ArrayList byteLimit = new ArrayList();
         synchronized (chanList) {
             for (InputChannel cd : chanList) {
-                byteLimit.add(new Long(cd.getLimitToRestartAllocation()));
+                byteLimit.add(Long.valueOf(cd.getLimitToRestartAllocation()));
             }
         }
         return (Long[]) byteLimit.toArray(new Long[0]);
@@ -335,7 +335,7 @@ if(DEBUG_NEW)System.err.println("ANend");
         ArrayList byteLimit = new ArrayList();
         synchronized (chanList) {
             for (InputChannel cd : chanList) {
-                byteLimit.add(new Long(cd.getLimitToStopAllocation()));
+                byteLimit.add(Long.valueOf(cd.getLimitToStopAllocation()));
             }
         }
         return (Long[]) byteLimit.toArray(new Long[0]);
@@ -369,7 +369,7 @@ if(DEBUG_NEW)System.err.println("ANend");
     public synchronized Long[] getRecordsReceived() {
         ArrayList recordCount = new ArrayList();
         for (InputChannel cd : chanList) {
-            recordCount.add(new Long(cd.getRecordsReceived()));
+            recordCount.add(Long.valueOf(cd.getRecordsReceived()));
         }
         return (Long[]) recordCount.toArray(new Long[0]);
     }
@@ -382,7 +382,7 @@ if(DEBUG_NEW)System.err.println("ANend");
         ArrayList recordCount = new ArrayList();
         synchronized (chanList) {
             for (InputChannel cd : chanList) {
-                recordCount.add(new Long(cd.getStopMessagesReceived()));
+                recordCount.add(Long.valueOf(cd.getStopMessagesReceived()));
             }
         }
         return (Long[]) recordCount.toArray(new Long[0]);

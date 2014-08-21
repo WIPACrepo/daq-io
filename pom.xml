@@ -9,7 +9,7 @@
   <modelVersion>4.0.0</modelVersion>
   <artifactId>daq-io</artifactId>
   <packaging>jar</packaging>
-  <name>daq-io</name>
+  <name>DAQ readers and writers</name>
   <description>The I/O sub-system of the Surface Data Acquisition system for the IceCube Project.</description>
 
   <scm>
