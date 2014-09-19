@@ -25,11 +25,6 @@
   <dependencies>
     <dependency>
       <groupId>edu.wisc.icecube</groupId>
-      <artifactId>icebucket</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>edu.wisc.icecube</groupId>
       <artifactId>payload</artifactId>
     </dependency>
 
