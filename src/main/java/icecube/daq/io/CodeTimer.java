@@ -65,7 +65,7 @@ public class CodeTimer
             }
         }
 
-        StringBuffer buf = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
 
         boolean needSpace = false;
         for (int i = 0; i < title.length; i++) {
