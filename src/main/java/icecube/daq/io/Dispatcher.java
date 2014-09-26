@@ -1,7 +1,7 @@
 /*
  * interface: Dispatcher
  *
- * Version $Id: Dispatcher.java 13401 2011-11-11 04:23:13Z dglo $
+ * Version $Id: Dispatcher.java 15168 2014-09-26 17:39:14Z dglo $
  *
  * Date: April 1 2004
  *
@@ -13,13 +13,14 @@ package icecube.daq.io;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IWriteablePayload;
 
+import java.io.File;
 import java.nio.ByteBuffer;
 
 /**
  * This interface specifies how events are dispatched from the DAQ system.
  *
  * @author patton
- * @version $Id: Dispatcher.java 13401 2011-11-11 04:23:13Z dglo $
+ * @version $Id: Dispatcher.java 15168 2014-09-26 17:39:14Z dglo $
  */
 public interface Dispatcher
 {
@@ -111,6 +112,13 @@ public interface Dispatcher
      * @return byte buffer cache
      */
     IByteBufferCache getByteBufferCache();
+
+    /**
+     * Get the destination directory where the dispatch files will be saved.
+     *
+     * @return The absolute path where the dispatch files will be stored.
+     */
+    File getDispatchDestStorage();
 
     /**
      * Get the  number of events dispatched during this run

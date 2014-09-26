@@ -430,7 +430,7 @@ public class FileDispatcherTest
 
         FileDispatcher fd = new FileDispatcher(".", "physics");
         assertEquals("Unexpected destination directory",
-                     ".", fd.getDispatchDestinationDirectory());
+                     ".", fd.getDispatchDestStorage().getPath());
 
         try {
             fd.setDispatchDestStorage(null);
@@ -446,7 +446,7 @@ public class FileDispatcherTest
 
         FileDispatcher fd = new FileDispatcher(badDir, "physics");
         assertEquals("Unexpected destination directory",
-                     ".", fd.getDispatchDestinationDirectory());
+                     ".", fd.getDispatchDestStorage().getPath());
 
         assertEquals("Bad number of log messages",
                      1, getNumberOfMessages());
@@ -493,15 +493,15 @@ public class FileDispatcherTest
         try {
             FileDispatcher fd = new FileDispatcher(goodDir, "physics");
             assertEquals("Unexpected destination directory",
-                         goodDir, fd.getDispatchDestinationDirectory());
+                         goodDir, fd.getDispatchDestStorage().getPath());
 
             FileDispatcher fd2 = new FileDispatcher(".", "physics");
             assertEquals("Unexpected destination directory",
-                         ".", fd2.getDispatchDestinationDirectory());
+                         ".", fd2.getDispatchDestStorage().getPath());
 
             fd2.setDispatchDestStorage(goodDir);
             assertEquals("Unexpected destination directory",
-                         goodDir, fd2.getDispatchDestinationDirectory());
+                         goodDir, fd2.getDispatchDestStorage().getPath());
         } finally {
             if (!preexist) {
                 deleteDirectory(subdirFile);
@@ -563,7 +563,7 @@ public class FileDispatcherTest
         FileDispatcher fd =
             new FileDispatcher(testDirectory.getAbsolutePath(), "physics");
         assertEquals("Unexpected destination directory",
-                     ".", fd.getDispatchDestinationDirectory());
+                     ".", fd.getDispatchDestStorage().getPath());
         assertEquals("Bad number of log messages",
                      2, getNumberOfMessages());
         assertEquals("Unexpected log message 0",

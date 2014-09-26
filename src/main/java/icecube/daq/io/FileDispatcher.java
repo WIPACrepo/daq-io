@@ -63,7 +63,7 @@ public class FileDispatcher implements Dispatcher {
     {
         setDispatchDestStorage(destDir, true);
 
-        if (baseFileName == null){
+        if (baseFileName == null) {
             throw new IllegalArgumentException("baseFileName cannot be NULL!");
         }
 
@@ -72,8 +72,9 @@ public class FileDispatcher implements Dispatcher {
         if (LOG.isInfoEnabled()) {
             LOG.info("baseFileName is set to: " + baseFileName);
         }
-        if ( baseFileName.equalsIgnoreCase("tcal") ||
-                   baseFileName.equalsIgnoreCase("sn")){
+        if (baseFileName.equalsIgnoreCase("tcal") ||
+            baseFileName.equalsIgnoreCase("sn"))
+        {
             maxFileSize = 200000000;
         }
 
@@ -337,13 +338,13 @@ public class FileDispatcher implements Dispatcher {
     }
 
     /**
-     * Get the destination directory for completed data files.
+     * Get the destination directory where the dispatch files will be saved.
      *
-     * @return destination directory
+     * @return The absolute path where the dispatch files will be stored.
      */
-    public String getDispatchDestinationDirectory()
+    public File getDispatchDestStorage()
     {
-        return dispatchDir.getPath();
+        return dispatchDir;
     }
 
     public static File getTempFile(String destDirName, String baseFileName)
