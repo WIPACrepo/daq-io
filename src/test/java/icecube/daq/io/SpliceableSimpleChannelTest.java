@@ -137,11 +137,6 @@ public class SpliceableSimpleChannelTest
             throw new Error("Unimplemented");
         }
 
-        public int getPayloadLength()
-        {
-            return length();
-        }
-
         public IUTCTime getPayloadTimeUTC()
         {
             if (timeObj == null) {
