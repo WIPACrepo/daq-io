@@ -554,13 +554,10 @@ public class FileDispatcher implements Dispatcher {
     }
 
     private File getDestFile(){
-        String fileName = baseFileName + "_" + runNumber + "_" + fileIndex +
-            "_" + startingEventNum + "_" + + numDispatchedEvents;
-        File file = new File(dispatchDir, fileName + ".dat");
-
-        ++fileIndex;
-
-        return file;
+        final String fileName =
+            String.format("%s_%06d_%06d_%d_%d.dat", baseFileName, runNumber,
+                          fileIndex++, startingEventNum, numDispatchedEvents);
+        return new File(dispatchDir, fileName);
     }
 
     private void moveToDest() throws DispatchException {
