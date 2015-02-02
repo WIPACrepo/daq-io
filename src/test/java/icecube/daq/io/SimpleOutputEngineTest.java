@@ -641,15 +641,15 @@ public class SimpleOutputEngineTest
         IOTestUtil.waitUntilRunning(engine);
 
         engine.disconnect();
-        Thread.sleep(10);
+        IOTestUtil.waitUntilStopped(engine, "disconnect");
 
-        assertTrue("Failure on sendLastAndStop command.",
+        assertTrue("Failure on sendLastAndStop command: " + observer,
                    observer.gotSourceStop());
-        assertFalse("Got sinkStop notification",
+        assertFalse("Got sinkStop notification: " + observer,
                    observer.gotSinkStop());
-        assertFalse("Got sourceError notification",
+        assertFalse("Got sourceError notification: " + observer,
                    observer.gotSourceError());
-        assertFalse("Got sinkError notification",
+        assertFalse("Got sinkError notification: " + observer,
                    observer.gotSinkError());
 
         assertTrue("ByteBufferCache is not balanced", cacheMgr.isBalanced());
