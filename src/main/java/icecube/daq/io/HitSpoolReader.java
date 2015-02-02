@@ -173,7 +173,8 @@ public class HitSpoolReader
                 }
                 if (!matched) {
                     matched = dirList[i].getName().startsWith("HitSpool-") &&
-                        dirList[i].getName().endsWith(".dat");
+                        (dirList[i].getName().endsWith(".dat") ||
+                         dirList[i].getName().endsWith(".dat.gz"));
                 }
                 if (!matched) {
                     continue;
@@ -203,7 +204,7 @@ public class HitSpoolReader
     }
 
     /**
-     * Get the number of payload reader.
+     * Get the number of payloads read.
      *
      * @return number of payloads read
      */
