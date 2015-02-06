@@ -37,6 +37,9 @@ public class HitSpoolReader
     /** Payload byte buffer reader */
     private PayloadByteReader rdr;
 
+    /** Number of files opened */
+    private int numFiles;
+
     /**
      * Open the named hitspool file or directory.
      *
@@ -204,6 +207,16 @@ public class HitSpoolReader
     }
 
     /**
+     * Get the number of files opened for reading.
+     *
+     * @return number of files opened for reading.
+     */
+    public int getNumberOfFiles()
+    {
+        return numFiles;
+    }
+
+    /**
      * Get the number of payloads read.
      *
      * @return number of payloads read
@@ -315,6 +328,7 @@ public class HitSpoolReader
                 }
 
                 rdr = new PayloadByteReader(hsf.getFile(), in);
+                numFiles++;
                 break;
             } catch (IOException ioe) {
                 LOG.error("Cannot open " + hsf.getFile(), ioe);
