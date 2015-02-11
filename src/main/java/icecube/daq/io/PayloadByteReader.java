@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
+import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -72,9 +73,12 @@ public class PayloadByteReader
      * @throws IOException if the file cannot be opened
      */
     public PayloadByteReader(File file, InputStream stream)
-        //throws IOException
+        throws IOException
     {
         this.file = file;
+        if (file.getName().endsWith(".gz")) {
+            stream = new GZIPInputStream(stream);
+        }
         this.stream = new DataInputStream(new BufferedInputStream(stream));
     }
 

@@ -17,7 +17,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -168,16 +167,16 @@ public class HitSpoolReader
             // only match files for specified hub
             if (hubId > 0) {
                 boolean matched = false;
+                if (!matched) {
+                    matched = dirList[i].getName().startsWith("HitSpool-") &&
+                        (dirList[i].getName().endsWith(".dat") ||
+                         dirList[i].getName().endsWith(".dat.gz"));
+                }
                 if (!matched && fullStr != null) {
                     matched = dirList[i].getName().startsWith(fullStr);
                 }
                 if (!matched && hubStr != null) {
                     matched = dirList[i].getName().startsWith(hubStr);
-                }
-                if (!matched) {
-                    matched = dirList[i].getName().startsWith("HitSpool-") &&
-                        (dirList[i].getName().endsWith(".dat") ||
-                         dirList[i].getName().endsWith(".dat.gz"));
                 }
                 if (!matched) {
                     continue;
@@ -322,12 +321,7 @@ public class HitSpoolReader
             IHitSpoolFile hsf = files.remove(0);
 
             try {
-                InputStream in = new FileInputStream(hsf.getFile());
-                if (hsf.isGZipped()) {
-                    in = new GZIPInputStream(in);
-                }
-
-                rdr = new PayloadByteReader(hsf.getFile(), in);
+                rdr = new PayloadByteReader(hsf.getFile());
                 numFiles++;
                 break;
             } catch (IOException ioe) {
