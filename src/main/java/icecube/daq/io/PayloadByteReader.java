@@ -255,7 +255,7 @@ public class PayloadByteReader
 
             // set the new buffer position
             buf.position(buf.position() + rtnval);
-            }
+        }
 
         if (buf.position() < buf.capacity()) {
             final String msg =
