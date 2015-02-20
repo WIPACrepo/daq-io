@@ -64,6 +64,8 @@ public class SimpleOutputEngine
     /** Has this engine been connected to one or more input channels? */
     private boolean isConnected = false;
 
+    /** Number of records sent. */
+    private long numSent;
     /** Total number of records sent. */
     private long totalSent;
 
@@ -339,21 +341,11 @@ public class SimpleOutputEngine
     }
 
     /**
-     * Get the total number of records written.
-     *
-     * @return total number of records written
-     */
-    public long getTotalRecordsSent()
-    {
-        return totalSent;
-    }
-
-    /**
      * Get the number of records written by all output channel queues.
      *
      * @return number of records written by each output channel
      */
-    public long[] getRecordsSent()
+    public long[] getChannelRecordsSent()
     {
         long[] sentList;
 
@@ -367,6 +359,26 @@ public class SimpleOutputEngine
         }
 
         return sentList;
+    }
+
+    /**
+     * Get the total number of records written.
+     *
+     * @return total number of records written
+     */
+    public long getRecordsSent()
+    {
+        return numSent;
+    }
+
+    /**
+     * Get the total number of records written.
+     *
+     * @return total number of records written
+     */
+    public long getTotalRecordsSent()
+    {
+        return totalSent;
     }
 
     /**
@@ -500,7 +512,7 @@ public class SimpleOutputEngine
      */
     public void run()
     {
-        totalSent = 0;
+        numSent = 0;
 
         // stop immediately if there are no channels
         if (channelList.size() > 0) {
@@ -707,8 +719,8 @@ public class SimpleOutputEngine
         /** Is this channel registered with the parent engine? */
         private boolean registered;
 
-        /** Number of records sent. */
-        private long numSent;
+        /** Number of records sent by this channel. */
+        private long chanSent;
         /** <tt>True</tt> if this channel has been stopped. */
         private boolean stopped;
 
@@ -784,7 +796,7 @@ public class SimpleOutputEngine
          */
         public long getRecordsSent()
         {
-            return numSent;
+            return chanSent;
         }
 
         /**
@@ -997,6 +1009,7 @@ public class SimpleOutputEngine
 
                     bytesLeft -= numWritten;
 
+                    chanSent++;
                     numSent++;
                     totalSent++;
                 }
