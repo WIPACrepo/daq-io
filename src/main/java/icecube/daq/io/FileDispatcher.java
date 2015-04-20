@@ -108,7 +108,7 @@ public class FileDispatcher implements Dispatcher {
     /**
      * Signals to the dispatch system that the set of events that preced this
      * call are separated, by some criteria, for those that succeed it.
-     * <p/>
+     * <p>
      * The message supplied with this method is opaque to the system, i.e. it
      * is not used by the system, and it simple passed on through the any
      * delivery client.
@@ -267,7 +267,7 @@ public class FileDispatcher implements Dispatcher {
      * prepared for reading so normally a {@link ByteBuffer#flip flip} should
      * be done before this call and a {@link ByteBuffer#compact compact}
      * afterwards.
-     * <p/>
+     * <p>
      * The number of events is taken to be the length of the indices array.
      *
      * @param buffer  the ByteBuffer containg the events.

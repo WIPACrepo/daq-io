@@ -1,7 +1,7 @@
 /*
  * interface: Dispatcher
  *
- * Version $Id: Dispatcher.java 15168 2014-09-26 17:39:14Z dglo $
+ * Version $Id: Dispatcher.java 15513 2015-04-20 19:02:50Z dglo $
  *
  * Date: April 1 2004
  *
@@ -20,7 +20,7 @@ import java.nio.ByteBuffer;
  * This interface specifies how events are dispatched from the DAQ system.
  *
  * @author patton
- * @version $Id: Dispatcher.java 15168 2014-09-26 17:39:14Z dglo $
+ * @version $Id: Dispatcher.java 15513 2015-04-20 19:02:50Z dglo $
  */
 public interface Dispatcher
 {
@@ -49,7 +49,7 @@ public interface Dispatcher
     /**
      * Signals to the dispatch system that the set of events that preced this
      * call are separated, by some criteria, for those that succeed it.
-     * <p/>
+     * <p>
      * The message supplied with this method is opaque to the system, i.e. it
      * is not used by the system, and it simple passed on through the any
      * delivery client.
@@ -83,7 +83,7 @@ public interface Dispatcher
      * prepared for reading so normally a {@link ByteBuffer#flip flip} should
      * be done before this call and a {@link ByteBuffer#compact compact}
      * afterwards.
-     * <p/>
+     * <p>
      * The number of events is taken to be the length of the indices array.
      *
      * @param buffer the ByteBuffer containg the events.

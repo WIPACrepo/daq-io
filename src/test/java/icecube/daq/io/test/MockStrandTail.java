@@ -22,11 +22,11 @@ public class MockStrandTail
     }
 
     /**
-     * Closes the associated {@link Strand}. The Splicer will continue to
+     * Closes the associated Strand. The Splicer will continue to
      * handle those Spliceables already pushed into this object but will not
      * acccept any more. Any further attempt to push in a Spliceable into this
      * object will cause a ClosedStrandException to be thrown.
-     * <p/>
+     * <p>
      * If the associated Strand is already closed then invoking this method
      * will have no effect.
      */
@@ -60,24 +60,24 @@ public class MockStrandTail
 
     /**
      * Adds the specified List of {@link Spliceable} objects onto the tail of
-     * the associated {@link Strand}. The List of Spliceables must be ordered
+     * the associated Strand. The List of Spliceables must be ordered
      * such that all Spliceable, <code>s</code>, - with the exception of the
-     * {@link Splicer#LAST_POSSIBLE_SPLICEABLE} object - that are lower in the
+     * <code>LAST_POSSIBLE_SPLICEABLE</code> object - that are lower in the
      * list than Spliceable <code>t</code> are also less or equal to
      * <code>t</code>,
-     * <p/>
+     * <p>
      * <pre>
-     *    0 > s.compareTo(t)
+     *    0 &gt; s.compareTo(t)
      * </pre>
-     * <p/>
+     * <p>
      * otherwise an IllegalArgumentException will be thrown.
-     * <p/>
+     * <p>
      * Moreover the first Spliceable in the List must be greater or equal to
      * the last Spliceable - again, with the exception of the
      * <code>LAST_POSSIBLE_SPLICEABLE</code> object - pushed into this object
      * otherwise an IllegalArgumentException will be thrown.
      *
-     * @param spliceables the List of Spliceable objects to be added.
+     * @param splList the List of Spliceable objects to be added.
      * @return this object, so that pushes can be chained.
      * @throws OrderingException if the specified List of Spliceables is not
      * properly ordered or is mis-ordered with respect to Spliceables already
@@ -96,23 +96,23 @@ public class MockStrandTail
 
     /**
      * Adds the specified {@link Spliceable} onto the tail of the associated
-     * {@link Strand}. The specified Spliceable must be greater or equal to all
-     * other Spliceables, <code>s</code>, - with the exception of the {@link
-     * Splicer#LAST_POSSIBLE_SPLICEABLE} object - that have been previously
+     * Strand. The specified Spliceable must be greater or equal to all
+     * other Spliceables, <code>s</code>, - with the exception of the
+     * <code>LAST_POSSIBLE_SPLICEABLE</code> object - that have been previously
      * pushed into this object,
-     * <p/>
+     * <p>
      * <pre>
-     *    0 > s.compareTo(spliceable)
+     *    0 &gt; s.compareTo(spliceable)
      * </pre>
-     * <p/>
+     * <p>
      * otherwise an IllegalArgumentException will be thrown.
-     * <p/>
+     * <p>
      * Any Spliceables pushed into the Strand after a <code>LAST_POSSIBLE_SPLICE
 ABLE</code>
      * object will not appear in the associated Strand until the Splicer has
      * "stopped".
      *
-     * @param spliceable the Spliceable to be added.
+     * @param spl the Spliceable to be added.
      * @return this object, so that pushes can be chained.
      * @throws OrderingException if the specified Spliceable is mis-ordered
      * with respect to Spliceables already pushed into this object

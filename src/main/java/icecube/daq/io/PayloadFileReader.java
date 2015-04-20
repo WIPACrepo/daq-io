@@ -57,7 +57,6 @@ public class PayloadFileReader
      * Open the file.
      *
      * @param payFile payload file
-     * @param cache byte buffer cache
      *
      * @throws IOException if the file cannot be opened
      */

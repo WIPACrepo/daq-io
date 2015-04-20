@@ -134,7 +134,7 @@ public abstract class SimpleReader
      *
      * @param chan channel
      * @param buf ByteBuffer which caused the error (may ne <tt>null</tt>)
-     * @ex exception (may be null)
+     * @param ex exception (may be null)
      */
     public void channelError(IOChannel chan, ByteBuffer buf,
                              Exception ex)
