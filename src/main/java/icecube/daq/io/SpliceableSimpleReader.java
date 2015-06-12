@@ -96,14 +96,14 @@ public class SpliceableSimpleReader
     public void startProcessing()
     {
         int tries = 0;
-        while (splicer.getState() != Splicer.STOPPED) {
+        while (splicer.getState() != Splicer.State.STOPPED) {
             if (++tries > MAX_STOP_TRIES) {
                 throw new Error("Couldn't stop splicer");
             }
 
             if (tries == 1 && LOG.isWarnEnabled()) {
                 LOG.warn("Splicer should have been in STOPPED state, not " +
-                         splicer.getStateString() +
+                         splicer.getState().name() +
                          ".  Calling Splicer.forceStop()");
             }
 

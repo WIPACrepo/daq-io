@@ -14,14 +14,14 @@ import java.util.Iterator;
 import java.util.List;
 
 public class MockSplicer
-    implements Splicer
+    implements Splicer<Spliceable>
 {
     private ArrayList strandList = new ArrayList();
-    private int state;
+    private State state;
 
     public MockSplicer()
     {
-        state = STOPPED;
+        state = State.STOPPED;
     }
 
     /**
@@ -125,7 +125,7 @@ try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
      */
     public void forceStop()
     {
-        state = STOPPED;
+        state = State.STOPPED;
     }
 
     /**
@@ -144,31 +144,9 @@ try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
      *
      * @return the current state of this object.
      */
-    public int getState()
+    public State getState()
     {
         return state;
-    }
-
-    /**
-     * Returns a string describing the current state of this object.
-     *
-     * @return a string describing the current state of this object.
-     */
-    public String getStateString()
-    {
-        return "MockState";
-    }
-
-    /**
-     * Returns a string describing the specified state.
-     *
-     * @param state the state whose string is being requested.
-     * @return a string describing the specified state.
-     */
-    public String getStateString(int state)
-    {
-try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
-        throw new Error("Unimplemented");
     }
 
     /**
@@ -280,7 +258,7 @@ try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
      */
     public void start()
     {
-        state = STARTED;
+        state = State.STARTED;
     }
 
     /**
@@ -360,21 +338,6 @@ try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
      */
     public void stop(Spliceable stop)
         throws OrderingException
-    {
-try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
-        throw new Error("Unimplemented");
-    }
-
-    /**
-     * Truncates the "rope" such that only those Spliceable greater than or
-     * equal to the specified Spliceable remain in the "rope". It is perfectly
-     * safe to a call this methods from the <code>execute</code> of a {@link
-     * SplicedAnalysis} object as it will not change the "rope" passed to that
-     * method until tha method returns.
-     *
-     * @param spliceable the cut-off Spliceable.
-     */
-    public void truncate(Spliceable spliceable)
     {
 try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
         throw new Error("Unimplemented");

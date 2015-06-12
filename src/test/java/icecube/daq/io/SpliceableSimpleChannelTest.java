@@ -39,7 +39,7 @@ public class SpliceableSimpleChannelTest
     }
 
     class MockStrandTail
-        implements StrandTail
+        implements StrandTail<Spliceable>
     {
         private boolean closed;
 

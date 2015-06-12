@@ -113,7 +113,7 @@ public class SpliceablePayloadReaderTest
                      1, getNumberOfMessages());
         assertEquals("Unexpected log message 0",
                      "Splicer should have been in STOPPED state," +
-                     " not MockState.  Calling Splicer.forceStop()",
+                     " not STARTED.  Calling Splicer.forceStop()",
                      getMessage(0));
         clearMessages();
 
@@ -137,7 +137,7 @@ public class SpliceablePayloadReaderTest
                      1, getNumberOfMessages());
         assertEquals("Unexpected log message 0",
                      "Splicer should have been in STOPPED state," +
-                     " not MockState.  Calling Splicer.forceStop()",
+                     " not STARTED.  Calling Splicer.forceStop()",
                      getMessage(0));
         clearMessages();
     }

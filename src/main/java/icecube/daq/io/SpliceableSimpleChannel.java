@@ -62,7 +62,7 @@ public class SpliceableSimpleChannel
             LOG.info("pushing LAST_POSSIBLE_SPLICEABLE");
         }
 
-        pushSpliceable(Splicer.LAST_POSSIBLE_SPLICEABLE);
+        pushSpliceable(SpliceableFactory.LAST_POSSIBLE_SPLICEABLE);
 
         super.notifyOnStop();
     }

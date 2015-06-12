@@ -12,7 +12,7 @@ import java.util.Iterator;
 import java.util.List;
 
 public class MockStrandTail
-    implements StrandTail
+    implements StrandTail<Spliceable>
 {
     private ArrayList<Spliceable> entries = new ArrayList<Spliceable>();
     private boolean closed;
