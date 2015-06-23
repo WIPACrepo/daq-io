@@ -56,6 +56,10 @@ public class PayloadDumper
     {
         System.out.println(evt.toString());
 
+        boolean foundTRec = false;
+        boolean foundRdout = false;
+        boolean foundErr = false;
+
         try {
             boolean printHdr = true;
             for (IEventTriggerRecord trigRec : evt.getTriggerRecords()) {
@@ -70,10 +74,12 @@ public class PayloadDumper
                     hitRecList.add(hitRec);
                 }
 
-                dumpTriggerRecord(trigRec, hitRecList, evt.getUTCTime());
+                dumpTriggerRecord(trigRec, hitRecList, evt.getUTCTime(),
+                                  INDENT);
+                foundTRec = true;
             }
         } catch (Error err) {
-            System.out.println("-- No trigger records");
+            foundErr = true;
         }
 
         try {
@@ -85,9 +91,10 @@ public class PayloadDumper
                 }
 
                 dumpComplex((ILoadablePayload) obj);
+                foundRdout = true;
             }
         } catch (Error err) {
-            System.out.println("-- No readout data");
+            foundErr = true;
         }
 
         if (showHitRecords) {
@@ -102,7 +109,7 @@ public class PayloadDumper
                     System.out.println(hitRec.toString());
                 }
             } catch (Error err) {
-                System.out.println("-- No hit records");
+                foundErr = true;
             }
         }
     }
@@ -134,7 +141,7 @@ public class PayloadDumper
 
     public static void dumpTriggerRecord(IEventTriggerRecord trigRec,
                                          List<IEventHitRecord> fullList,
-                                         long evtStartTime)
+                                         long evtStartTime, String indent)
     {
         final String trigName =
             TriggerRequest.getTriggerName(trigRec.getType(),
@@ -143,8 +150,8 @@ public class PayloadDumper
         final String srcName = getSourceName(trigRec.getSourceID());
 
         String tstr =
-            String.format(" - trig %s cfg %d %s start %.1f dur %.1f",
-                          trigName, trigRec.getConfigID(), srcName,
+            String.format("%strig %s cfg %d %s start %.1f dur %.1f",
+                          indent, trigName, trigRec.getConfigID(), srcName,
                           (trigRec.getFirstTime() - evtStartTime) * 0.1,
                           (trigRec.getLastTime() -
                            trigRec.getFirstTime()) * 0.1);
@@ -152,11 +159,14 @@ public class PayloadDumper
 
         int[] idxList = trigRec.getHitRecordIndexList();
 
+        final String indent2 = indent + INDENT;
+
         long prevTime = 0L;
         for (int i = 0; i < idxList.length; i++) {
             String hstr;
             if (idxList[i] < 0 || idxList[i] > fullList.size()) {
-                hstr = String.format("!! bad hit index #%d !!", idxList[i]);
+                hstr = String.format("%s!! bad hit index #%d !!", indent2,
+                                     idxList[i]);
             } else {
                 IEventHitRecord hit = fullList.get(idxList[i]);
 
@@ -167,15 +177,16 @@ public class PayloadDumper
                     mark = " !!!";
                 }
 
-                hstr = String.format("#%d chan %d time %.1f%s", idxList[i],
-                                     hit.getChannelID(),
+                hstr = String.format("%shit #%d chan %d time %.1f%s",
+                                     indent2, idxList[i], hit.getChannelID(),
                                      (hit.getHitTime() - evtStartTime) * 0.1,
                                      mark);
 
+                hstr = indent2 + hit.toString();
                 prevTime = hit.getHitTime();
             }
 
-            System.out.println("  - hit " + hstr);
+            System.out.println(hstr);
         }
     }
 
