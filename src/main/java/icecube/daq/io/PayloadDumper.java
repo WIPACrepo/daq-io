@@ -283,8 +283,6 @@ public class PayloadDumper
                 File tmpCfgDir = new File(args[i]);
                 if (tmpCfgDir.isDirectory()) {
                     configDir = tmpCfgDir;
-                } else if (args[i].charAt(1) == 'v') {
-                    validate = true;
                 } else {
                     System.err.println("Bad config directory \"" +
                                        tmpCfgDir + "\"");
@@ -338,6 +336,9 @@ public class PayloadDumper
                         }
                     }
                     break;
+                case 'v':
+                    validate = true;
+                    break;
                 default:
                     System.err.println("Bad option \"" + args[i] +
                                        "\"; valid options are -h(ex) and" +
@@ -383,6 +384,7 @@ public class PayloadDumper
             System.err.print(" [-f(ullDump)]");
             System.err.print(" [-h(exDump)]");
             System.err.print(" [-n numToDump]");
+            System.err.print(" [-v(alidate)]");
             System.err.print(" payloadFile ...");
             System.err.println();
             System.exit(1);
