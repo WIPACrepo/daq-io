@@ -6,7 +6,6 @@ import icecube.daq.splicer.ClosedStrandException;
 import icecube.daq.splicer.OrderingException;
 import icecube.daq.splicer.Spliceable;
 import icecube.daq.splicer.SpliceableFactory;
-import icecube.daq.splicer.Splicer;
 import icecube.daq.splicer.StrandTail;
 
 import java.io.IOException;

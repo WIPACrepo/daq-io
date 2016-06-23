@@ -10,9 +10,7 @@ import icecube.daq.payload.impl.DOMHit;
 import icecube.daq.payload.impl.DOMHitFactory;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -582,10 +580,10 @@ class HitSpoolFile
             end -= 4;
         }
 
-        int idx;
-        for (idx = end;
-             idx > 0 && Character.isDigit(name.charAt(idx - 1));
-             idx--);
+        int idx = end;
+        while (idx > 0 && Character.isDigit(name.charAt(idx - 1))) {
+            idx--;
+        }
 
         if (idx == end) {
             if (assumeFirst) {

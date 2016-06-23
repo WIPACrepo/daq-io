@@ -1,7 +1,7 @@
 /*
  * class: PayloadTransmitChannel
  *
- * Version $Id: PayloadTransmitChannel.java 3439 2008-09-02 17:08:41Z dglo $
+ * Version $Id: PayloadTransmitChannel.java 16158 2016-06-23 20:35:31Z dglo $
  *
  * Date: May 15 2005
  *
@@ -30,7 +30,7 @@ import org.apache.commons.logging.LogFactory;
  * for returning buffers into the buffer cache.
  *
  * @author mcp
- * @version $Id: PayloadTransmitChannel.java 3439 2008-09-02 17:08:41Z dglo $
+ * @version $Id: PayloadTransmitChannel.java 16158 2016-06-23 20:35:31Z dglo $
  */
 public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutputChannel {
 
@@ -72,8 +72,6 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutput
 
     // print log messages with state change information?
     private static final boolean TRACE_STATE = false;
-    // print log messages with data dumps
-    private static final boolean TRACE_DATADUMP = false;
 
     // sempahore to be used as a mutex to lock out cuncurrent ops
     // between wait code and channel locator callbacks
