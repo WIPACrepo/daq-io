@@ -16,8 +16,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 
 /**
  * Read payloads from a file.
@@ -25,10 +26,12 @@ import org.apache.commons.logging.LogFactory;
 public class HitSpoolReader
     implements Iterator<ByteBuffer>, Iterable<ByteBuffer>
 {
-    private static final Log LOG = LogFactory.getLog(HitSpoolReader.class);
+    private static final Logger LOG = Logger.getLogger(HitSpoolReader.class);
 
     /** hub ID */
     private int hubId;
+    /** Print additional information if <tt>true</tt> */
+    private boolean verbose;
     /** List of hitspool files */
     private ArrayList<IHitSpoolFile> files = new ArrayList<IHitSpoolFile>();
     /** Payload byte buffer reader */
@@ -47,7 +50,7 @@ public class HitSpoolReader
     public HitSpoolReader(String name)
         throws IOException
     {
-        this(name, Integer.MIN_VALUE);
+        this(new File(name), Integer.MIN_VALUE, false);
     }
 
     /**
@@ -61,7 +64,7 @@ public class HitSpoolReader
     public HitSpoolReader(String name, int hubId)
         throws IOException
     {
-        this(new File(name), hubId);
+        this(new File(name), hubId, false);
     }
 
     /**
@@ -74,7 +77,20 @@ public class HitSpoolReader
     public HitSpoolReader(File baseFile)
         throws IOException
     {
-        this(baseFile, Integer.MIN_VALUE);
+        this(baseFile, Integer.MIN_VALUE, false);
+    }
+
+    /**
+     * Open the hitspool file or directory.
+     *
+     * @param baseFile payload file/directory
+     *
+     * @throws IOException if the file cannot be opened
+     */
+    public HitSpoolReader(File baseFile, int hubId)
+        throws IOException
+    {
+        this(baseFile, hubId, false);
     }
 
     /**
@@ -82,13 +98,15 @@ public class HitSpoolReader
      *
      * @param baseFile payload file/directory
      * @param hubId hub ID
+     * @param verbose <tt>true</tt> if additional information should be shown
      *
      * @throws IOException if the file cannot be opened
      */
-    public HitSpoolReader(File baseFile, int hubId)
+    public HitSpoolReader(File baseFile, int hubId, boolean verbose)
         throws IOException
     {
         this.hubId = hubId;
+        this.verbose = verbose;
 
         if (baseFile.isDirectory()) {
             findFiles(baseFile);
@@ -163,22 +181,24 @@ public class HitSpoolReader
             }
 
             // only match files for specified hub
-            if (hubId > 0) {
-                boolean matched = false;
-                if (!matched) {
-                    matched = dirList[i].getName().startsWith("HitSpool-") &&
-                        (dirList[i].getName().endsWith(".dat") ||
-                         dirList[i].getName().endsWith(".dat.gz"));
-                }
-                if (!matched && fullStr != null) {
-                    matched = dirList[i].getName().startsWith(fullStr);
-                }
-                if (!matched && hubStr != null) {
-                    matched = dirList[i].getName().startsWith(hubStr);
-                }
-                if (!matched) {
-                    continue;
-                }
+            if (hubId <= 0) {
+                continue;
+            }
+
+            boolean matched = false;
+            if (!matched) {
+                matched = dirList[i].getName().startsWith("HitSpool-") &&
+                    (dirList[i].getName().endsWith(".dat") ||
+                     dirList[i].getName().endsWith(".dat.gz"));
+            }
+            if (!matched && fullStr != null) {
+                matched = dirList[i].getName().startsWith(fullStr);
+            }
+            if (!matched && hubStr != null) {
+                matched = dirList[i].getName().startsWith(hubStr);
+            }
+            if (!matched) {
+                continue;
             }
 
             try {
@@ -321,6 +341,9 @@ public class HitSpoolReader
             try {
                 rdr = new PayloadByteReader(hsf.getFile());
                 numFiles++;
+                if (verbose) {
+                    LOG.info("Opened " + hsf);
+                }
                 break;
             } catch (IOException ioe) {
                 LOG.error("Cannot open " + hsf.getFile(), ioe);
@@ -340,7 +363,8 @@ public class HitSpoolReader
 
     public static void main(String[] args)
     {
-        org.apache.log4j.BasicConfigurator.configure();
+        BasicConfigurator.configure();
+        Logger.getRootLogger().setLevel(Level.ERROR);
 
         boolean dumpHex = false;
         int hubNum = Integer.MIN_VALUE;
@@ -560,6 +584,15 @@ class HitSpoolFile
         }
 
         return getNumber() - hsf.getNumber();
+    }
+
+    public boolean equals(Object obj)
+    {
+        if (obj == null || !(obj instanceof IHitSpoolFile)) {
+            return false;
+        }
+
+        return compareTo((IHitSpoolFile) obj) == 0;
     }
 
     public boolean equals(IHitSpoolFile hsf)
