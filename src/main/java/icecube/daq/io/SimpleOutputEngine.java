@@ -37,8 +37,6 @@ public class SimpleOutputEngine
     private int engineId;
     /** Engine function. */
     private String engineFunction;
-    /** Use track engine stop message instead of payload stop message */
-    private boolean useTrackEngineStop;
 
     /** Current engine state. */
     private State state = State.STOPPED;
@@ -78,25 +76,9 @@ public class SimpleOutputEngine
      */
     public SimpleOutputEngine(String type, int id, String fcn)
     {
-        this(type, id, fcn, false);
-    }
-
-    /**
-     * Create an output engine.
-     *
-     * @param type engine type
-     * @param id engine ID
-     * @param fcn engine function
-     * @param teStop <tt>false</tt> for standard 4 byte payload stop message,
-     *               <tt>true</tt> to send 11 bytes of zeros
-     */
-    public SimpleOutputEngine(String type, int id, String fcn,
-                              boolean teStop)
-    {
         engineType = type;
         engineId = id;
         engineFunction = fcn;
-        useTrackEngineStop = teStop;
 
         try {
             selector = Selector.open();
@@ -127,12 +109,8 @@ public class SimpleOutputEngine
 
         String name = engineFunction + ":" + chanNum;
 
-        SimpleOutputChannel outChan;
-        if (useTrackEngineStop) {
-            outChan = new TrackEngineStopChannel(this, name, channel, bufMgr);
-        } else {
-            outChan = new PayloadStopChannel(this, name, channel, bufMgr);
-        }
+        SimpleOutputChannel outChan =
+            new PayloadStopChannel(this, name, channel, bufMgr);
 
         synchronized (channelList) {
             channelList.add(outChan);
@@ -1104,81 +1082,6 @@ public class SimpleOutputEngine
         {
             ByteBuffer stopMessage = ByteBuffer.allocate(STOP_MESSAGE_SIZE);
             stopMessage.putInt(0, STOP_MESSAGE_SIZE);
-            receiveByteBuffer(stopMessage);
-        }
-    }
-
-    /** Buffer used to check for stop message */
-    private static ByteBuffer stopTEMessage;
-
-    static {
-        stopTEMessage =
-            ByteBuffer.allocate(TrackEngineStopChannel.STOP_MESSAGE_SIZE);
-        for (int i = 0; i < TrackEngineStopChannel.STOP_MESSAGE_SIZE; i++) {
-            stopTEMessage.put((byte) 0);
-        }
-    }
-
-    /**
-     * Simple output channel which sends an 11 byte track engine stop message.
-     */
-    class TrackEngineStopChannel
-        extends SimpleOutputChannel
-    {
-        /** Number of bytes in 'stop' message'. */
-        static final int STOP_MESSAGE_SIZE = 11;
-
-        /**
-         * Create a simple output channel which uses track engine stop messages.
-         *
-         * @param parent parent output engine
-         * @param name channel name
-         * @param channel output channel
-         * @param bufferMgr byte buffer manager
-         */
-        TrackEngineStopChannel(SimpleOutputEngine parent, String name,
-                               WritableByteChannel channel,
-                               IByteBufferCache bufferMgr)
-        {
-            super(parent, name, channel, bufferMgr);
-        }
-
-        int getRecordLength(ByteBuffer buf)
-        {
-            return 11;
-        }
-
-        /**
-         * Is this a stop message?
-         */
-        boolean isStopMessage(ByteBuffer buf, int payLen)
-        {
-            if (buf == null) {
-                return false;
-            }
-
-            if (buf.limit() != STOP_MESSAGE_SIZE) {
-                return false;
-            }
-
-            for (int i = 0; i < STOP_MESSAGE_SIZE; i++) {
-                if (buf.get(i) != (byte) 0) {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        /**
-         * Add a "stop" message to the output queue.
-         */
-        void queueStopMessage()
-        {
-            ByteBuffer stopMessage = ByteBuffer.allocate(STOP_MESSAGE_SIZE);
-            for (int i = 0; i < STOP_MESSAGE_SIZE; i++) {
-                stopMessage.put((byte) 0);
-            }
             receiveByteBuffer(stopMessage);
         }
     }
