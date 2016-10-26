@@ -1,5 +1,6 @@
 package icecube.daq.io;
 
+import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.PayloadException;
 
 import java.io.BufferedInputStream;
@@ -31,6 +32,8 @@ public class PayloadByteReader
     private File file;
     /** Input stream */
     private DataInputStream stream;
+    /** Byte buffer cache */
+    private IByteBufferCache cache;
 
     /** Next payload number (used for error reporting) */
     private int nextNum;
@@ -62,7 +65,7 @@ public class PayloadByteReader
     public PayloadByteReader(File file)
         throws IOException
     {
-        this(file, new FileInputStream(file));
+        this(file, null);
     }
 
     /**
@@ -72,14 +75,49 @@ public class PayloadByteReader
      *
      * @throws IOException if the file cannot be opened
      */
+    public PayloadByteReader(File file, IByteBufferCache cache)
+        throws IOException
+    {
+        this(file, null, cache);
+    }
+
+    /**
+     * Open the file.
+     *
+     * @param file payload file
+     *
+     * @throws IOException if the file cannot be opened
+     */
+/*
     public PayloadByteReader(File file, InputStream stream)
         throws IOException
     {
+        this(file, stream, null);
+    }
+*/
+
+    /**
+     * Open the file.
+     *
+     * @param file payload file
+     *
+     * @throws IOException if the file cannot be opened
+     */
+    private PayloadByteReader(File file, InputStream stream,
+                              IByteBufferCache cache)
+        throws IOException
+    {
         this.file = file;
+        this.cache = cache;
+
+        FileInputStream fin = new FileInputStream(file);
+
+        stream = new BufferedInputStream(fin);
         if (file.getName().endsWith(".gz")) {
             stream = new GZIPInputStream(stream);
         }
-        this.stream = new DataInputStream(new BufferedInputStream(stream));
+
+        this.stream = new DataInputStream(stream);
     }
 
     /**
@@ -228,7 +266,13 @@ public class PayloadByteReader
         }
 
         // Sender expects a separate buffer for each payload
-        ByteBuffer buf = ByteBuffer.allocate(len);
+        ByteBuffer buf;
+        if (cache == null) {
+            buf = ByteBuffer.allocate(len);
+        } else {
+            buf = cache.acquireBuffer(len);
+        }
+
         buf.limit(len);
         buf.putInt(len);
 
