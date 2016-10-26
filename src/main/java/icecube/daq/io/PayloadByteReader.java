@@ -83,12 +83,12 @@ public class PayloadByteReader
 
         FileInputStream fin = new FileInputStream(file);
 
-        stream = new BufferedInputStream(fin);
+        InputStream tmpStream = new BufferedInputStream(fin);
         if (file.getName().endsWith(".gz")) {
-            stream = new GZIPInputStream(stream);
+            tmpStream = new GZIPInputStream(tmpStream);
         }
 
-        this.stream = new DataInputStream(stream);
+        this.stream = new DataInputStream(tmpStream);
     }
 
     /**
