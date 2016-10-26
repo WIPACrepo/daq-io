@@ -78,35 +78,6 @@ public class PayloadByteReader
     public PayloadByteReader(File file, IByteBufferCache cache)
         throws IOException
     {
-        this(file, null, cache);
-    }
-
-    /**
-     * Open the file.
-     *
-     * @param file payload file
-     *
-     * @throws IOException if the file cannot be opened
-     */
-/*
-    public PayloadByteReader(File file, InputStream stream)
-        throws IOException
-    {
-        this(file, stream, null);
-    }
-*/
-
-    /**
-     * Open the file.
-     *
-     * @param file payload file
-     *
-     * @throws IOException if the file cannot be opened
-     */
-    private PayloadByteReader(File file, InputStream stream,
-                              IByteBufferCache cache)
-        throws IOException
-    {
         this.file = file;
         this.cache = cache;
 
