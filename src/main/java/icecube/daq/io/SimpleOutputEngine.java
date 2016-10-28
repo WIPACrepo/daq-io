@@ -738,14 +738,6 @@ public class SimpleOutputEngine
         }
 
         /**
-         * Unimplemented.
-         */
-        public void destinationClosed()
-        {
-            throw new Error("Unimplemented");
-        }
-
-        /**
          * Wake the parent so it starts telling me to write data.
          */
         public void flushOutQueue()

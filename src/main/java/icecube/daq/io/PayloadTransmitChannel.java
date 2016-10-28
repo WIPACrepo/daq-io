@@ -1,7 +1,7 @@
 /*
  * class: PayloadTransmitChannel
  *
- * Version $Id: PayloadTransmitChannel.java 16158 2016-06-23 20:35:31Z dglo $
+ * Version $Id: PayloadTransmitChannel.java 16279 2016-10-28 22:16:33Z dglo $
  *
  * Date: May 15 2005
  *
@@ -13,7 +13,6 @@ package icecube.daq.io;
 import EDU.oswego.cs.dl.util.concurrent.Mutex;
 
 import icecube.daq.payload.IByteBufferCache;
-import icecube.daq.payload.IByteBufferReceiver;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -30,9 +29,9 @@ import org.apache.commons.logging.LogFactory;
  * for returning buffers into the buffer cache.
  *
  * @author mcp
- * @version $Id: PayloadTransmitChannel.java 16158 2016-06-23 20:35:31Z dglo $
+ * @version $Id: PayloadTransmitChannel.java 16279 2016-10-28 22:16:33Z dglo $
  */
-public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutputChannel {
+public class PayloadTransmitChannel implements QueuedOutputChannel {
 
     // Log object for this class
     private static final Log log = LogFactory.getLog(PayloadTransmitChannel.class);
@@ -597,10 +596,6 @@ public class PayloadTransmitChannel implements IByteBufferReceiver, QueuedOutput
             log.error(ie);
             throw new RuntimeException(ie);
         }
-        flushOutQueue();
-    }
-
-    public void destinationClosed() {
         flushOutQueue();
     }
 
