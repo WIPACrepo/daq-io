@@ -13,7 +13,7 @@ import junit.framework.Assert;
 public final class IOTestUtil
     extends Assert
 {
-    private static final int REPS = 50;
+    private static final int REPS = 500;
     private static final int SLEEP_TIME = 10;
 
     private static ByteBuffer stopMsg;
