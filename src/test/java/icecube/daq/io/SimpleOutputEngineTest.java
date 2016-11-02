@@ -403,7 +403,7 @@ public class SimpleOutputEngineTest
         }
 
         engine.sendLastAndStop();
-        Thread.sleep(10);
+        IOTestUtil.waitUntilStopped(engine, "send last");
         transmitEng.flushOutQueue();
 
         IOTestUtil.waitUntilStopped(engine, "finished");
@@ -504,7 +504,7 @@ public class SimpleOutputEngineTest
         }
 
         engine.sendLastAndStop();
-        Thread.sleep(10);
+        IOTestUtil.waitUntilStopped(engine, "send last");
         transmitEng.flushOutQueue();
 
         assertTrue("Failure on sendLastAndStop command.",
