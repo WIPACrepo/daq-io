@@ -576,10 +576,13 @@ public class FileDispatcher implements Dispatcher {
             File destFile = getDestFile();
             if (!tempFile.exists()) {
                 LOG.error("Couldn't move nonexistent temp file " + tempFile);
+            } else if (destFile.exists()) {
+                String errorMsg = "Couldn't overwrite existing " + destFile +
+                    " with temp file " + tempFile;
+                throw new DispatchException(errorMsg);
             } else if (!tempFile.renameTo(destFile)) {
                 String errorMsg = "Couldn't move temp file " + tempFile +
                     " to " + destFile;
-                LOG.error(errorMsg);
                 throw new DispatchException(errorMsg);
             }
 
