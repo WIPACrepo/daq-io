@@ -11,6 +11,14 @@ public class MockWriteableChannel
     implements WritableByteChannel
 {
     private IOException closeException;
+    private IOException writeException;
+
+    private long bytesWritten;
+
+    public long getBytesWritten()
+    {
+        return bytesWritten;
+    }
 
     /**
      * Unimplemented.
@@ -42,11 +50,28 @@ public class MockWriteableChannel
     }
 
     /**
+     * Set the exception to be thrown when this channel is written to.
+     *
+     * @param ioe exception to be thrown
+     */
+    public void setWriteException(IOException ioe)
+    {
+        writeException = ioe;
+    }
+
+    /**
      * Pretend to write something.
      */
     public int write(ByteBuffer buf)
         throws IOException
     {
-        return buf.limit();
+        if(writeException != null)
+        {
+            throw writeException;
+        }
+        int remaining = buf.remaining();
+        bytesWritten += remaining;
+
+        return remaining;
     }
 }
