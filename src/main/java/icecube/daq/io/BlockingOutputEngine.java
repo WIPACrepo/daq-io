@@ -253,12 +253,6 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
         }
 
         @Override
-        public void destinationClosed()
-        {
-            throw new Error("Not Implemented");
-        }
-
-        @Override
         public void registerComponentObserver(
                 final DAQComponentObserver compObserver,
                 final String notificationID)
