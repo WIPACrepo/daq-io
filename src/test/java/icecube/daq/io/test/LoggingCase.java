@@ -21,6 +21,21 @@ public class LoggingCase
         super(name);
     }
 
+    public void assertLogMessage(String message)
+    {
+        appender.assertLogMessage(message);
+    }
+
+    public void assertNoLogMessages()
+    {
+        appender.assertNoLogMessages();
+    }
+
+    public void assertNoLogMessages(String description)
+    {
+        appender.assertNoLogMessages(description);
+    }
+
     public void clearMessages()
     {
         appender.clear();
@@ -58,8 +73,7 @@ public class LoggingCase
     protected void tearDown()
         throws Exception
     {
-        assertEquals("Bad number of log messages",
-                     0, appender.getNumberOfMessages());
+        assertNoLogMessages();
 
         super.tearDown();
     }

@@ -376,8 +376,7 @@ public class SimpleReaderTest
         tstRdr.forcedStopProcessing();
         IOTestUtil.waitUntilStopped(tstRdr, "forced stop");
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         // try it a second time
         tstRdr.startProcessing();
@@ -389,8 +388,7 @@ public class SimpleReaderTest
         tstRdr.destroyProcessor();
         IOTestUtil.waitUntilDestroyed(tstRdr);
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         try {
             tstRdr.startProcessing();
@@ -825,8 +823,7 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
         tstRdr.startProcessing();
         IOTestUtil.waitUntilRunning(tstRdr);
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         ByteBuffer testBuf;
 
@@ -866,8 +863,7 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
         tstRdr.forcedStopProcessing();
         IOTestUtil.waitUntilStopped(tstRdr, "forced stop");
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         // try it a second time
         tstRdr.startProcessing();
@@ -879,8 +875,7 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
         tstRdr.destroyProcessor();
         IOTestUtil.waitUntilDestroyed(tstRdr);
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         try {
             tstRdr.startProcessing();

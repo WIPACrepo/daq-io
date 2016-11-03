@@ -202,41 +202,18 @@ public class FileDispatcherTest
     {
         File destDir = new File(FileDispatcher.DISPATCH_DEST_STORAGE);
 
-        int expMsgs = 0;
-        if (!destDir.isDirectory()) {
-            expMsgs++;
-        } else if (!destDir.canWrite()) {
-            expMsgs += 2;
-        }
         if (unusualBase != null) {
-            expMsgs++;
-        }
-
-        assertEquals("Bad number of log messages",
-                     expMsgs, getNumberOfMessages());
-
-        int nextMsg = 0;
-        if (unusualBase != null) {
-            assertEquals("Unexpected log message " + nextMsg,
-                         "Dispatching to unusual base name " + unusualBase,
-                         getMessage(nextMsg));
-            nextMsg++;
+            assertLogMessage("Dispatching to unusual base name " +
+                             unusualBase);
         }
         if (!destDir.isDirectory()) {
-            assertEquals("Unexpected log message " + nextMsg,
-                         FileDispatcher.DISPATCH_DEST_STORAGE +
-                         " does not exist!  Using current directory.",
-                         getMessage(nextMsg));
-            nextMsg++;
+            assertLogMessage(FileDispatcher.DISPATCH_DEST_STORAGE +
+                             " does not exist!  Using current directory.");
         } else if (!destDir.canWrite()) {
-            assertEquals("Unexpected log message " + nextMsg,
-                         "Cannot write to " +
-                         FileDispatcher.DISPATCH_DEST_STORAGE + "!",
-                         getMessage(nextMsg));
-            nextMsg++;
+            assertLogMessage("Cannot write to " +
+                             FileDispatcher.DISPATCH_DEST_STORAGE + "!");
         }
-
-        clearMessages();
+        assertNoLogMessages();
     }
 
     protected void setUp()
@@ -317,12 +294,9 @@ public class FileDispatcherTest
         assertEquals("Unexpected destination directory",
                      ".", fd.getDispatchDestStorage().getPath());
 
-        assertEquals("Bad number of log messages",
-                     1, getNumberOfMessages());
-        assertEquals("Unexpected log message 0",
-                     badDir + " does not exist!  Using current directory.",
-                     getMessage(0));
-        clearMessages();
+        assertLogMessage(badDir +
+                         " does not exist!  Using current directory.");
+        assertNoLogMessages();
 
         try {
             fd.setDispatchDestStorage(badDir);
@@ -391,8 +365,7 @@ public class FileDispatcherTest
 
         FileDispatcher fd = new FileDispatcher(testDirectory.getAbsolutePath(),
                                                "physics", bufCache);
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         assertNotNull("ByteBuffer was null", fd.getByteBufferCache());
 
@@ -433,14 +406,10 @@ public class FileDispatcherTest
             new FileDispatcher(testDirectory.getAbsolutePath(), "physics");
         assertEquals("Unexpected destination directory",
                      ".", fd.getDispatchDestStorage().getPath());
-        assertEquals("Bad number of log messages",
-                     2, getNumberOfMessages());
-        assertEquals("Unexpected log message 0",
-                     "Cannot write to " + testDirectory + "!", getMessage(0));
-        assertEquals("Unexpected log message 1", testDirectory +
-                     " does not exist!  Using current directory.",
-                     getMessage(1));
-        clearMessages();
+        assertLogMessage("Cannot write to " + testDirectory + "!");
+        assertLogMessage(testDirectory +
+                         " does not exist!  Using current directory.");
+        assertNoLogMessages();
     }
 
     public void testUnimplemented()
@@ -526,8 +495,7 @@ public class FileDispatcherTest
 
         FileDispatcher fd = new FileDispatcher(testDirectory.getAbsolutePath(),
                                                "physics", bufCache);
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         try {
             fd.dataBoundary(null);

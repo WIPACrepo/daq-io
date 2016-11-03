@@ -375,8 +375,7 @@ public class PayloadReaderTest
         tstRdr.forcedStopProcessing();
         IOTestUtil.waitUntilStopped(tstRdr, "forced stop");
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         // try it a second time
         tstRdr.startProcessing();
@@ -388,8 +387,7 @@ public class PayloadReaderTest
         tstRdr.destroyProcessor();
         IOTestUtil.waitUntilDestroyed(tstRdr);
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         try {
             tstRdr.startProcessing();
@@ -820,8 +818,7 @@ public class PayloadReaderTest
         tstRdr.startProcessing();
         IOTestUtil.waitUntilRunning(tstRdr);
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         ByteBuffer testBuf;
 
@@ -858,18 +855,14 @@ public class PayloadReaderTest
         }
 
 
-        assertEquals("Bad number of log messages",
-                     1, getNumberOfMessages());
-        assertEquals("Unexpected log message 0",
-                     "Closed InetServer socket channel, 1 channels remain",
-                     getMessage(0));
-        clearMessages();
+        assertLogMessage("Closed InetServer socket channel," +
+                         " 1 channels remain");
+        assertNoLogMessages();
 
         tstRdr.forcedStopProcessing();
         IOTestUtil.waitUntilStopped(tstRdr, "forced stop");
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         // try it a second time
         tstRdr.startProcessing();
@@ -881,8 +874,7 @@ public class PayloadReaderTest
         tstRdr.destroyProcessor();
         IOTestUtil.waitUntilDestroyed(tstRdr);
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         try {
             tstRdr.startProcessing();
@@ -1117,8 +1109,7 @@ public class PayloadReaderTest
 
         Thread.sleep(100);
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         chan.close();
 
@@ -1128,18 +1119,13 @@ public class PayloadReaderTest
         assertEquals("Reader should not have any open channels (found " +
                      numChans + ")", 0, numChans);
 
-        assertEquals("Bad number of log messages",
-                     1, getNumberOfMessages());
-        assertEquals("Unexpected log message 0",
-                     "Closed InetServer socket channel, stopping reader",
-                     getMessage(0));
-        clearMessages();
+        assertLogMessage("Closed InetServer socket channel, stopping reader");
+        assertNoLogMessages();
 
         tstRdr.destroyProcessor();
         IOTestUtil.waitUntilDestroyed(tstRdr);
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
     }
 
     /**

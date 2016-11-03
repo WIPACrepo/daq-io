@@ -252,15 +252,14 @@ public class SimpleOutputEngineTest
         engine.start();
         IOTestUtil.waitUntilStopped(engine, "creation");
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         final String notificationId = "OutputLoop";
 
         QueuedOutputChannel transmitEng =
             engine.addDataChannel(testPipe.sink(), cacheMgr);
 
-        assertEquals("Bad number of log messages", 0, getNumberOfMessages());
+        assertNoLogMessages();
 
         assertTrue("SimpleOutputEngine in " + engine.getPresentState() +
                    ", not Idle after StopSig", engine.isStopped());
@@ -343,14 +342,13 @@ public class SimpleOutputEngineTest
             SocketChannel.open(new InetSocketAddress("localhost", port));
         sock.configureBlocking(false);
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         final String notificationId = "ServerOutput";
 
         QueuedOutputChannel transmitEng = engine.connect(cacheMgr, sock, 1);
 
-        assertEquals("Bad number of log messages", 0, getNumberOfMessages());
+        assertNoLogMessages();
 
         SocketChannel chan = acceptChannel(sel);
 
@@ -448,14 +446,13 @@ public class SimpleOutputEngineTest
             SocketChannel.open(new InetSocketAddress("localhost", port));
         sock.configureBlocking(false);
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         final String notificationId = "ServerOutput";
 
         QueuedOutputChannel transmitEng = engine.connect(cacheMgr, sock, 1);
 
-        assertEquals("Bad number of log messages", 0, getNumberOfMessages());
+        assertNoLogMessages();
 
         SocketChannel chan = acceptChannel(sel);
 
@@ -542,12 +539,11 @@ public class SimpleOutputEngineTest
             SocketChannel.open(new InetSocketAddress("localhost", port));
         sock.configureBlocking(false);
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         QueuedOutputChannel transmitEng = engine.connect(cacheMgr, sock, 1);
 
-        assertEquals("Bad number of log messages", 0, getNumberOfMessages());
+        assertNoLogMessages();
 
         SocketChannel chan = acceptChannel(sel);
 

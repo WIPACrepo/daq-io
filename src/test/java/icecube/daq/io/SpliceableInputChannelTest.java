@@ -257,7 +257,7 @@ public class SpliceableInputChannelTest
             chan.setStrandTail(new UnpushableStrandTail(i == 0));
             chan.startReading();
 
-            assertEquals("Unexpected log message", 0, getNumberOfMessages());
+            assertNoLogMessages();
 
             chan.pushPayload(buf);
 
@@ -286,12 +286,11 @@ public class SpliceableInputChannelTest
                 // ignore interrupts
             }
 
-            assertEquals("Expected log message", 2, getNumberOfMessages());
-            assertEquals("Bad log message",
-                         "Couldn't push payload type " + type + ", length " +
-                         buf.capacity() + ", time " + time + "; recycling",
-                         getMessage(0));
-            clearMessages();
+            assertLogMessage("Couldn't push payload type " + type +
+                             ", length " + buf.capacity() + ", time " +
+                             time + "; recycling");
+            assertLogMessage("Couldn't push ");
+            assertNoLogMessages();
         }
     }
 

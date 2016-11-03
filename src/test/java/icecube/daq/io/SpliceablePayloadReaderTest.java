@@ -102,20 +102,15 @@ public class SpliceablePayloadReaderTest
         tstRdr.forcedStopProcessing();
         IOTestUtil.waitUntilStopped(tstRdr, "forced stop");
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         // try it a second time
         tstRdr.startProcessing();
         IOTestUtil.waitUntilRunning(tstRdr);
 
-        assertEquals("Bad number of log messages",
-                     1, getNumberOfMessages());
-        assertEquals("Unexpected log message 0",
-                     "Splicer should have been in STOPPED state," +
-                     " not STARTED.  Calling Splicer.forceStop()",
-                     getMessage(0));
-        clearMessages();
+        assertLogMessage("Splicer should have been in STOPPED state, not" +
+                         " STARTED.  Calling Splicer.forceStop()");
+        assertNoLogMessages();
 
         tstRdr.forcedStopProcessing();
         IOTestUtil.waitUntilStopped(tstRdr, "forced stop");
@@ -123,8 +118,7 @@ public class SpliceablePayloadReaderTest
         tstRdr.destroyProcessor();
         IOTestUtil.waitUntilDestroyed(tstRdr);
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         try {
             tstRdr.startProcessing();
@@ -133,13 +127,9 @@ public class SpliceablePayloadReaderTest
             // expect this to fail
         }
 
-        assertEquals("Bad number of log messages",
-                     1, getNumberOfMessages());
-        assertEquals("Unexpected log message 0",
-                     "Splicer should have been in STOPPED state," +
-                     " not STARTED.  Calling Splicer.forceStop()",
-                     getMessage(0));
-        clearMessages();
+        assertLogMessage("Splicer should have been in STOPPED state, not" +
+                         " STARTED.  Calling Splicer.forceStop()");
+        assertNoLogMessages();
     }
 
     public void testOutputInput()
