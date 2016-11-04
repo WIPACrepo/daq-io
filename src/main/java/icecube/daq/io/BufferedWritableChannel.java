@@ -23,6 +23,7 @@ public class BufferedWritableChannel implements WritableByteChannel
     private final WritableByteChannel delegate;
     private final ByteBuffer buffer;
     private int msgsBuffered;
+    private long numSent;
 
     // yuk!
     private final int[] bufferSizes;
@@ -53,6 +54,7 @@ public class BufferedWritableChannel implements WritableByteChannel
         if(msgSize > buffer.remaining())
         {
             sendComplete(src);
+            numSent++;
             bufferCache.returnBuffer(msgSize);
         }
         else
@@ -97,6 +99,14 @@ public class BufferedWritableChannel implements WritableByteChannel
     }
 
     /**
+     * @return The number of messages sent.
+     */
+    public long numSent()
+    {
+        return numSent;
+    }
+
+    /**
      * Write buffered data out to delegate.
      * @throws IOException
      */
@@ -112,6 +122,7 @@ public class BufferedWritableChannel implements WritableByteChannel
         {
             bufferCache.returnBuffer(bufferSizes[i]);
         }
+        numSent+=msgsBuffered;
         msgsBuffered=0;
         buffer.clear();
     }

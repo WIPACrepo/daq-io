@@ -38,15 +38,24 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
     /** The output delegate, populated on connect. */
     private BufferedOutputChannel channel;
 
+    /**
+     * Counters of messages for the most recent connection as well as
+     * total for all connections.
+     *
+     * These are managed awkwardly but should duplicate what is found
+     * in SimpleOutputEngine;
+     */
+    private long lastSent;    // saved from last channel
+    private long priorSent;   // saved all last channels
+
+
     /**  Size of buffer. */
     private final int bufferSize;
 
-    /** defined states */
-    private enum State
-    {
-        UNCONNECTED, CONNECTED, DESTROYED
-    }
-    private State state = State.UNCONNECTED;
+    /** defined states duplicated from SimpleOutputEngine*/
+    private enum State { STOPPED, RUNNING, DESTROYED }
+
+    private State state = State.STOPPED;
 
 
     public BlockingOutputEngine(final int bufferSize)
@@ -64,12 +73,20 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
     public QueuedOutputChannel addDataChannel(final WritableByteChannel channel,
                                               final IByteBufferCache bufMgr)
     {
+        if (state != State.STOPPED) {
+            throw new Error("Engine should be stopped, not " +
+                    getPresentState());
+        }
+
+        if(this.channel != null)
+        {
+            throw new Error("Multiple connections not supported");
+        }
+
         BufferedWritableChannel bufferingWrapper =
                 new BufferedWritableChannel(bufMgr, channel, bufferSize);
 
         this.channel = new BufferedOutputChannel(bufferingWrapper);
-
-        state = State.CONNECTED;
 
         return this.channel;
     }
@@ -86,8 +103,11 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
     @Override
     public void disconnect() throws IOException
     {
+        if (state == State.DESTROYED) {
+            throw new Error("Engine has been destroyed");
+        }
+
         sendLastAndStop();
-        state = State.UNCONNECTED;
     }
 
     @Override
@@ -124,13 +144,13 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
     @Override
     public boolean isRunning()
     {
-        return isConnected();
+        return state == State.RUNNING;
     }
 
     @Override
     public boolean isStopped()
     {
-        return !isConnected();
+        return state == State.STOPPED;
     }
 
     @Override
@@ -148,32 +168,53 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
     @Override
     public void startProcessing()
     {
-        //noop
+        if (state != State.STOPPED) {
+            throw new Error("Engine should be stopped, not " +
+                    getPresentState());
+        }
+
+        if(channel != null)
+        {
+            state = State.RUNNING;
+        }
+        else
+        {
+            state = State.STOPPED;
+        }
     }
 
     @Override
     public long getRecordsSent()
     {
-        return channel==null ? 0 : channel.numSent;
+        return channel==null ? lastSent : channel.delegate.numSent();
     }
 
     @Override
     public long getTotalRecordsSent()
     {
-        return channel==null ? 0 : channel.numSent;
+        // Note: we only accumulate counts in priorSent and lastSent when
+        //       we stop and close the channel
+        return priorSent +
+                (channel==null ? 0 : channel.delegate.numSent());
     }
 
     @Override
     public boolean isConnected()
     {
-        return channel==null ? false : channel.delegate.isOpen();
+        return (channel != null);
     }
 
     @Override
     public void sendLastAndStop()
     {
-        channel.sendLastAndStop();
-        state = State.UNCONNECTED;
+        if(channel != null)
+        {
+            channel.sendLastAndStop();
+            lastSent  = channel.delegate.numSent();
+            priorSent += lastSent;
+            channel = null;
+        }
+        state = State.STOPPED;
     }
 
     @Override
@@ -188,7 +229,14 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
      */
     public long[] getDepth()
     {
-        return new long[] { channel.delegate.bufferedMessages() };
+        if(channel != null)
+        {
+            return new long[] { channel.delegate.bufferedMessages() };
+        }
+        else
+        {
+            return new long[0];
+        }
     }
 
 
@@ -199,7 +247,6 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
     static class BufferedOutputChannel implements QueuedOutputChannel
     {
         private final BufferedWritableChannel delegate;
-        private long numSent;
 
         BufferedOutputChannel(final BufferedWritableChannel channel)
         {
@@ -231,7 +278,6 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
             try
             {
                 delegate.write(buf);
-                numSent++;
             }
             catch (IOException ioe)
             {
@@ -245,6 +291,7 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
             try
             {
                 delegate.flush();
+                delegate.close();
             }
             catch (IOException ioe)
             {
