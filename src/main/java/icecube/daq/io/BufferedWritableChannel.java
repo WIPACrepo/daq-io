@@ -127,6 +127,18 @@ public class BufferedWritableChannel implements WritableByteChannel
         buffer.clear();
     }
 
+    /**
+     * Shoehorn alert. This method is required to precisely match the
+     * accounting practices in SimpleOutputEngine which utilizes a
+     * stop message that is not accounted in the buffer cache but is
+     * counted as a sent message.
+     */
+    void writeEndMessage(ByteBuffer msg) throws IOException
+    {
+        flush();
+        numSent++;
+        sendComplete(msg);
+    }
 
     /**
      * Write a buffer to the delegate, looping to ensure complete transfer

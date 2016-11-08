@@ -10,6 +10,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -65,6 +66,7 @@ public class BufferedWritableChannelTest
         // auto-flush
         ByteBuffer msg = mockCache.acquireBuffer(1);
         subject.write(msg);
+        assertEquals(bufferSize, subject.numSent());
         assertEquals(1, mockCache.getCurrentAquiredBuffers());
         assertEquals(bufferSize, mockTarget.getBytesWritten());
         assertEquals(1, subject.bufferedMessages());
@@ -95,6 +97,7 @@ public class BufferedWritableChannelTest
 
         // manual-flush
         subject.flush();
+        assertEquals(bufferSize, subject.numSent());
         assertEquals(0, mockCache.getCurrentAquiredBuffers());
         assertEquals(bufferSize, mockTarget.getBytesWritten());
         assertEquals(0, subject.bufferedMessages());
@@ -129,6 +132,7 @@ public class BufferedWritableChannelTest
         int large = bufferSize + 1;
         ByteBuffer msg = mockCache.acquireBuffer(large);
         subject.write(msg);
+        assertEquals(bufferSize + 1, subject.numSent());
         assertEquals(0, mockCache.getCurrentAquiredBuffers());
         assertEquals(bufferSize + large, mockTarget.getBytesWritten());
         assertEquals(0, subject.bufferedMessages());
@@ -174,10 +178,50 @@ public class BufferedWritableChannelTest
         // close should flush
         subject.close();
 
+        assertEquals(bufferSize, subject.numSent());
         assertEquals(0, mockCache.getCurrentAquiredBuffers());
         assertEquals(bufferSize, mockTarget.getBytesWritten());
         assertEquals(0, subject.bufferedMessages());
         assertEquals(0, subject.bufferedBytes());
+    }
+
+    @Test
+    public void testEndMessage() throws IOException
+    {
+        ///
+        /// Test special writeEndMessage() method
+        ///
+
+        assertEquals(0, mockCache.getCurrentAquiredBuffers());
+        assertEquals(0, mockTarget.getBytesWritten());
+
+        // should buffer
+        for(int written=1; written<=bufferSize; written++)
+        {
+            ByteBuffer msg = mockCache.acquireBuffer(1);
+            subject.write(msg);
+            assertEquals(written, mockCache.getCurrentAquiredBuffers());
+            assertEquals(0, mockTarget.getBytesWritten());
+            assertEquals(written, subject.bufferedMessages());
+            assertEquals(written, subject.bufferedBytes());
+        }
+
+        // end message should:
+        //   1. flush()
+        //   2. increment numSent
+        //   3. Not decrement end-message bytes from buffer cache
+        byte[] endMsg = "xyzzy".getBytes("US-ASCII");
+        ByteBuffer endBuffer = ByteBuffer.wrap(endMsg);
+        subject.writeEndMessage(endBuffer);
+        subject.close();
+
+        assertEquals(bufferSize + 1, subject.numSent());
+        assertEquals(bufferSize + endMsg.length,
+                mockTarget.getBytesWritten());
+        assertArrayEquals(endMsg, mockTarget.getLastWrite());
+        assertEquals(0, subject.bufferedMessages());
+        assertEquals(0, subject.bufferedBytes());
+        assertEquals(0, mockCache.getCurrentAquiredBuffers());
     }
 
 

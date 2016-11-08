@@ -14,10 +14,16 @@ public class MockWriteableChannel
     private IOException writeException;
 
     private long bytesWritten;
+    private byte[] lastWrite;
 
     public long getBytesWritten()
     {
         return bytesWritten;
+    }
+
+    public byte[] getLastWrite()
+    {
+       return lastWrite;
     }
 
     /**
@@ -71,6 +77,12 @@ public class MockWriteableChannel
         }
         int remaining = buf.remaining();
         bytesWritten += remaining;
+
+        lastWrite = new byte[remaining];
+        for (int i = 0; i < lastWrite.length; i++)
+        {
+            lastWrite[i] = buf.get();
+        }
 
         return remaining;
     }
