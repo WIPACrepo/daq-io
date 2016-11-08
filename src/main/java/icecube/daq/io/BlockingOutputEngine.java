@@ -83,10 +83,7 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
             throw new Error("Multiple connections not supported");
         }
 
-        BufferedWritableChannel bufferingWrapper =
-                new BufferedWritableChannel(bufMgr, channel, bufferSize);
-
-        this.channel = new BufferedOutputChannel(bufferingWrapper);
+        this.channel = new BufferedOutputChannel(bufMgr, channel, bufferSize);
 
         return this.channel;
     }
@@ -246,11 +243,21 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
      */
     static class BufferedOutputChannel implements QueuedOutputChannel
     {
+        /** sink channel. */
         private final BufferedWritableChannel delegate;
 
-        BufferedOutputChannel(final BufferedWritableChannel channel)
+        /** flag for stopped state */
+        volatile boolean isStopped;
+
+        /** Size of zero-filled message sent on channel stop. */
+        private final int STOP_MESSAGE_SIZE = 4;
+
+        BufferedOutputChannel(final IByteBufferCache bufferCache,
+                              final WritableByteChannel delegate,
+                              final int size)
         {
-            this.delegate = channel;
+            this.delegate = new BufferedWritableChannel(bufferCache,
+                    delegate, size);
         }
 
         @Override
@@ -288,14 +295,34 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
         @Override
         public void sendLastAndStop()
         {
-            try
+            // Note: To exactly replicate SimpleOutputEngine we need to:
+            //       1. Send a 4-byte zero-filled message
+            //       2. Count the message as a "sent message"
+            //       3. Do not perform accounting for the message using
+            //          the buffer cache
+            //       4. Cause the state of our enclosing BlockingOutputEngine
+            //          to be STOPPED.
+            //
+            //       We do all but #4. The use pattern should follow up
+            //       this call with a call to:
+            //       BlockingOutputEngine.sendLastAndStop()
+            //       Which seems like the code responsible for state management.
+
+            if(!isStopped)
             {
-                delegate.flush();
-                delegate.close();
-            }
-            catch (IOException ioe)
-            {
-                logger.error(ioe);
+                try
+                {
+                    ByteBuffer stopMessage = ByteBuffer.allocate(STOP_MESSAGE_SIZE);
+                    stopMessage.putInt(0, STOP_MESSAGE_SIZE);
+
+                    delegate.writeEndMessage(stopMessage);
+                    delegate.close();
+                    isStopped = true;
+                }
+                catch (IOException ioe)
+                {
+                    logger.error(ioe);
+                }
             }
         }
 
