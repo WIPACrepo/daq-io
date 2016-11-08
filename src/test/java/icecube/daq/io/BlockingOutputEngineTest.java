@@ -105,7 +105,7 @@ public class BlockingOutputEngineTest
     {
 
         //
-        // Tests start/stop lifecycle without data xmit
+        // Tests start/stop lifecycle
         //
 
         QueuedOutputChannel transmitEng;
@@ -121,12 +121,12 @@ public class BlockingOutputEngineTest
 
         transmitEng.receiveByteBuffer(mockCache.acquireBuffer(123));
 
-        engine.forcedStopProcessing();
+        engine.forcedStopProcessing(); //generates a message
         assertTrue(engine.isStopped());
 
-        assertEquals(123, sink.written);
-        assertEquals(1, engine.getRecordsSent());
-        assertEquals(1, engine.getTotalRecordsSent());
+        assertEquals(123 + 4, sink.written); //4-byte stop message
+        assertEquals(2, engine.getRecordsSent());
+        assertEquals(2, engine.getTotalRecordsSent());
         assertFalse(sink.isOpen());
 
 
@@ -137,18 +137,18 @@ public class BlockingOutputEngineTest
 
         assertEquals(0, sink.written);
         assertEquals(0, engine.getRecordsSent());
-        assertEquals(1, engine.getTotalRecordsSent());
+        assertEquals(2, engine.getTotalRecordsSent());
 
         engine.startProcessing();
         assertTrue(engine.isRunning());
 
         transmitEng.receiveByteBuffer(mockCache.acquireBuffer(888));
 
-        engine.forcedStopProcessing();
+        engine.forcedStopProcessing(); //generates a message
         assertTrue(engine.isStopped());
-        assertEquals(888, sink.written);
-        assertEquals(1, engine.getRecordsSent());
-        assertEquals(2, engine.getTotalRecordsSent());
+        assertEquals(888 + 4, sink.written); //4-byte stop message
+        assertEquals(2, engine.getRecordsSent());
+        assertEquals(4, engine.getTotalRecordsSent());
         assertFalse(sink.isOpen());
 
 
@@ -160,20 +160,67 @@ public class BlockingOutputEngineTest
         assertTrue(engine.isRunning());
         assertEquals(0, sink.written);
         assertEquals(0, engine.getRecordsSent());
-        assertEquals(2, engine.getTotalRecordsSent());
+        assertEquals(4, engine.getTotalRecordsSent());
 
         transmitEng.receiveByteBuffer(mockCache.acquireBuffer(17));
 
-        engine.sendLastAndStop();
+        engine.sendLastAndStop(); //generates a message
         assertTrue(engine.isStopped());
 
-        assertEquals(17, sink.written);
-        assertEquals(1, engine.getRecordsSent());
-        assertEquals(3, engine.getTotalRecordsSent());
+        assertEquals(17 + 4, sink.written); //4-byte stop message
+        assertEquals(2, engine.getRecordsSent());
+        assertEquals(6, engine.getTotalRecordsSent());
         assertFalse(sink.isOpen());
 
+        // stop on channel and engine
+        sink = new MockChannel();
+
+        transmitEng = engine.addDataChannel(sink, mockCache);
+
+        assertEquals(0, sink.written);
+        assertEquals(0, engine.getRecordsSent());
+        assertEquals(6, engine.getTotalRecordsSent());
+
+        engine.startProcessing();
+        assertTrue(engine.isRunning());
+
+        transmitEng.receiveByteBuffer(mockCache.acquireBuffer(888));
+
+        transmitEng.sendLastAndStop();//generates a message
+
+        assertEquals(888 + 4, sink.written); //4-byte stop message
+        assertEquals(2, engine.getRecordsSent());
+        assertEquals(8, engine.getTotalRecordsSent());
+        assertFalse(sink.isOpen());
+
+        assertTrue(engine.isRunning());
+        engine.forcedStopProcessing();
+        assertTrue(engine.isStopped());
+
+
+        // now try stopping via stop message
+        sink = new MockChannel();
+        transmitEng = engine.addDataChannel(sink, mockCache);
+
+        engine.startProcessing();
+        assertTrue(engine.isRunning());
+        assertEquals(0, sink.written);
+        assertEquals(0, engine.getRecordsSent());
+        assertEquals(8, engine.getTotalRecordsSent());
+
+        transmitEng.receiveByteBuffer(mockCache.acquireBuffer(17));
+
+        engine.sendLastAndStop(); //generates a message
+        assertTrue(engine.isStopped());
+
+        assertEquals(17 + 4, sink.written); //4-byte stop message
+        assertEquals(2, engine.getRecordsSent());
+        assertEquals(10, engine.getTotalRecordsSent());
+        assertFalse(sink.isOpen());
+
+
         engine.destroyProcessor();
-        assertTrue(engine.isDestroyed());
+            assertTrue(engine.isDestroyed());
 
         try {
             engine.startProcessing();
@@ -261,13 +308,13 @@ public class BlockingOutputEngineTest
 
 
         // stop (should auto-flush)
-        engine.sendLastAndStop();
+        engine.sendLastAndStop();  //generates a message
         assertTrue(engine.isStopped());
         assertFalse(channel.isOutputQueued());
         assertEquals(0, engine.getDepth().length);
-        assertEquals(msgCount + 1 + msgCount2, engine.getRecordsSent());
-        assertEquals(msgCount + 1 + msgCount2, engine.getTotalRecordsSent());
-        assertEquals(sent + 1 + sent2, sink.written);
+        assertEquals(msgCount + 1 + msgCount2 + 1, engine.getRecordsSent());
+        assertEquals(msgCount + 1 + msgCount2 + 1, engine.getTotalRecordsSent());
+        assertEquals(sent + 1 + sent2 + 4, sink.written); //4-byte stop message
 
         assertTrue("ByteBufferCache is not balanced", mockCache.isBalanced());
     }
