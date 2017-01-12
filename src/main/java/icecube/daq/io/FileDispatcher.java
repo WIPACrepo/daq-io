@@ -45,12 +45,11 @@ public class FileDispatcher implements Dispatcher {
     private long diskAvailable;     // measured in MB
 
     public FileDispatcher(String baseFileName) {
-        this(getDefaultDispatchDirectory(baseFileName), baseFileName, null);
+        this(null, baseFileName, null);
     }
 
     public FileDispatcher(String baseFileName, IByteBufferCache bufferCache) {
-        this(getDefaultDispatchDirectory(baseFileName), baseFileName,
-             bufferCache);
+        this(null, baseFileName, bufferCache);
     }
 
     public FileDispatcher(String destDir, String baseFileName)
@@ -61,7 +60,9 @@ public class FileDispatcher implements Dispatcher {
     public FileDispatcher(String destDir, String baseFileName,
                           IByteBufferCache bufferCache)
     {
-        setDispatchDestStorage(destDir, true);
+        if (destDir != null) {
+            setDispatchDestStorage(destDir, true);
+        }
 
         if (baseFileName == null) {
             throw new IllegalArgumentException("baseFileName cannot be NULL!");
@@ -121,6 +122,11 @@ public class FileDispatcher implements Dispatcher {
         if (message == null) {
             throw new DispatchException("dataBoundary() called with null" +
                                         " argument!");
+        }
+
+        if (dispatchDir == null) {
+            String dirName = getDefaultDispatchDirectory(baseFileName);
+            setDispatchDestStorage(dirName, true);
         }
 
         if (message.startsWith(START_PREFIX)) {
