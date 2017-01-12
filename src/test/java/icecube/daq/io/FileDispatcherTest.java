@@ -193,29 +193,6 @@ public class FileDispatcherTest
         return dir.delete();
     }
 
-    private void handleLogMessages()
-    {
-        handleLogMessages(null);
-    }
-
-    private void handleLogMessages(String unusualBase)
-    {
-        File destDir = new File(FileDispatcher.DISPATCH_DEST_STORAGE);
-
-        if (unusualBase != null) {
-            assertLogMessage("Dispatching to unusual base name " +
-                             unusualBase);
-        }
-        if (!destDir.isDirectory()) {
-            assertLogMessage(FileDispatcher.DISPATCH_DEST_STORAGE +
-                             " does not exist!  Using current directory.");
-        } else if (!destDir.canWrite()) {
-            assertLogMessage("Cannot write to " +
-                             FileDispatcher.DISPATCH_DEST_STORAGE + "!");
-        }
-        assertNoLogMessages();
-    }
-
     protected void setUp()
         throws Exception
     {
@@ -267,22 +244,16 @@ public class FileDispatcherTest
 
     public void testNullDest()
     {
-        try {
-            new FileDispatcher(null, "physics");
-            fail("Should not be able to specify null destination directory");
-        } catch (IllegalArgumentException iae) {
-            // expect this to fail
-        }
-
         FileDispatcher fd = new FileDispatcher(".", "physics");
         assertEquals("Unexpected destination directory",
                      ".", fd.getDispatchDestStorage().getPath());
 
         try {
             fd.setDispatchDestStorage(null);
-            fail("Should not be able to set null destination directory");
         } catch (IllegalArgumentException iae) {
-            // expect failure
+            if (!iae.getMessage().contains("destDir cannot be NULL")) {
+                fail("Unexpected exception: " + iae);
+            }
         }
     }
 
@@ -293,10 +264,8 @@ public class FileDispatcherTest
         FileDispatcher fd = new FileDispatcher(badDir, "physics");
         assertEquals("Unexpected destination directory",
                      ".", fd.getDispatchDestStorage().getPath());
-
         assertLogMessage(badDir +
                          " does not exist!  Using current directory.");
-        assertNoLogMessages();
 
         try {
             fd.setDispatchDestStorage(badDir);
@@ -317,8 +286,16 @@ public class FileDispatcherTest
         final String baseName = "foo";
 
         FileDispatcher fd = new FileDispatcher(baseName);
+        assertNoLogMessages();
 
-        handleLogMessages(baseName);
+        try {
+            fd.dataBoundary(FileDispatcher.START_PREFIX + "12345");
+        } catch (DispatchException de) {
+            fail("Unexpected exception: " + de);
+        }
+        assertLogMessage("Dispatching to unusual base name " + baseName);
+        assertLogMessage(FileDispatcher.DISPATCH_DEST_STORAGE +
+                         " does not exist!  Using current directory.");
     }
 
     public void testGoodDest()
@@ -382,7 +359,6 @@ public class FileDispatcherTest
         throws DispatchException
     {
         FileDispatcher fd = new FileDispatcher("physics");
-        handleLogMessages();
 
         try {
             fd.dispatchEvent(new AdjustablePayload(8));
@@ -409,14 +385,12 @@ public class FileDispatcherTest
         assertLogMessage("Cannot write to " + testDirectory + "!");
         assertLogMessage(testDirectory +
                          " does not exist!  Using current directory.");
-        assertNoLogMessages();
     }
 
     public void testUnimplemented()
         throws DispatchException
     {
         FileDispatcher fd = new FileDispatcher("physics");
-        handleLogMessages();
 
         ByteBuffer bb = ByteBuffer.allocate(12);
         int[] indices = new int[] { 0, 4, 8 };
@@ -433,6 +407,7 @@ public class FileDispatcherTest
                      " to be unimplemented!");
             }
         }
+        assertNoLogMessages();
 
         try {
             fd.dispatchEvents(bb, indices, 123);
@@ -450,7 +425,6 @@ public class FileDispatcherTest
         throws DispatchException
     {
         FileDispatcher fd = new FileDispatcher("physics");
-        handleLogMessages();
 
         try {
             fd.setMaxFileSize(-1000);
@@ -458,6 +432,7 @@ public class FileDispatcherTest
         } catch (IllegalArgumentException iae) {
             // expect this to fail
         }
+        assertNoLogMessages();
 
         try {
             fd.setMaxFileSize(0);
@@ -465,6 +440,7 @@ public class FileDispatcherTest
         } catch (IllegalArgumentException iae) {
             // expect this to fail
         }
+        assertNoLogMessages();
 
         fd.setMaxFileSize(100);
     }
@@ -472,7 +448,6 @@ public class FileDispatcherTest
     public void testBogusDataBoundary()
     {
         FileDispatcher fd = new FileDispatcher("physics");
-        handleLogMessages();
 
         try {
             fd.dataBoundary();
