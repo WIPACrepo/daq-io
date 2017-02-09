@@ -102,6 +102,8 @@ public class FileDispatcherTest
     extends LoggingCase
 {
     private File testDirectory;
+    private boolean checkedDispatchDest;
+    private boolean hasDispatchDest;
 
     /**
      * Constructs an instance of this test.
@@ -202,6 +204,12 @@ public class FileDispatcherTest
         if (tempFile.exists()) {
             tempFile.delete();
         }
+
+        if (!checkedDispatchDest) {
+            checkedDispatchDest = true;
+            hasDispatchDest =
+                new File(FileDispatcher.DISPATCH_DEST_STORAGE).isDirectory();
+        }
     }
 
     protected void tearDown()
@@ -294,8 +302,10 @@ public class FileDispatcherTest
             fail("Unexpected exception: " + de);
         }
         assertLogMessage("Dispatching to unusual base name " + baseName);
-        assertLogMessage(FileDispatcher.DISPATCH_DEST_STORAGE +
-                         " does not exist!  Using current directory.");
+        if (!hasDispatchDest) {
+            assertLogMessage(FileDispatcher.DISPATCH_DEST_STORAGE +
+                             " does not exist!  Using current directory.");
+        }
     }
 
     public void testGoodDest()
