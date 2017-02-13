@@ -460,9 +460,12 @@ public class FileDispatcher implements Dispatcher {
             throw new IllegalArgumentException("destDir cannot be NULL!");
         }
 
+        final String origName = dirName;
         while (true) {
             File ddFile = new File(dirName);
-            if (ddFile.exists() && ddFile.isDirectory()) {
+            if (ddFile.isDirectory() && ddFile.canWrite()) {
+                // writing and reading a file is probably overly paranoid but
+                //  doesn't really hurt anything, so better safe than sorry
                 File testFile = new File(ddFile, "tempDispProbe");
 
                 int nextNum = 1;
@@ -471,7 +474,6 @@ public class FileDispatcher implements Dispatcher {
                 }
 
                 FileOutputStream out;
-
                 boolean opened;
                 try {
                     out = new FileOutputStream(testFile.getPath());
@@ -496,12 +498,10 @@ public class FileDispatcher implements Dispatcher {
                 }
             }
 
-            final boolean isCurrentDir = dirName.equals(".");
-
-            if (!fallback || isCurrentDir) {
+            if (!fallback || dirName.equals(".")) {
                 final String errMsg;
 
-                if (isCurrentDir) {
+                if (dirName.equals(".")) {
                     errMsg = "Current directory does not exist!?!?!";
                 } else {
                     errMsg = "\"" + dirName + "\" does not exist!?!?!";
@@ -510,8 +510,12 @@ public class FileDispatcher implements Dispatcher {
                 throw new IllegalArgumentException(errMsg);
             }
 
-            LOG.error(dirName + " does not exist!  Using current directory.");
             dirName = ".";
+        }
+
+        if (dirName.equals(".") && !dirName.equals(origName)) {
+            LOG.error(origName + " does not exist or is not writable!" +
+                      "  Using current directory.");
         }
 
         dispatchDir = new File(dirName);

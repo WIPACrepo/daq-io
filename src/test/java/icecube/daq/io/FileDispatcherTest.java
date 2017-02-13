@@ -102,8 +102,6 @@ public class FileDispatcherTest
     extends LoggingCase
 {
     private File testDirectory;
-    private boolean checkedDispatchDest;
-    private boolean hasDispatchDest;
 
     /**
      * Constructs an instance of this test.
@@ -204,12 +202,6 @@ public class FileDispatcherTest
         if (tempFile.exists()) {
             tempFile.delete();
         }
-
-        if (!checkedDispatchDest) {
-            checkedDispatchDest = true;
-            hasDispatchDest =
-                new File(FileDispatcher.DISPATCH_DEST_STORAGE).isDirectory();
-        }
     }
 
     protected void tearDown()
@@ -258,10 +250,9 @@ public class FileDispatcherTest
 
         try {
             fd.setDispatchDestStorage(null);
+            fail("Should not be able to set null destination directory");
         } catch (IllegalArgumentException iae) {
-            if (!iae.getMessage().contains("destDir cannot be NULL")) {
-                fail("Unexpected exception: " + iae);
-            }
+            // expect failure
         }
     }
 
@@ -272,8 +263,10 @@ public class FileDispatcherTest
         FileDispatcher fd = new FileDispatcher(badDir, "physics");
         assertEquals("Unexpected destination directory",
                      ".", fd.getDispatchDestStorage().getPath());
-        assertLogMessage(badDir +
-                         " does not exist!  Using current directory.");
+
+        assertLogMessage(badDir + " does not exist or is not writable!" +
+                         "  Using current directory.");
+        assertNoLogMessages();
 
         try {
             fd.setDispatchDestStorage(badDir);
@@ -302,9 +295,12 @@ public class FileDispatcherTest
             fail("Unexpected exception: " + de);
         }
         assertLogMessage("Dispatching to unusual base name " + baseName);
-        if (!hasDispatchDest) {
+
+        final File destDir = new File(FileDispatcher.DISPATCH_DEST_STORAGE);
+        if (!destDir.isDirectory() || !destDir.canWrite()) {
             assertLogMessage(FileDispatcher.DISPATCH_DEST_STORAGE +
-                             " does not exist!  Using current directory.");
+                             " does not exist or is not writable!" +
+                             "  Using current directory.");
         }
     }
 
@@ -392,9 +388,8 @@ public class FileDispatcherTest
             new FileDispatcher(testDirectory.getAbsolutePath(), "physics");
         assertEquals("Unexpected destination directory",
                      ".", fd.getDispatchDestStorage().getPath());
-        assertLogMessage("Cannot write to " + testDirectory + "!");
-        assertLogMessage(testDirectory +
-                         " does not exist!  Using current directory.");
+        assertLogMessage(testDirectory + " does not exist or is not" +
+                         " writable!  Using current directory.");
     }
 
     public void testUnimplemented()
