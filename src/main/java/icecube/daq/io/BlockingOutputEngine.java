@@ -83,7 +83,8 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
             throw new Error("Multiple connections not supported");
         }
 
-        this.channel = new BufferedOutputChannel(bufMgr, channel, bufferSize);
+        this.channel = new BufferedOutputChannel(this, bufMgr, channel,
+                                                 bufferSize);
 
         return this.channel;
     }
@@ -206,12 +207,14 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
     {
         if(channel != null)
         {
+            // The channel will manage stopping the
+            // engine via the removeChannel() callback.
             channel.sendLastAndStop();
-            lastSent  = channel.delegate.numSent();
-            priorSent += lastSent;
-            channel = null;
         }
-        state = State.STOPPED;
+        else
+        {
+            state = State.STOPPED;
+        }
     }
 
     @Override
@@ -238,11 +241,34 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
 
 
     /**
+     * Handles a callback from the enclosed output channel to
+     * effect an engine stop whenever the output channel is stopped.
+     */
+    private void removeChannel(final BufferedOutputChannel caller)
+    {
+        if(caller != channel)
+        {
+            throw new Error("Rogue channel");
+        }
+
+        // counter accounting
+        lastSent  = channel.delegate.numSent();
+        priorSent += lastSent;
+        channel = null;
+
+        state = State.STOPPED;
+    }
+
+
+    /**
      * An adapter around a BufferedWritableChannel to realize the interface
      * defined by the DAQComponent framework.
      */
     static class BufferedOutputChannel implements QueuedOutputChannel
     {
+        /** enclosing engine */
+        final BlockingOutputEngine parent;
+
         /** sink channel. */
         private final BufferedWritableChannel delegate;
 
@@ -252,10 +278,12 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
         /** Size of zero-filled message sent on channel stop. */
         private final int STOP_MESSAGE_SIZE = 4;
 
-        BufferedOutputChannel(final IByteBufferCache bufferCache,
+        BufferedOutputChannel( final BlockingOutputEngine parent,
+                               final IByteBufferCache bufferCache,
                               final WritableByteChannel delegate,
                               final int size)
         {
+            this.parent = parent;
             this.delegate = new BufferedWritableChannel(bufferCache,
                     delegate, size);
         }
@@ -303,10 +331,8 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
             //       4. Cause the state of our enclosing BlockingOutputEngine
             //          to be STOPPED.
             //
-            //       We do all but #4. The use pattern should follow up
-            //       this call with a call to:
-            //       BlockingOutputEngine.sendLastAndStop()
-            //       Which seems like the code responsible for state management.
+            //       #4 is realized via a callback to the enclosing engine
+            //       which is responsible for state management.
 
             if(!isStopped)
             {
@@ -318,6 +344,8 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
                     delegate.writeEndMessage(stopMessage);
                     delegate.close();
                     isStopped = true;
+
+                    parent.removeChannel(this);
                 }
                 catch (IOException ioe)
                 {

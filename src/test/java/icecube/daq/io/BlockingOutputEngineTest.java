@@ -172,7 +172,7 @@ public class BlockingOutputEngineTest
         assertEquals(6, engine.getTotalRecordsSent());
         assertFalse(sink.isOpen());
 
-        // stop on channel and engine
+        // stop via sendLastAndStop() on channel
         sink = new MockChannel();
 
         transmitEng = engine.addDataChannel(sink, mockCache);
@@ -193,12 +193,11 @@ public class BlockingOutputEngineTest
         assertEquals(8, engine.getTotalRecordsSent());
         assertFalse(sink.isOpen());
 
-        assertTrue(engine.isRunning());
-        engine.forcedStopProcessing();
+        assertFalse(engine.isRunning());
         assertTrue(engine.isStopped());
 
 
-        // now try stopping via stop message
+        // stop via sendLastAndStop() on channel engine
         sink = new MockChannel();
         transmitEng = engine.addDataChannel(sink, mockCache);
 
