@@ -319,6 +319,77 @@ public class BlockingOutputEngineTest
     }
 
 
+    @Test
+    public void testAutoFlushOutput()
+            throws Exception
+    {
+
+        ///
+        /// Test autoflush of channel
+        ///
+        final int AUTOFLUSH_PERIOD = 100;
+
+
+        // create a pipe for use in testing
+        MockChannel sink = new MockChannel();
+        engine = new BlockingOutputEngine(bufferSize, true, AUTOFLUSH_PERIOD);
+
+        engine.start();
+        assertTrue(engine.isStopped());
+
+
+        QueuedOutputChannel channel = engine.addDataChannel(sink, mockCache);
+
+        engine.startProcessing();
+        assertTrue(engine.isRunning());
+
+
+        // fill the buffer
+        int sent = 0;
+        int msgCount = 0;
+        while (sent < bufferSize)
+        {
+            int msgSize = randomSize(1, bufferSize - sent);
+            ByteBuffer msg = mockCache.acquireBuffer(msgSize);
+            channel.receiveByteBuffer(msg);
+            msgCount++;
+            sent+=msgSize;
+
+
+        }
+
+        // wait for an automatic flushing of messages
+        try{ Thread.sleep(AUTOFLUSH_PERIOD*2);} catch (InterruptedException e){}
+        assertFalse(channel.isOutputQueued());
+        assertEquals(0, engine.getDepth()[0]);
+        assertEquals(msgCount, engine.getRecordsSent());
+        assertEquals(msgCount, engine.getTotalRecordsSent());
+        assertEquals(bufferSize, sink.written);
+
+
+        // write a single byte an wait for autoflush
+        ByteBuffer msg = mockCache.acquireBuffer(1);
+        channel.receiveByteBuffer(msg);
+        msgCount++;
+        try{ Thread.sleep(AUTOFLUSH_PERIOD*2);} catch (InterruptedException e){}
+        assertFalse(channel.isOutputQueued());
+        assertEquals(0, engine.getDepth()[0]);
+        assertEquals(msgCount, engine.getRecordsSent());
+        assertEquals(msgCount, engine.getTotalRecordsSent());
+        assertEquals(bufferSize + 1, sink.written);
+
+        // stop (should auto-flush)
+        engine.sendLastAndStop();
+        assertTrue(engine.isStopped());
+        assertFalse(channel.isOutputQueued());
+        assertEquals(0, engine.getDepth().length);
+        assertEquals(msgCount + 1, engine.getRecordsSent());
+        assertEquals(msgCount + 1, engine.getTotalRecordsSent());
+        assertEquals(bufferSize + 1 + 4, sink.written); //4-byte stop message
+
+        assertTrue("ByteBufferCache is not balanced", mockCache.isBalanced());
+    }
+
     private static int randomSize(int min, int max)
     {
         return Math.max(min, ((int)(Math.random() * max)) );

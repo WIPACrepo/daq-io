@@ -6,6 +6,8 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * An output engine utilizing blocking output, application output
@@ -22,9 +24,11 @@ import java.nio.channels.WritableByteChannel;
  * NOTES:
  * Users of this engine should investigate their use cases carefully for
  * starvation effects of the buffer as well as threading concerns brought
- * out by using the caller's thread for blocking output.
+ * out by using the caller's thread for blocking output. An optional
+ * time-based autoflush feature is available to control the liveliness
+ * of the data channel.
  *
-  * In certain conditions, the best performing output mechanism is
+ * In certain conditions, the best performing output mechanism is
  * blocking. This engine functions as if it were dispatching directly
  * to a java.util.OutputStream but is implemented in terms of
  * a java.nio.channels.WritableByteChannel to conform to the DAQComponent
@@ -37,6 +41,10 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
 
     /** The output delegate, populated on connect. */
     private BufferedOutputChannel channel;
+
+    /** Auto-flush settings. */
+    private final boolean autoflush;
+    private final long autoflushPeriod;
 
     /**
      * Counters of messages for the most recent connection as well as
@@ -58,9 +66,29 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
     private State state = State.STOPPED;
 
 
+    /**
+     * Constructor.
+     * @param bufferSize The number of output bytes to buffer.
+     */
     public BlockingOutputEngine(final int bufferSize)
     {
+       this(bufferSize, false, Long.MAX_VALUE);
+    }
+
+    /**
+     * Constructor.
+     * @param bufferSize The number of output bytes to buffer.
+     * @param autoflush  If <code>true</code>, channel will be flushed
+     *                   automatically at the given period.
+     * @param autoflushPeriod The period in milliseconds for automatic
+     *                        channel flushing.
+     */
+    public BlockingOutputEngine(final int bufferSize, final boolean autoflush,
+                                final long autoflushPeriod)
+    {
         this.bufferSize = bufferSize;
+        this.autoflush = autoflush;
+        this.autoflushPeriod = autoflushPeriod;
     }
 
     @Override
@@ -84,7 +112,12 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
         }
 
         this.channel = new BufferedOutputChannel(this, bufMgr, channel,
-                                                 bufferSize);
+                bufferSize);
+
+        if(autoflush)
+        {
+            this.channel.enableAutoFlush(autoflushPeriod, autoflushPeriod);
+        }
 
         return this.channel;
     }
@@ -95,7 +128,7 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
                                        final int srcId)
             throws IOException
     {
-       return this.addDataChannel(channel, bufMgr);
+        return this.addDataChannel(channel, bufMgr);
     }
 
     @Override
@@ -154,7 +187,7 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
     @Override
     public void registerComponentObserver(final DAQComponentObserver observer)
     {
-        throw new Error("Not Imlemented");
+        throw new Error("Not Implemented");
     }
 
     @Override
@@ -251,10 +284,13 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
             throw new Error("Rogue channel");
         }
 
+        channel.cancelAutoFlush();
+
         // counter accounting
-        lastSent  = channel.delegate.numSent();
+        lastSent  = channel.numSent();
         priorSent += lastSent;
         channel = null;
+
 
         state = State.STOPPED;
     }
@@ -269,7 +305,7 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
         /** enclosing engine */
         final BlockingOutputEngine parent;
 
-        /** sink channel. */
+        /** sink channel, must be synchronized for autoflush thread */
         private final BufferedWritableChannel delegate;
 
         /** flag for stopped state */
@@ -278,14 +314,18 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
         /** Size of zero-filled message sent on channel stop. */
         private final int STOP_MESSAGE_SIZE = 4;
 
+        /* Holds auto-flush components. */
+        private final AutoFlush autoFlush;
+
         BufferedOutputChannel( final BlockingOutputEngine parent,
                                final IByteBufferCache bufferCache,
-                              final WritableByteChannel delegate,
-                              final int size)
+                               final WritableByteChannel delegate,
+                               final int size)
         {
             this.parent = parent;
             this.delegate = new BufferedWritableChannel(bufferCache,
                     delegate, size);
+            this.autoFlush = new AutoFlush();
         }
 
         @Override
@@ -293,7 +333,10 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
         {
             try
             {
-                delegate.flush();
+                synchronized (delegate)
+                {
+                    delegate.flush();
+                }
             }
             catch (IOException ioe)
             {
@@ -304,7 +347,10 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
         @Override
         public boolean isOutputQueued()
         {
-            return delegate.bufferedBytes() > 0;
+            synchronized (delegate)
+            {
+                return delegate.bufferedBytes() > 0;
+            }
         }
 
         @Override
@@ -312,7 +358,10 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
         {
             try
             {
-                delegate.write(buf);
+                synchronized (delegate)
+                {
+                    delegate.write(buf);
+                }
             }
             catch (IOException ioe)
             {
@@ -341,8 +390,11 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
                     ByteBuffer stopMessage = ByteBuffer.allocate(STOP_MESSAGE_SIZE);
                     stopMessage.putInt(0, STOP_MESSAGE_SIZE);
 
-                    delegate.writeEndMessage(stopMessage);
-                    delegate.close();
+                    synchronized (delegate)
+                    {
+                        delegate.writeEndMessage(stopMessage);
+                        delegate.close();
+                    }
                     isStopped = true;
 
                     parent.removeChannel(this);
@@ -362,7 +414,77 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
             throw new Error("Not Implemented");
         }
 
+        /**
+         * @return The number of messages sent.
+         */
+        public long numSent()
+        {
+            synchronized (delegate)
+            {
+                return delegate.numSent();
+            }
+        }
+
+        public void enableAutoFlush(long delay, long period)
+        {
+            autoFlush.schedule(delay, period);
+        }
+
+        public void cancelAutoFlush()
+        {
+            autoFlush.cancel();
+        }
+
+        /**
+         * Provides a time-based channel flush of the enclosing
+         * instance.
+         */
+        private class AutoFlush extends TimerTask
+        {
+            private Timer timer;
+
+            @Override
+            public void run()
+            {
+                synchronized (this)
+                {
+                    BufferedOutputChannel.this.flushOutQueue();
+                }
+            }
+
+            private void schedule(long delay, long period)
+            {
+                synchronized (this)
+                {
+                    if(timer != null)
+                    {
+                        throw new Error("Already scheduled");
+                    }
+
+                    timer = new Timer(true);
+                    timer.schedule(this, delay, period);
+                }
+            }
+
+
+            public boolean cancel()
+            {
+                synchronized (this)
+                {
+                    boolean ret = super.cancel();
+                    if(timer != null)
+                    {
+                        timer.cancel();
+                        timer = null;
+                    }
+                    return ret;
+                }
+            }
+        }
+
     }
+
+
 
 
 }
