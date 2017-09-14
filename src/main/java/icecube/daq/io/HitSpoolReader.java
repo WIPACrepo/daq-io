@@ -50,7 +50,7 @@ public class HitSpoolReader
     public HitSpoolReader(String name)
         throws IOException
     {
-        this(new File(name), Integer.MIN_VALUE, false);
+        this(new File(name), Integer.MIN_VALUE, 0, false);
     }
 
     /**
@@ -64,7 +64,7 @@ public class HitSpoolReader
     public HitSpoolReader(String name, int hubId)
         throws IOException
     {
-        this(new File(name), hubId, false);
+        this(new File(name), hubId, 0, false);
     }
 
     /**
@@ -77,20 +77,7 @@ public class HitSpoolReader
     public HitSpoolReader(File baseFile)
         throws IOException
     {
-        this(baseFile, Integer.MIN_VALUE, false);
-    }
-
-    /**
-     * Open the hitspool file or directory.
-     *
-     * @param baseFile payload file/directory
-     *
-     * @throws IOException if the file cannot be opened
-     */
-    public HitSpoolReader(File baseFile, int hubId)
-        throws IOException
-    {
-        this(baseFile, hubId, false);
+        this(baseFile, Integer.MIN_VALUE, 0, false);
     }
 
     /**
@@ -98,11 +85,42 @@ public class HitSpoolReader
      *
      * @param baseFile payload file/directory
      * @param hubId hub ID
+     *
+     * @throws IOException if the file cannot be opened
+     */
+    public HitSpoolReader(File baseFile, int hubId)
+        throws IOException
+    {
+        this(baseFile, hubId, 0, false);
+    }
+
+    /**
+     * Open the hitspool file or directory.
+     *
+     * @param baseFile payload file/directory
+     * @param hubId hub ID
+     * @param numToSkip number of initial files to skip
+     *
+     * @throws IOException if the file cannot be opened
+     */
+    public HitSpoolReader(File baseFile, int hubId, int numToSkip)
+        throws IOException
+    {
+        this(baseFile, hubId, numToSkip, false);
+    }
+
+    /**
+     * Open the hitspool file or directory.
+     *
+     * @param baseFile payload file/directory
+     * @param hubId hub ID
+     * @param numToSkip number of initial files to skip
      * @param verbose <tt>true</tt> if additional information should be shown
      *
      * @throws IOException if the file cannot be opened
      */
-    public HitSpoolReader(File baseFile, int hubId, boolean verbose)
+    public HitSpoolReader(File baseFile, int hubId, int numToSkip,
+                          boolean verbose)
         throws IOException
     {
         this.hubId = hubId;
@@ -113,6 +131,11 @@ public class HitSpoolReader
 
             // sort the list of hitspool files
             Collections.sort(files);
+
+            // if requested, skip initial files
+            while (numToSkip-- > 0) {
+                files.remove(0);
+            }
         } else if (baseFile.exists()) {
             try {
                 files.add(new HitSpoolFile(baseFile, true));
