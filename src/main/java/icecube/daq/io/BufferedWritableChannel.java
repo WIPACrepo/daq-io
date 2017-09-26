@@ -1,6 +1,7 @@
 package icecube.daq.io;
 
 import icecube.daq.payload.IByteBufferCache;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -24,6 +25,10 @@ public class BufferedWritableChannel implements WritableByteChannel
     private final ByteBuffer buffer;
     private int msgsBuffered;
     private long numSent;
+
+    private boolean loggedAIOOBEx = false;
+    private static Logger logger =
+            Logger.getLogger(BufferedWritableChannel.class);
 
     // yuk!
     private final int[] bufferSizes;
@@ -61,8 +66,33 @@ public class BufferedWritableChannel implements WritableByteChannel
         {
             buffer.put(src);
 
-            // track what is buffered on a per-message basis
-            bufferSizes[msgsBuffered] = msgSize;
+
+            // todo remove try-catch and error logging when
+            // issue 8263 is resolved
+            try
+            {
+                // track what is buffered on a per-message basis
+                bufferSizes[msgsBuffered] = msgSize;
+            }
+            catch (ArrayIndexOutOfBoundsException e)
+            {
+                // only log this error once
+                if(loggedAIOOBEx)
+                {
+                    StringBuilder sb = new StringBuilder(4096);
+                    sb.append("bufferSizes[").append(bufferSizes.length).append("]={");
+                    for(int i=0; i<bufferSizes.length; i++)
+                    {
+                        String comma = (i==bufferSizes.length-1) ? "" : ",";
+                        sb.append(bufferSizes[i]).append(comma);
+                    }
+                    sb.append("}");
+                    sb.append(", current buffer:").append(src).append(" was size ").append(msgSize);
+                    logger.error("Unexpected ArrayIndexOutOfBoundsException:", e);
+                    logger.error("details" + sb.toString());
+                    loggedAIOOBEx = true;
+                }
+            }
             msgsBuffered++;
         }
 
