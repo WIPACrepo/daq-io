@@ -99,7 +99,7 @@ public class FileDispatcher implements Dispatcher {
      * Signals to the dispatch system that the set of events that preced this
      * call are separated, by some criteria, for those that succeed it.
      *
-     * @throws DispatchException is there is a problem in the Dispatch system.
+     * @throws DispatchException if there is a problem in the Dispatch system.
      */
     public void dataBoundary()
             throws DispatchException {
@@ -115,7 +115,7 @@ public class FileDispatcher implements Dispatcher {
      * delivery client.
      *
      * @param message a String explaining the reason for the boundary.
-     * @throws DispatchException is there is a problem in the Dispatch system.
+     * @throws DispatchException if there is a problem in the Dispatch system.
      */
     public void dataBoundary(String message) throws DispatchException
     {
@@ -190,7 +190,7 @@ public class FileDispatcher implements Dispatcher {
      * afterwards.
      *
      * @param buffer the ByteBuffer containg the event.
-     * @throws DispatchException is there is a problem in the Dispatch system.
+     * @throws DispatchException if there is a problem in the Dispatch system.
      */
     public void dispatchEvent(ByteBuffer buffer) throws DispatchException {
         synchronized (fileLock) {
@@ -242,7 +242,7 @@ public class FileDispatcher implements Dispatcher {
      * Dispatch a Payload event object
      *
      * @param event A payload object.
-     * @throws DispatchException is there is a problem in the Dispatch system.
+     * @throws DispatchException if there is a problem in the Dispatch system.
      */
     public void dispatchEvent(IWriteablePayload event)
         throws DispatchException {
@@ -279,7 +279,7 @@ public class FileDispatcher implements Dispatcher {
      * @param buffer  the ByteBuffer containg the events.
      * @param indices the 'position' of each event inside the buffer.
      *                accepted.
-     * @throws DispatchException is there is a problem in the Dispatch system.
+     * @throws DispatchException if there is a problem in the Dispatch system.
      */
     public void dispatchEvents(ByteBuffer buffer, int[] indices)
             throws DispatchException {
@@ -297,7 +297,7 @@ public class FileDispatcher implements Dispatcher {
      * @param count   the number of events, this must be less that the length of
      *                the indices array.
      *                accepted.
-     * @throws DispatchException is there is a problem in the Dispatch system.
+     * @throws DispatchException if there is a problem in the Dispatch system.
      */
     public void dispatchEvents(ByteBuffer buffer, int[] indices, int count)
             throws DispatchException {

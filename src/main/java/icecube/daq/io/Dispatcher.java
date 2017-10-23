@@ -1,7 +1,7 @@
 /*
  * interface: Dispatcher
  *
- * Version $Id: Dispatcher.java 15513 2015-04-20 19:02:50Z dglo $
+ * Version $Id: Dispatcher.java 16787 2017-10-23 16:19:47Z dglo $
  *
  * Date: April 1 2004
  *
@@ -20,7 +20,7 @@ import java.nio.ByteBuffer;
  * This interface specifies how events are dispatched from the DAQ system.
  *
  * @author patton
- * @version $Id: Dispatcher.java 15513 2015-04-20 19:02:50Z dglo $
+ * @version $Id: Dispatcher.java 16787 2017-10-23 16:19:47Z dglo $
  */
 public interface Dispatcher
 {
@@ -42,7 +42,7 @@ public interface Dispatcher
      * Signals to the dispatch system that the set of events that preced this
      * call are separated, by some criteria, for those that succeed it.
      *
-     * @throws DispatchException is there is a problem in the Dispatch system.
+     * @throws DispatchException if there is a problem in the Dispatch system.
      */
     void dataBoundary() throws DispatchException;
 
@@ -55,7 +55,7 @@ public interface Dispatcher
      * delivery client.
      *
      * @param message a String explaining the reason for the boundary.
-     * @throws DispatchException is there is a problem in the Dispatch system.
+     * @throws DispatchException if there is a problem in the Dispatch system.
      */
     void dataBoundary(String message)throws DispatchException;
 
@@ -66,7 +66,7 @@ public interface Dispatcher
      * afterwards.
      *
      * @param buffer the ByteBuffer containg the event.
-     * @throws DispatchException is there is a problem in the Dispatch system.
+     * @throws DispatchException if there is a problem in the Dispatch system.
      */
     void dispatchEvent(ByteBuffer buffer) throws DispatchException;
 
@@ -74,7 +74,7 @@ public interface Dispatcher
      * Dispatch a Payload event object
      *
      * @param event A payload object.
-     * @throws DispatchException is there is a problem in the Dispatch system.
+     * @throws DispatchException if there is a problem in the Dispatch system.
      */
     void dispatchEvent(IWriteablePayload event) throws DispatchException;
 
@@ -88,7 +88,7 @@ public interface Dispatcher
      *
      * @param buffer the ByteBuffer containg the events.
      * @param indices the 'position' of each event inside the buffer.
-     * @throws DispatchException is there is a problem in the Dispatch system.
+     * @throws DispatchException if there is a problem in the Dispatch system.
      */
     void dispatchEvents(ByteBuffer buffer, int[] indices)throws DispatchException;
 
@@ -102,7 +102,7 @@ public interface Dispatcher
      * @param indices the 'position' of each event inside the buffer.
      * @param count the number of events, this must be less that the length of
      * the indices array.
-     * @throws DispatchException is there is a problem in the Dispatch system.
+     * @throws DispatchException if there is a problem in the Dispatch system.
      */
     void dispatchEvents(ByteBuffer buffer, int[] indices, int count)throws DispatchException;
 
