@@ -1,7 +1,7 @@
 /*
  * interface: Dispatcher
  *
- * Version $Id: Dispatcher.java 16787 2017-10-23 16:19:47Z dglo $
+ * Version $Id: Dispatcher.java 16807 2017-11-02 22:31:23Z dglo $
  *
  * Date: April 1 2004
  *
@@ -20,7 +20,7 @@ import java.nio.ByteBuffer;
  * This interface specifies how events are dispatched from the DAQ system.
  *
  * @author patton
- * @version $Id: Dispatcher.java 16787 2017-10-23 16:19:47Z dglo $
+ * @version $Id: Dispatcher.java 16807 2017-11-02 22:31:23Z dglo $
  */
 public interface Dispatcher
 {
@@ -44,7 +44,8 @@ public interface Dispatcher
      *
      * @throws DispatchException if there is a problem in the Dispatch system.
      */
-    void dataBoundary() throws DispatchException;
+    void dataBoundary()
+        throws DispatchException;
 
     /**
      * Signals to the dispatch system that the set of events that preced this
@@ -57,7 +58,8 @@ public interface Dispatcher
      * @param message a String explaining the reason for the boundary.
      * @throws DispatchException if there is a problem in the Dispatch system.
      */
-    void dataBoundary(String message)throws DispatchException;
+    void dataBoundary(String message)
+        throws DispatchException;
 
     /**
      * Copies the event in the buffer into this object. The buffer should be
@@ -66,9 +68,12 @@ public interface Dispatcher
      * afterwards.
      *
      * @param buffer the ByteBuffer containg the event.
+     * @param ticks DAQ time for this payload
+     *
      * @throws DispatchException if there is a problem in the Dispatch system.
      */
-    void dispatchEvent(ByteBuffer buffer) throws DispatchException;
+    void dispatchEvent(ByteBuffer buffer, long ticks)
+        throws DispatchException;
 
     /**
      * Dispatch a Payload event object
@@ -76,35 +81,8 @@ public interface Dispatcher
      * @param event A payload object.
      * @throws DispatchException if there is a problem in the Dispatch system.
      */
-    void dispatchEvent(IWriteablePayload event) throws DispatchException;
-
-    /**
-     * Copies the events in the buffer into this object. The buffer should be
-     * prepared for reading so normally a {@link ByteBuffer#flip flip} should
-     * be done before this call and a {@link ByteBuffer#compact compact}
-     * afterwards.
-     * <p>
-     * The number of events is taken to be the length of the indices array.
-     *
-     * @param buffer the ByteBuffer containg the events.
-     * @param indices the 'position' of each event inside the buffer.
-     * @throws DispatchException if there is a problem in the Dispatch system.
-     */
-    void dispatchEvents(ByteBuffer buffer, int[] indices)throws DispatchException;
-
-    /**
-     * Copies the events in the buffer into this object. The buffer should be
-     * prepared for reading so normally a {@link ByteBuffer#flip flip} should
-     * be done before this call and a {@link ByteBuffer#compact compact}
-     * afterwards.
-     *
-     * @param buffer the ByteBuffer containg the events.
-     * @param indices the 'position' of each event inside the buffer.
-     * @param count the number of events, this must be less that the length of
-     * the indices array.
-     * @throws DispatchException if there is a problem in the Dispatch system.
-     */
-    void dispatchEvents(ByteBuffer buffer, int[] indices, int count)throws DispatchException;
+    void dispatchEvent(IWriteablePayload event)
+        throws DispatchException;
 
     /**
      * Get the byte buffer cache being used.
@@ -121,6 +99,28 @@ public interface Dispatcher
     File getDispatchDestStorage();
 
     /**
+     * Return the time (in 0.1ns ticks) of the first dispatched payload.
+     *
+     * @return first payload time
+     */
+    long getFirstDispatchedTime();
+
+    /**
+     * Get the stream metadata (currently number of dispatched events and
+     * last dispatched time)
+     *
+     * @return metadata object
+     */
+    StreamMetaData getMetaData();
+
+    /**
+     * Get the number of bytes written to disk
+     *
+     * @return a long value ( number of bytes written to disk )
+     */
+    long getNumBytesWritten();
+
+    /**
      * Get the  number of events dispatched during this run
      * @return a long value
      */
@@ -133,13 +133,6 @@ public interface Dispatcher
     long getTotalDispatchedEvents();
 
     /**
-     * Get the number of bytes written to disk
-     *
-     * @return a long value ( number of bytes written to disk )
-     */
-    long getNumBytesWritten();
-
-    /**
      * Does this dispatcher have one or more active STARTs?
      *
      * @return <tt>true</tt> if dispatcher has been started and not stopped
@@ -149,7 +142,8 @@ public interface Dispatcher
     /**
      * Set the destination directory where the dispatch files will be saved.
      *
-     * @param dirName The absolute path of directory where the dispatch files will be stored.
+     * @param dirName The absolute path of directory where the dispatch files
+     *                will be stored.
      */
     void setDispatchDestStorage(String dirName);
 

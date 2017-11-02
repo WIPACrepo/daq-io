@@ -60,7 +60,7 @@ class AdjustablePayload
 
     public long getUTCTime()
     {
-        throw new Error("Unimplemented");
+        return 0L;
     }
 
     int getValue()
@@ -392,40 +392,6 @@ public class FileDispatcherTest
                          " writable!  Using current directory.");
     }
 
-    public void testUnimplemented()
-        throws DispatchException
-    {
-        FileDispatcher fd = new FileDispatcher("physics");
-
-        ByteBuffer bb = ByteBuffer.allocate(12);
-        int[] indices = new int[] { 0, 4, 8 };
-
-        final String unimplemented = "Unimplemented";
-
-        try {
-            fd.dispatchEvents(bb, indices);
-            fail("Expected dispatchEvents(ByteBuffer, int[])" +
-                 " to be unimplemented!");
-        } catch (UnsupportedOperationException uoe) {
-            if (!unimplemented.equals(uoe.getMessage())) {
-                fail("Expected dispatchEvents(ByteBuffer, int[])" +
-                     " to be unimplemented!");
-            }
-        }
-        assertNoLogMessages();
-
-        try {
-            fd.dispatchEvents(bb, indices, 123);
-            fail("Expected dispatchEvents(ByteBuffer, int[])" +
-                 " to be unimplemented!");
-        } catch (UnsupportedOperationException uoe) {
-            if (!unimplemented.equals(uoe.getMessage())) {
-                fail("Expected dispatchEvents(ByteBuffer, int[])" +
-                     " to be unimplemented!");
-            }
-        }
-    }
-
     public void testMaxFileSize()
         throws DispatchException
     {
@@ -506,11 +472,16 @@ public class FileDispatcherTest
             // expect this to fail
         }
 
-        fd.dataBoundary(Dispatcher.START_PREFIX + "123");
-        assertEquals("Incorrect run number", 123, fd.getRunNumber());
+        final int firstNum = 123;
+        fd.dataBoundary(Dispatcher.START_PREFIX + firstNum);
+        assertEquals("Incorrect run number", firstNum, fd.getRunNumber());
 
-        fd.dataBoundary(Dispatcher.START_PREFIX + "456");
-        assertEquals("Incorrect run number", 456, fd.getRunNumber());
+        final int runNum = 456;
+        fd.dataBoundary(Dispatcher.START_PREFIX + runNum);
+        assertEquals("Incorrect run number", runNum, fd.getRunNumber());
+
+        assertLogMessage("Run " + runNum +
+                         " started without stopping run " + firstNum);
 
         fd.dispatchEvent(new AdjustablePayload(8));
 
@@ -526,7 +497,6 @@ public class FileDispatcherTest
 
         fd.dispatchEvent(new AdjustablePayload(8));
 
-        fd.dataBoundary(Dispatcher.STOP_PREFIX);
         fd.dataBoundary(Dispatcher.STOP_PREFIX);
 
         try {
