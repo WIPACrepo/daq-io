@@ -1,7 +1,7 @@
 /*
  * interface: Dispatcher
  *
- * Version $Id: Dispatcher.java 16807 2017-11-02 22:31:23Z dglo $
+ * Version $Id: Dispatcher.java 16957 2018-03-29 16:56:20Z dglo $
  *
  * Date: April 1 2004
  *
@@ -20,7 +20,7 @@ import java.nio.ByteBuffer;
  * This interface specifies how events are dispatched from the DAQ system.
  *
  * @author patton
- * @version $Id: Dispatcher.java 16807 2017-11-02 22:31:23Z dglo $
+ * @version $Id: Dispatcher.java 16957 2018-03-29 16:56:20Z dglo $
  */
 public interface Dispatcher
 {
@@ -125,6 +125,12 @@ public interface Dispatcher
      * @return a long value
      */
     long getNumDispatchedEvents();
+
+    /**
+     * Get the current run number
+     * @return current run number
+     */
+    int getRunNumber();
 
     /**
      * Get the total number of events dispatched
