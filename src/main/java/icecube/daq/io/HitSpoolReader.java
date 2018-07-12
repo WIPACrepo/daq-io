@@ -168,13 +168,65 @@ public class HitSpoolReader
         files.clear();
     }
 
+    private int extractHubID(String dirName)
+        throws IOException
+    {
+        int idOffset = 0;
+
+        // find position of initial ichub/ithub/hub substring
+        final int startIdx;
+        int hubIdx = dirName.indexOf("ichub");
+        if (hubIdx >= 0) {
+            startIdx = hubIdx + 5;
+        } else {
+            hubIdx = dirName.indexOf("hub");
+            if (hubIdx >= 0) {
+                startIdx = hubIdx + 3;
+            } else {
+                hubIdx = dirName.indexOf("ithub");
+                if (hubIdx >= 0) {
+                    startIdx = hubIdx + 5;
+                    idOffset = SourceIdRegistry.ICETOP_ID_OFFSET;
+                } else {
+                    startIdx = -1;
+                }
+            }
+        }
+
+        if (startIdx >= 0) {
+            int endIdx = startIdx;
+            for(int idx = startIdx; idx < dirName.length(); idx++) {
+                if (!Character.isDigit(dirName.charAt(idx))) {
+                    break;
+                }
+                endIdx = idx + 1;
+            }
+
+            if (endIdx > startIdx) {
+                final String numStr = dirName.substring(startIdx, endIdx);
+                try {
+                    return Integer.parseInt(numStr) + idOffset;
+                } catch (NumberFormatException nfe) {
+                    // do nothing
+                }
+            }
+        }
+
+        throw new IOException("Could not get hub ID from \"" + dirName + "\"");
+    }
+
     /**
      * Find all hitspool files in the directory
      *
      * @param dir directory
      */
     private void findFiles(File dir)
+        throws IOException
     {
+        if (hubId <= 0) {
+            hubId = extractHubID(dir.getName());
+        }
+
         File[] dirList = dir.listFiles();
         if (dirList == null) {
             return;
@@ -200,11 +252,6 @@ public class HitSpoolReader
 
             // skip subdirectories
             if (dirList[i].isDirectory()) {
-                continue;
-            }
-
-            // only match files for specified hub
-            if (hubId <= 0) {
                 continue;
             }
 
@@ -380,6 +427,11 @@ public class HitSpoolReader
     public void remove()
     {
         throw new Error("Unimplemented");
+    }
+
+    public void setVerbose(boolean val)
+    {
+        verbose = val;
     }
 
     enum ArgType { NONE, HUBNUM, MODULUS, NUM_TO_PRINT };
