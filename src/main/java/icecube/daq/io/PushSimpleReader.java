@@ -68,7 +68,8 @@ public abstract class PushSimpleReader
         super(name);
     }
 
-    void channelStopped(SimpleChannel chan)
+    @Override
+    public void channelStopped(IOChannel chan)
     {
         pushChanList.remove(chan);
         if (pushChanList.size() == 0) {
