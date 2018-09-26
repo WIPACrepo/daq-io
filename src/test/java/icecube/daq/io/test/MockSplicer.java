@@ -48,7 +48,6 @@ n
     public void addSpliceableChannel(SelectableChannel channel)
         throws IOException
     {
-try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
         throw new Error("Unimplemented");
     }
 
@@ -59,7 +58,6 @@ try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
      */
     public void addSplicerListener(SplicerListener listener)
     {
-try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
         throw new Error("Unimplemented");
     }
 
@@ -83,7 +81,6 @@ try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
      */
     public void analyze()
     {
-try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
         throw new Error("Unimplemented");
     }
 
@@ -108,7 +105,6 @@ try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
      */
     public void dispose()
     {
-try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
         throw new Error("Unimplemented");
     }
 
@@ -135,7 +131,6 @@ try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
      */
     public SplicedAnalysis getAnalysis()
     {
-try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
         throw new Error("Unimplemented");
     }
 
@@ -187,7 +182,6 @@ n
      */
     public List pendingChannels()
     {
-try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
         throw new Error("Unimplemented");
     }
 
@@ -225,7 +219,6 @@ try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
      */
     public void removeSpliceableChannel(SelectableChannel channel)
     {
-try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
         throw new Error("Unimplemented");
     }
 
@@ -237,7 +230,6 @@ try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
      */
     public void removeSplicerListener(SplicerListener listener)
     {
-try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
         throw new Error("Unimplemented");
     }
 
@@ -290,7 +282,6 @@ try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
      */
     public void start(Spliceable start)
     {
-try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
         throw new Error("Unimplemented");
     }
 
@@ -309,7 +300,6 @@ try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
      */
     public void stop()
     {
-try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
         throw new Error("Unimplemented");
     }
 
@@ -339,7 +329,6 @@ try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
     public void stop(Spliceable stop)
         throws OrderingException
     {
-try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
         throw new Error("Unimplemented");
     }
 }

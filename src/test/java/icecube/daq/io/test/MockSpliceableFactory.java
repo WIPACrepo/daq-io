@@ -15,7 +15,6 @@ public class MockSpliceableFactory
 
     public void backingBufferShift(List x0, int i1, int i2)
     {
-try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
         throw new Error("Unimplemented");
     }
 
@@ -26,13 +25,11 @@ try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
 
     public void invalidateSpliceables(List x0)
     {
-try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
         throw new Error("Unimplemented");
     }
 
     public boolean skipSpliceable(ByteBuffer x0)
     {
-try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
         throw new Error("Unimplemented");
     }
 }
