@@ -54,6 +54,7 @@ public class SpliceableSimpleReaderTest
         return numReturned;
     }
 
+    @Override
     protected void setUp()
         throws Exception
     {
@@ -72,6 +73,7 @@ public class SpliceableSimpleReaderTest
         return new TestSuite(SpliceableSimpleReaderTest.class);
     }
 
+    @Override
     protected void tearDown()
         throws Exception
     {

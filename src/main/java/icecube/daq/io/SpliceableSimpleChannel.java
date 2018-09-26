@@ -53,6 +53,7 @@ public class SpliceableSimpleChannel
         return strandTail != null;
     }
 
+    @Override
     public void notifyOnStop()
     {
         // since this is a SpliceablePayloadReceiveChannel, we
@@ -66,6 +67,7 @@ public class SpliceableSimpleChannel
         super.notifyOnStop();
     }
 
+    @Override
     public void pushPayload(ByteBuffer payBuf)
     {
         Spliceable spliceable = factory.createSpliceable(payBuf);
@@ -131,6 +133,7 @@ public class SpliceableSimpleChannel
         this.strandTail = strandTail;
     }
 
+    @Override
     public void startProcessing()
     {
         if (strandTail == null) {

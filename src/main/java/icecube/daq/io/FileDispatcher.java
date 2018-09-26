@@ -92,6 +92,7 @@ public class FileDispatcher implements Dispatcher {
      *
      * @throws DispatchException if there is a problem
      */
+    @Override
     public void close()
         throws DispatchException
     {
@@ -104,6 +105,7 @@ public class FileDispatcher implements Dispatcher {
      *
      * @throws DispatchException if there is a problem in the Dispatch system.
      */
+    @Override
     public void dataBoundary()
         throws DispatchException
     {
@@ -121,6 +123,7 @@ public class FileDispatcher implements Dispatcher {
      * @param message a String explaining the reason for the boundary.
      * @throws DispatchException if there is a problem in the Dispatch system.
      */
+    @Override
     public void dataBoundary(String message)
         throws DispatchException
     {
@@ -206,6 +209,7 @@ public class FileDispatcher implements Dispatcher {
      *
      * @throws DispatchException if there is a problem in the Dispatch system.
      */
+    @Override
     public void dispatchEvent(ByteBuffer buffer, long ticks)
         throws DispatchException
     {
@@ -266,6 +270,7 @@ public class FileDispatcher implements Dispatcher {
      * @param event A payload object.
      * @throws DispatchException if there is a problem in the Dispatch system.
      */
+    @Override
     public void dispatchEvent(IWriteablePayload event)
         throws DispatchException
     {
@@ -339,6 +344,7 @@ public class FileDispatcher implements Dispatcher {
      *
      * @return byte buffer cache
      */
+    @Override
     public IByteBufferCache getByteBufferCache()
     {
         return bufferCache;
@@ -378,6 +384,7 @@ public class FileDispatcher implements Dispatcher {
      *
      * @return The absolute path where the dispatch files will be stored.
      */
+    @Override
     public File getDispatchDestStorage()
     {
         return dispatchDir;
@@ -388,6 +395,7 @@ public class FileDispatcher implements Dispatcher {
      *
      * @return first payload time
      */
+    @Override
     public long getFirstDispatchedTime()
     {
         return firstDispatchedTime;
@@ -399,6 +407,7 @@ public class FileDispatcher implements Dispatcher {
      *
      * @return metadata object
      */
+    @Override
     public StreamMetaData getMetaData()
     {
         synchronized (metadataLock) {
@@ -435,6 +444,7 @@ public class FileDispatcher implements Dispatcher {
         return tmpFile;
     }
 
+    @Override
     public int getRunNumber()
     {
         return runNumber;
@@ -445,6 +455,7 @@ public class FileDispatcher implements Dispatcher {
      *
      * @return a long value ( number of bytes written to disk )
      */
+    @Override
     public long getNumBytesWritten() {
         return numBytesWritten;
     }
@@ -453,6 +464,7 @@ public class FileDispatcher implements Dispatcher {
      * Get the  number of events dispatched during this run
      * @return a long value
      */
+    @Override
     public long getNumDispatchedEvents() {
         return numDispatchedEvents;
     }
@@ -462,6 +474,7 @@ public class FileDispatcher implements Dispatcher {
      *
      * @return a long value
      */
+    @Override
     public long getTotalDispatchedEvents() {
         return totalDispatchedEvents;
     }
@@ -471,6 +484,7 @@ public class FileDispatcher implements Dispatcher {
      *
      * @return <tt>true</tt> if dispatcher has been started and not stopped
      */
+    @Override
     public boolean isStarted()
     {
         return running;
@@ -494,6 +508,7 @@ public class FileDispatcher implements Dispatcher {
      * @param dirName The absolute path of directory where the dispatch files
      *        will be stored.
      */
+    @Override
     public void setDispatchDestStorage(String dirName)
     {
         setDispatchDestStorage(dirName, false);
@@ -587,6 +602,7 @@ public class FileDispatcher implements Dispatcher {
      *
      * @param maxFileSize the maximum size of the dispatch file.
      */
+    @Override
     public void setMaxFileSize(long maxFileSize) {
         if (maxFileSize <= 0L) {
             throw new IllegalArgumentException("Bad maximum file size " +
@@ -602,6 +618,7 @@ public class FileDispatcher implements Dispatcher {
      *
      * @return the number of units still available in the disk.
      */
+    @Override
     public long getDiskAvailable(){
         return diskAvailable;
     }
@@ -612,6 +629,7 @@ public class FileDispatcher implements Dispatcher {
      *
      * @return the total number of units in the disk.
      */
+    @Override
     public long getDiskSize(){
         return diskSize;
     }
@@ -686,6 +704,7 @@ public class FileDispatcher implements Dispatcher {
      * is still open when invoked.
      */
     private class ShutdownHook extends Thread {
+        @Override
         public void run() {
             LOG.debug("ShutdownHook invoked for " + baseFileName);
             if (outChannel != null && outChannel.isOpen()) {
@@ -701,6 +720,7 @@ public class FileDispatcher implements Dispatcher {
         }
     }
 
+    @Override
     public String toString()
     {
         return "FileDispatcher[" + baseFileName +

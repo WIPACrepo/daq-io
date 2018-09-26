@@ -145,6 +145,7 @@ public class PayloadByteReader
      *
      * @return <tt>true</tt> if there is another payload
      */
+    @Override
     public boolean hasNext()
     {
         if (!gotNext) {
@@ -307,6 +308,7 @@ public class PayloadByteReader
     /**
      * Unimplemented.
      */
+    @Override
     public void remove()
     {
         throw new Error("Unimplemented");

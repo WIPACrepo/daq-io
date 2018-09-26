@@ -322,6 +322,7 @@ public class HitSpoolReader
      *
      * @return <tt>true</tt> if there is another payload
      */
+    @Override
     public boolean hasNext()
     {
         if (rdr == null) {
@@ -424,6 +425,7 @@ public class HitSpoolReader
     /**
      * Unimplemented.
      */
+    @Override
     public void remove()
     {
         throw new Error("Unimplemented");
@@ -652,6 +654,7 @@ class HitSpoolFile
         num = findFileNumber(assumeFirst);
     }
 
+    @Override
     public int compareTo(IHitSpoolFile hsf)
     {
         if (hsf == null) {
@@ -661,6 +664,7 @@ class HitSpoolFile
         return getNumber() - hsf.getNumber();
     }
 
+    @Override
     public boolean equals(Object obj)
     {
         if (obj == null || !(obj instanceof IHitSpoolFile)) {
@@ -712,6 +716,7 @@ class HitSpoolFile
         }
     }
 
+    @Override
     public File getFile()
     {
         return f;
@@ -722,21 +727,25 @@ class HitSpoolFile
         return f.getName();
     }
 
+    @Override
     public int getNumber()
     {
         return num;
     }
 
+    @Override
     public int hashCode()
     {
         return f.hashCode();
     }
 
+    @Override
     public boolean isGZipped()
     {
         return f.getName().endsWith(".gz");
     }
 
+    @Override
     public String toString()
     {
         return f.toString();

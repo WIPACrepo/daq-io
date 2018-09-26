@@ -1,7 +1,7 @@
 /*
  * class: PayloadTransmitChannel
  *
- * Version $Id: PayloadTransmitChannel.java 16279 2016-10-28 22:16:33Z dglo $
+ * Version $Id: PayloadTransmitChannel.java 17114 2018-09-26 09:51:56Z dglo $
  *
  * Date: May 15 2005
  *
@@ -29,7 +29,7 @@ import org.apache.commons.logging.LogFactory;
  * for returning buffers into the buffer cache.
  *
  * @author mcp
- * @version $Id: PayloadTransmitChannel.java 16279 2016-10-28 22:16:33Z dglo $
+ * @version $Id: PayloadTransmitChannel.java 17114 2018-09-26 09:51:56Z dglo $
  */
 public class PayloadTransmitChannel implements QueuedOutputChannel {
 
@@ -267,6 +267,7 @@ public class PayloadTransmitChannel implements QueuedOutputChannel {
         }
     }
 
+    @Override
     public void sendLastAndStop() {
         try {
             outputQueue.put(lastMessage);
@@ -287,10 +288,12 @@ public class PayloadTransmitChannel implements QueuedOutputChannel {
         stateMachineMUTEX.release();
     }
 
+    @Override
     public void flushOutQueue() {
         selector.wakeup();
     }
 
+    @Override
     public void registerComponentObserver(DAQComponentObserver compObserver,
                                           String notificationID) {
         if (this.compObserver != null) {
@@ -582,6 +585,7 @@ public class PayloadTransmitChannel implements QueuedOutputChannel {
      *
      * @param tBuffer ByteBuffer the new buffer to be processed.
      */
+    @Override
     public void receiveByteBuffer(ByteBuffer tBuffer) {
         try {
             if (tBuffer.getInt(0) != tBuffer.limit()) {
@@ -599,6 +603,7 @@ public class PayloadTransmitChannel implements QueuedOutputChannel {
         flushOutQueue();
     }
 
+    @Override
     public boolean isOutputQueued() {
         return !outputQueue.isEmpty();
     }

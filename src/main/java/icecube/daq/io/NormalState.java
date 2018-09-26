@@ -27,6 +27,7 @@ public final class NormalState {
         myName = name;
     }
 
+    @Override
     public String toString() {
         return myName;
     }

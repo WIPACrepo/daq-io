@@ -105,6 +105,7 @@ public class PayloadFileReader
      *
      * @throws Error if this reader has been closed
      */
+    @Override
     public boolean hasNext()
     {
         if (rdr == null) {
@@ -162,6 +163,7 @@ public class PayloadFileReader
     /**
      * Unimplemented.
      */
+    @Override
     public void remove()
     {
         throw new Error("Unimplemented");

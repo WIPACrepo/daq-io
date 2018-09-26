@@ -76,6 +76,7 @@ public class SpliceableInputChannel
         return thread != null;
     }
 
+    @Override
     public void notifyOnStop()
     {
         // since this is a SpliceablePayloadReceiveChannel, we
@@ -95,6 +96,7 @@ public class SpliceableInputChannel
         super.notifyOnStop();
     }
 
+    @Override
     public void pushPayload(ByteBuffer payBuf)
     {
         Spliceable spliceable = factory.createSpliceable(payBuf);
@@ -132,12 +134,14 @@ public class SpliceableInputChannel
      * @param compObserver component observer
      * @param notificationID ID string
      */
+    @Override
     public void registerComponentObserver(DAQComponentObserver compObserver,
                                           String notificationID)
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public void run()
     {
         ArrayList<Spliceable> workList = new ArrayList<Spliceable>();
@@ -209,6 +213,7 @@ public class SpliceableInputChannel
         this.strandTail = strandTail;
     }
 
+    @Override
     public void startReading()
     {
         if (strandTail == null) {
@@ -228,6 +233,7 @@ public class SpliceableInputChannel
         super.startReading();
     }
 
+    @Override
     public String toString()
     {
         return getParent().toString() + "=>SpliceableInputChannel#" + id;

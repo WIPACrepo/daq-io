@@ -47,6 +47,7 @@ public abstract class PayloadReader
             flag = true;
         }
 
+        @Override
         public String toString()
         {
             return (flag ? "" : "!") + name;
@@ -223,6 +224,7 @@ if(DEBUG_NEW)System.err.println("ANend");
      * @param buf ByteBuffer which caused the error (may ne <tt>null</tt>)
      * @param ex exception (may be null)
      */
+    @Override
     public void channelError(IOChannel chan, ByteBuffer buf,
                              Exception ex)
     {
@@ -234,6 +236,7 @@ if(DEBUG_NEW)System.err.println("ANend");
      *
      * @param chan channel
      */
+    @Override
     public void channelStopped(IOChannel chan)
     {
         channelStopFlag.set();
@@ -248,6 +251,7 @@ if(DEBUG_NEW)System.err.println("ANend");
                                                int bufSize)
         throws IOException;
 
+    @Override
     public void destroyProcessor()
     {
         thread = null;
@@ -265,6 +269,7 @@ if(DEBUG_NEW)System.err.println("ANend");
         setState(RunState.DESTROYED);
     }
 
+    @Override
     public void forcedStopProcessing()
     {
         setState(RunState.IDLE);
@@ -356,11 +361,13 @@ if(DEBUG_NEW)System.err.println("ANend");
      *
      * @return number of active channels
      */
+    @Override
     public int getNumberOfChannels()
     {
         return chanList.size();
     }
 
+    @Override
     public String getPresentState()
     {
         return state.toString();
@@ -374,6 +381,7 @@ if(DEBUG_NEW)System.err.println("ANend");
         return (Long[]) recordCount.toArray(new Long[0]);
     }
 
+    @Override
     public int getServerPort() {
         return port;
     }
@@ -403,11 +411,13 @@ if(DEBUG_NEW)System.err.println("ANend");
         return total;
     }
 
+    @Override
     public boolean isDestroyed()
     {
         return state == RunState.DESTROYED;
     }
 
+    @Override
     public boolean isDisposing()
     {
         return state == RunState.DISPOSING;
@@ -425,11 +435,13 @@ if(DEBUG_NEW)System.err.println("ANend");
         }
     }
 
+    @Override
     public boolean isRunning()
     {
         return state == RunState.RUNNING;
     }
 
+    @Override
     public boolean isStopped()
     {
         return state == RunState.IDLE;
@@ -532,6 +544,7 @@ if(DEBUG_NEW)System.err.println("ANend");
         }
     }
 
+    @Override
     public void registerComponentObserver(DAQComponentObserver compObserver)
     {
         this.compObserver = compObserver;
@@ -552,6 +565,7 @@ if(DEBUG_NEW)System.err.println("ANend");
         }
     }
 
+    @Override
     public void run()
     {
         newState = RunState.IDLE;
@@ -772,6 +786,7 @@ if(DEBUG_SET)System.err.println("SSTnewState="+newState);
 if(DEBUG_SET)System.err.println("SSTend");
     }
 
+    @Override
     public void start()
     {
         if (thread != null) {
@@ -784,6 +799,7 @@ if(DEBUG_SET)System.err.println("SSTend");
         thread.start();
     }
 
+    @Override
     public void startDisposing()
     {
         synchronized (stateLock) {
@@ -796,6 +812,7 @@ if(DEBUG_SET)System.err.println("SSTend");
         }
     }
 
+    @Override
     public void startProcessing()
     {
         if (reverseConnList.size() > 0) {
@@ -816,6 +833,7 @@ if(DEBUG_SET)System.err.println("SSTend");
         }
     }
 
+    @Override
     public void startServer(IByteBufferCache serverCache)
         throws IOException
     {
@@ -860,6 +878,7 @@ if(DEBUG_SS)System.err.println("SSdone");
         }
     }
 
+    @Override
     public String toString()
     {
         return name + "[" + state + "," + chanList.size() + " chan," +
@@ -911,6 +930,7 @@ if(DEBUG_SS)System.err.println("SSdone");
             addSocketChannel(sock, bufCache);
         }
 
+        @Override
         public String toString()
         {
             return hostName + ":" + port;

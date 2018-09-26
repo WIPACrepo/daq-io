@@ -118,6 +118,7 @@ public class SimpleOutputEngineTest
         return ssChan.socket().getLocalPort();
     }
 
+    @Override
     protected void setUp()
         throws Exception
     {
@@ -139,6 +140,7 @@ public class SimpleOutputEngineTest
      *
      * @throws Exception if super class tearDown fails.
      */
+    @Override
     protected void tearDown()
         throws Exception
     {

@@ -41,6 +41,7 @@ class MockPushReader
         return recvCnt;
     }
 
+    @Override
     public void pushBuffer(ByteBuffer bb)
         throws IOException
     {
@@ -48,6 +49,7 @@ class MockPushReader
         recvCnt++;
     }
 
+    @Override
     public void sendStop()
     {
         gotStop = true;
@@ -72,6 +74,7 @@ public class PushPayloadReaderTest
         super(name);
     }
 
+    @Override
     protected void setUp()
         throws Exception
     {
@@ -90,6 +93,7 @@ public class PushPayloadReaderTest
         return new TestSuite(PushPayloadReaderTest.class);
     }
 
+    @Override
     protected void tearDown()
         throws Exception
     {

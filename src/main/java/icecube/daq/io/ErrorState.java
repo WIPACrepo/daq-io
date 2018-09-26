@@ -10,7 +10,7 @@ package icecube.daq.io;
  * This class is an enumeration of DAQ error types.
  *
  * @author artur
- * @version $Id: ErrorState.java 2629 2008-02-11 05:48:36Z dglo $
+ * @version $Id: ErrorState.java 17114 2018-09-26 09:51:56Z dglo $
  */
 public final class ErrorState {
 
@@ -27,6 +27,7 @@ public final class ErrorState {
         myName = name;
     }
 
+    @Override
     public String toString() {
         return myName;
     }

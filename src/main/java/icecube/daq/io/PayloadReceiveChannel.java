@@ -1,7 +1,7 @@
 /*
  * class: PayloadReceiveChannel
  *
- * Version $Id: PayloadReceiveChannel.java 3439 2008-09-02 17:08:41Z dglo $
+ * Version $Id: PayloadReceiveChannel.java 17114 2018-09-26 09:51:56Z dglo $
  *
  * Date: May 15 2005
  *
@@ -33,7 +33,7 @@ import org.apache.commons.logging.LogFactory;
  * for acquiring buffers into the buffer cache and managing the flow control.
  *
  * @author mcp
- * @version $Id: PayloadReceiveChannel.java 3439 2008-09-02 17:08:41Z dglo $
+ * @version $Id: PayloadReceiveChannel.java 17114 2018-09-26 09:51:56Z dglo $
  */
 public class PayloadReceiveChannel implements IOChannel {
 
@@ -331,6 +331,7 @@ public class PayloadReceiveChannel implements IOChannel {
         stateMachineMUTEX.release();
     }
 
+    @Override
     public void registerComponentObserver(DAQComponentObserver compObserver,
                                           String notificationID)
     {
@@ -976,6 +977,7 @@ public class PayloadReceiveChannel implements IOChannel {
         return name;
     }
 
+    @Override
     public String toString()
     {
         return "PayloadReceiveChannel#" + num + "[" + channel + "]";

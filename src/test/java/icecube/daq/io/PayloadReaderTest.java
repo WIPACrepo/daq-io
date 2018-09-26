@@ -58,6 +58,7 @@ class SimplePayloadReader
         super(name);
     }
 
+    @Override
     public InputChannel createChannel(SelectableChannel channel, String name,
                                       IByteBufferCache bufMgr, int bufSize)
         throws IOException
@@ -274,6 +275,7 @@ public class PayloadReaderTest
         return numHarvested;
     }
 
+    @Override
     protected void setUp()
         throws Exception
     {
@@ -292,6 +294,7 @@ public class PayloadReaderTest
         return new TestSuite(PayloadReaderTest.class);
     }
 
+    @Override
     protected void tearDown()
         throws Exception
     {

@@ -467,6 +467,7 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
             }
 
 
+            @Override
             public boolean cancel()
             {
                 synchronized (this)

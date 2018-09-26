@@ -53,6 +53,7 @@ public class MockObserver
         sourceId = id;
     }
 
+    @Override
     public synchronized void update(Object object, String notificationId)
     {
         if (object instanceof NormalState) {
@@ -105,6 +106,7 @@ public class MockObserver
         }
     }
 
+    @Override
     public String toString()
     {
         return "Observer[name=" + name +

@@ -48,6 +48,7 @@ public class SpliceableSimpleReader
         this.factory = factory;
     }
 
+    @Override
     public SimpleChannel createChannel(String name, SelectableChannel channel,
                                        IByteBufferCache bufMgr, int bufSize)
         throws IOException
@@ -93,6 +94,7 @@ public class SpliceableSimpleReader
         return totalDepth;
     }
 
+    @Override
     public void startProcessing()
     {
         int tries = 0;

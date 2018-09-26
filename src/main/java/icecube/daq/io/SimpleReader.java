@@ -136,6 +136,7 @@ public abstract class SimpleReader
      * @param buf ByteBuffer which caused the error (may ne <tt>null</tt>)
      * @param ex exception (may be null)
      */
+    @Override
     public void channelError(IOChannel chan, ByteBuffer buf,
                              Exception ex)
     {
@@ -149,6 +150,7 @@ public abstract class SimpleReader
      *
      * @param chan channel
      */
+    @Override
     public void channelStopped(IOChannel chan)
     {
         synchronized (channelList) {
@@ -174,6 +176,7 @@ public abstract class SimpleReader
                                                 int bufSize)
         throws IOException;
 
+    @Override
     public void destroyProcessor()
     {
         synchronized (channelList) {
@@ -189,6 +192,7 @@ public abstract class SimpleReader
         thread = null;
     }
 
+    @Override
     public void forcedStopProcessing()
     {
         if (state != State.RUNNING && state != State.DISPOSING) {
@@ -243,16 +247,19 @@ public abstract class SimpleReader
      *
      * @return number of active channels
      */
+    @Override
     public int getNumberOfChannels()
     {
         return channelList.size();
     }
 
+    @Override
     public String getPresentState()
     {
         return state.toString();
     }
 
+    @Override
     public int getServerPort()
     {
         return port;
@@ -294,11 +301,13 @@ public abstract class SimpleReader
         return total;
     }
 
+    @Override
     public boolean isDestroyed()
     {
         return state == State.DESTROYED;
     }
 
+    @Override
     public boolean isDisposing()
     {
         return state == State.DISPOSING;
@@ -309,6 +318,7 @@ public abstract class SimpleReader
         return state == State.ERROR;
     }
 
+    @Override
     public boolean isRunning()
     {
         return state == State.RUNNING;
@@ -319,6 +329,7 @@ public abstract class SimpleReader
         return serverStarted;
     }
 
+    @Override
     public boolean isStopped()
     {
         return state == State.IDLE;
@@ -393,6 +404,7 @@ public abstract class SimpleReader
      *
      * @param compObserver observer
      */
+    @Override
     public void registerComponentObserver(DAQComponentObserver compObserver)
     {
         this.observer = compObserver;
@@ -401,6 +413,7 @@ public abstract class SimpleReader
     /**
      * Server thread which accepts connections from remote components.
      */
+    @Override
     public void run()
     {
         Selector selector;
@@ -489,6 +502,7 @@ public abstract class SimpleReader
     /**
      * Start the reader.
      */
+    @Override
     public void start()
     {
         state = State.IDLE;
@@ -497,6 +511,7 @@ public abstract class SimpleReader
     /**
      * Start disposing incoming payloads.
      */
+    @Override
     public void startDisposing()
     {
         if (state != State.RUNNING) {
@@ -517,6 +532,7 @@ public abstract class SimpleReader
     /**
      * Start processing data from the connected channels.
      */
+    @Override
     public void startProcessing()
     {
         if (state != State.IDLE) {
@@ -547,6 +563,7 @@ public abstract class SimpleReader
      *
      * @param bufMgr cache manager used payloads from connected sockets
      */
+    @Override
     public void startServer(IByteBufferCache bufMgr)
         throws IOException
     {

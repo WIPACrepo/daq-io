@@ -39,6 +39,7 @@ class SimpleTestReader
             super(parent, name, channel, bufMgr, bufSize);
         }
 
+        @Override
         public void pushPayload(ByteBuffer buf)
         {
             synchronized (inputData) {
@@ -53,6 +54,7 @@ class SimpleTestReader
         super(name);
     }
 
+    @Override
     public SimpleChannel createChannel(String name, SelectableChannel channel,
                                        IByteBufferCache bufMgr, int bufSize)
         throws IOException
@@ -275,6 +277,7 @@ public class SimpleReaderTest
         return numHarvested;
     }
 
+    @Override
     protected void setUp()
         throws Exception
     {
@@ -293,6 +296,7 @@ public class SimpleReaderTest
         return new TestSuite(SimpleReaderTest.class);
     }
 
+    @Override
     protected void tearDown()
         throws Exception
     {

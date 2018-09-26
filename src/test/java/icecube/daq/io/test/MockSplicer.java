@@ -56,6 +56,7 @@ n
      *
      * @param listener the SplicerListener to add.
      */
+    @Override
     public void addSplicerListener(SplicerListener listener)
     {
         throw new Error("Unimplemented");
@@ -91,6 +92,7 @@ n
      *
      * @return the StrandTail used to push Spliceable into the new Strand.
      */
+    @Override
     public StrandTail beginStrand()
     {
         StrandTail tail = new MockStrandTail();
@@ -103,6 +105,7 @@ n
      * invoke the behavor of any method in this interface, except those
      * dealting directly with state, will be undetermined.
      */
+    @Override
     public void dispose()
     {
         throw new Error("Unimplemented");
@@ -119,6 +122,7 @@ n
      * If this object has already stopped then this method will have no
      * effect.
      */
+    @Override
     public void forceStop()
     {
         state = State.STOPPED;
@@ -129,6 +133,7 @@ n
      *
      * @return the {@link SplicedAnalysis} that is being used by this object.
      */
+    @Override
     public SplicedAnalysis getAnalysis()
     {
         throw new Error("Unimplemented");
@@ -139,6 +144,7 @@ n
      *
      * @return the current state of this object.
      */
+    @Override
     public State getState()
     {
         return state;
@@ -149,6 +155,7 @@ n
      *
      * @return the number of open Strands.
      */
+    @Override
     public int getStrandCount()
     {
         return strandList.size();
@@ -228,6 +235,7 @@ n
      *
      * @param listener the SplicerListener to remove.
      */
+    @Override
     public void removeSplicerListener(SplicerListener listener)
     {
         throw new Error("Unimplemented");
@@ -248,6 +256,7 @@ n
      * @throws IllegalStateException if this object is not in a state from
      * which it can be started.
      */
+    @Override
     public void start()
     {
         state = State.STARTED;
@@ -298,6 +307,7 @@ n
      * @throws IllegalStateException if this object is not in a state from
      * which it can be stopped.
      */
+    @Override
     public void stop()
     {
         throw new Error("Unimplemented");

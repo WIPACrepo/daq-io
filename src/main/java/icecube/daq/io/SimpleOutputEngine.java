@@ -93,6 +93,7 @@ public class SimpleOutputEngine
      * @param channel output channel
      * @param bufMgr byte buffer manager
      */
+    @Override
     public QueuedOutputChannel addDataChannel(WritableByteChannel channel,
                                               IByteBufferCache bufMgr)
     {
@@ -138,6 +139,7 @@ public class SimpleOutputEngine
      *
      * @throws IOException if there is a problem
      */
+    @Override
     public QueuedOutputChannel connect(IByteBufferCache bufMgr,
                                        WritableByteChannel chan, int srcId)
         throws IOException
@@ -148,6 +150,7 @@ public class SimpleOutputEngine
     /**
      * Destroy this engine.
      */
+    @Override
     public void destroyProcessor()
     {
         synchronized (channelList) {
@@ -186,6 +189,7 @@ public class SimpleOutputEngine
     /**
      * Disconnect all channels.
      */
+    @Override
     public void disconnect()
     {
         if (state == State.DESTROYED) {
@@ -221,6 +225,7 @@ public class SimpleOutputEngine
     /**
      * Force all channels to stop.
      */
+    @Override
     public void forcedStopProcessing()
     {
         if (state == State.DESTROYED) {
@@ -247,6 +252,7 @@ public class SimpleOutputEngine
      *
      * @throws Error if there is more than one output channel
      */
+    @Override
     public OutputChannel getChannel()
     {
         synchronized (channelList) {
@@ -290,6 +296,7 @@ public class SimpleOutputEngine
      *
      * @return number of active channels
      */
+    @Override
     public int getNumberOfChannels()
     {
         return channelList.size();
@@ -300,6 +307,7 @@ public class SimpleOutputEngine
      *
      * @return engine state
      */
+    @Override
     public String getPresentState()
     {
         switch (state) {
@@ -344,6 +352,7 @@ public class SimpleOutputEngine
      *
      * @return total number of records written
      */
+    @Override
     public long getRecordsSent()
     {
         return numSent;
@@ -354,6 +363,7 @@ public class SimpleOutputEngine
      *
      * @return total number of records written
      */
+    @Override
     public long getTotalRecordsSent()
     {
         return totalSent;
@@ -379,6 +389,7 @@ public class SimpleOutputEngine
      *
      * @return <tt>true</tt> if engine has been connected to a channel
      */
+    @Override
     public boolean isConnected()
     {
         return isConnected;
@@ -389,6 +400,7 @@ public class SimpleOutputEngine
      *
      * @return <tt>true</tt> if engine has been destroyed
      */
+    @Override
     public boolean isDestroyed()
     {
         return state == State.DESTROYED;
@@ -409,6 +421,7 @@ public class SimpleOutputEngine
      *
      * @return <tt>true</tt> if engine is running
      */
+    @Override
     public boolean isRunning()
     {
         return state == State.RUNNING;
@@ -419,6 +432,7 @@ public class SimpleOutputEngine
      *
      * @return <tt>true</tt> if engine is stopped
      */
+    @Override
     public boolean isStopped()
     {
         return state == State.STOPPED;
@@ -447,6 +461,7 @@ public class SimpleOutputEngine
      *
      * @param compObserver observer
      */
+    @Override
     public void registerComponentObserver(DAQComponentObserver compObserver)
     {
         if (compObserver != null && observer != null) {
@@ -488,6 +503,7 @@ public class SimpleOutputEngine
     /**
      * Main thread loop.
      */
+    @Override
     public void run()
     {
         numSent = 0;
@@ -587,6 +603,7 @@ public class SimpleOutputEngine
     /**
      * Queue a stop message on all active output channels.
      */
+    @Override
     public void sendLastAndStop()
     {
         if (state == State.DESTROYED) {
@@ -614,6 +631,7 @@ public class SimpleOutputEngine
     /**
      * Do nothing.
      */
+    @Override
     public void start()
     {
         // nothing to do
@@ -622,6 +640,7 @@ public class SimpleOutputEngine
     /**
      * Start sending records.
      */
+    @Override
     public void startProcessing()
     {
         if (state != State.STOPPED) {
@@ -647,6 +666,7 @@ public class SimpleOutputEngine
      *
      * @return debugging string
      */
+    @Override
     public String toString()
     {
         return engineType + "#" + engineId + ":" + engineFunction +
@@ -657,6 +677,7 @@ public class SimpleOutputEngine
     /**
      * Unimplemented.
      */
+    @Override
     public void update(Object obj, String notificationID)
     {
         throw new Error("Unimplemented");
@@ -740,6 +761,7 @@ public class SimpleOutputEngine
         /**
          * Wake the parent so it starts telling me to write data.
          */
+        @Override
         public void flushOutQueue()
         {
             if (outputQueue.size() > 0) {
@@ -774,6 +796,7 @@ public class SimpleOutputEngine
          *
          * @return <tt>true</tt> if the output queue is not empty
          */
+        @Override
         public boolean isOutputQueued()
         {
             return !outputQueue.isEmpty() ;
@@ -804,6 +827,7 @@ public class SimpleOutputEngine
          *
          * @param buf new record buffer
          */
+        @Override
         public void receiveByteBuffer(ByteBuffer buf)
         {
             final int warningFrequency = 10000;
@@ -856,6 +880,7 @@ public class SimpleOutputEngine
          * @param observer observer object
          * @param notificationID identifier for this observer
          */
+        @Override
         public void registerComponentObserver(DAQComponentObserver observer,
                                               String notificationID)
         {
@@ -866,6 +891,7 @@ public class SimpleOutputEngine
          * If the channel hasn't stopped, add a "stop" message to the output
          * queue.
          */
+        @Override
         public void sendLastAndStop()
         {
             if (!stopped) {
@@ -1003,6 +1029,7 @@ public class SimpleOutputEngine
          *
          * @return debugging string
          */
+        @Override
         public String toString()
         {
             return name + (outputQueue.size() == 0 ? "" :
@@ -1050,6 +1077,7 @@ public class SimpleOutputEngine
             super(parent, name, channel, bufferMgr);
         }
 
+        @Override
         int getRecordLength(ByteBuffer buf)
         {
             if (buf.limit() < 4) {
@@ -1062,6 +1090,7 @@ public class SimpleOutputEngine
         /**
          * Is this a stop message?
          */
+        @Override
         boolean isStopMessage(ByteBuffer buf, int payLen)
         {
             return payLen == STOP_MESSAGE_SIZE;
@@ -1070,6 +1099,7 @@ public class SimpleOutputEngine
         /**
          * Add a "stop" message to the output queue.
          */
+        @Override
         void queueStopMessage()
         {
             ByteBuffer stopMessage = ByteBuffer.allocate(STOP_MESSAGE_SIZE);

@@ -56,6 +56,7 @@ public class LoggingCase
         return appender.getNumberOfMessages();
     }
 
+    @Override
     protected void setUp()
         throws Exception
     {
@@ -70,6 +71,7 @@ public class LoggingCase
         appender.setVerbose(val);
     }
 
+    @Override
     protected void tearDown()
         throws Exception
     {

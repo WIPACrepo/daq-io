@@ -25,12 +25,14 @@ public abstract class PushSimpleReader
             reader = (PushSimpleReader) parent;
         }
 
+        @Override
         public void notifyOnStop()
         {
             reader.channelStopped(this);
             super.notifyOnStop();
         }
 
+        @Override
         public void pushPayload(ByteBuffer payBuf)
             throws IOException
         {
@@ -44,6 +46,7 @@ public abstract class PushSimpleReader
          * @param compObserver component observer
          * @param notificationID ID string
          */
+        @Override
         public void registerComponentObserver(DAQComponentObserver compObserver,
                                               String notificationID)
         {
@@ -77,6 +80,7 @@ public abstract class PushSimpleReader
         super.channelStopped(chan);
     }
 
+    @Override
     public SimpleChannel createChannel(String name, SelectableChannel channel,
                                        IByteBufferCache bufMgr, int bufSize)
         throws IOException

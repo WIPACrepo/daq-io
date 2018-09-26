@@ -19,11 +19,13 @@ public class SimpleChannelTest
     class MockParent
         implements IOChannelParent
     {
+        @Override
         public void channelError(IOChannel chan, ByteBuffer buf, Exception ex)
         {
             throw new Error("Unimplemented");
         }
 
+        @Override
         public void channelStopped(IOChannel chan)
         {
             throw new Error("Unimplemented");

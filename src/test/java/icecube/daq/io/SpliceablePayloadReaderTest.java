@@ -54,6 +54,7 @@ public class SpliceablePayloadReaderTest
         return numReturned;
     }
 
+    @Override
     protected void setUp()
         throws Exception
     {
@@ -72,6 +73,7 @@ public class SpliceablePayloadReaderTest
         return new TestSuite(SpliceablePayloadReaderTest.class);
     }
 
+    @Override
     protected void tearDown()
         throws Exception
     {

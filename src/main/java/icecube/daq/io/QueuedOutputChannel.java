@@ -25,5 +25,6 @@ public interface QueuedOutputChannel
      * Receives a ByteBuffer from a source.
      * @param tBuffer ByteBuffer the new buffer to be processed.
      */
+    @Override
     void receiveByteBuffer(ByteBuffer tBuffer);
 }

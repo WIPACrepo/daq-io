@@ -30,6 +30,7 @@ public class MockStrandTail
      * If the associated Strand is already closed then invoking this method
      * will have no effect.
      */
+    @Override
     public void close()
     {
         closed = true;
@@ -42,6 +43,7 @@ public class MockStrandTail
      *
      * @return the Spliceable at the "head" of this object.
      */
+    @Override
     public Spliceable head()
     {
         return entries.get(0);
@@ -53,6 +55,7 @@ public class MockStrandTail
      *
      * @return true if this object is closed.
      */
+    @Override
     public boolean isClosed()
     {
         return closed;
@@ -84,6 +87,7 @@ public class MockStrandTail
      * pushed into this object
      * @throws ClosedStrandException is the associated Strand has been closed.
      */
+    @Override
     public StrandTail push(List splList)
         throws OrderingException, ClosedStrandException
     {
@@ -118,6 +122,7 @@ ABLE</code>
      * with respect to Spliceables already pushed into this object
      * @throws ClosedStrandException is the assoicated Strand has been closed.
      */
+    @Override
     public StrandTail push(Spliceable spl)
         throws OrderingException, ClosedStrandException
     {
@@ -161,11 +166,13 @@ ABLE</code>
      *
      * @return the number of {@link Spliceable} objects yet to be woven.
      */
+    @Override
     public int size()
     {
         return entries.size();
     }
 
+    @Override
     public String toString()
     {
         return "MockStrandTail[" + entries.size() + "," +

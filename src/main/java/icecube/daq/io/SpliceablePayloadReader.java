@@ -48,6 +48,7 @@ public class SpliceablePayloadReader
         this.factory = factory;
     }
 
+    @Override
     public InputChannel createChannel(SelectableChannel channel, String name,
                                       IByteBufferCache bufMgr, int bufSize)
         throws IOException
@@ -76,6 +77,7 @@ public class SpliceablePayloadReader
         return (Integer[]) strandDepth.toArray(new Integer[0]);
     }
 
+    @Override
     public String getStringExtra()
     {
         return ",depth " + getTotalStrandDepth();
@@ -98,6 +100,7 @@ public class SpliceablePayloadReader
         return totalDepth;
     }
 
+    @Override
     public void startProcessing()
     {
         int tries = 0;
