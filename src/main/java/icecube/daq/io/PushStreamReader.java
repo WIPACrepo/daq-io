@@ -7,13 +7,13 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
 import java.util.ArrayList;
 
-public abstract class PushPayloadReader
-    extends PayloadReader
+public abstract class PushStreamReader
+    extends DAQStreamReader
 {
     class PushInputChannel
         extends InputChannel
     {
-        private PushPayloadReader reader;
+        private PushStreamReader reader;
 
         PushInputChannel(IOChannelParent parent, SelectableChannel channel,
                          String name, IByteBufferCache bufMgr, int bufSize)
@@ -21,7 +21,7 @@ public abstract class PushPayloadReader
         {
             super(parent, channel, name, bufMgr, bufSize);
 
-            reader = (PushPayloadReader) parent;
+            reader = (PushStreamReader) parent;
         }
 
         @Override
@@ -61,7 +61,7 @@ public abstract class PushPayloadReader
     private long totStops;
 
     // default maximum size of strand queue
-    public PushPayloadReader(String name)
+    public PushStreamReader(String name)
         throws IOException
     {
         super(name);

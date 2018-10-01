@@ -14,7 +14,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Read payloads from a file.
+ * Read a payload file and return the data in IPayload objects.
  */
 public class PayloadFileReader
     implements Iterator<IPayload>, Iterable<IPayload>
@@ -120,7 +120,8 @@ public class PayloadFileReader
      *
      * @return this object
      */
-    public Iterator iterator()
+    @Override
+    public Iterator<IPayload> iterator()
     {
         return this;
     }
@@ -128,36 +129,22 @@ public class PayloadFileReader
     /**
      * Get the next available payload.
      */
+    @Override
     public IPayload next()
     {
-        try {
-            return nextPayload();
-        } catch (PayloadException pe) {
-            LOG.error("Cannot return next payload", pe);
-            return null;
-        }
-    }
-
-    /**
-     * Get the next available payload.
-     *
-     * @return next payload (or <tt>null</tt>)
-     *
-     * @throws PayloadException if there is a problem with the next payload
-     */
-    public IPayload nextPayload()
-        throws PayloadException
-    {
-        if (rdr == null) {
-            throw new PayloadException("Reader has been closed");
+        if (rdr != null) {
+            ByteBuffer buf;
+            try {
+                buf = rdr.nextBuffer();
+                if (buf != null) {
+                    return factory.getPayload(buf, 0);
+                }
+            } catch (PayloadException pe) {
+                LOG.error("Cannot return next payload", pe);
+            }
         }
 
-        ByteBuffer buf = rdr.nextBuffer();
-        if (buf == null) {
-            return null;
-        }
-
-        return factory.getPayload(buf, 0);
+        return null;
     }
 
     /**

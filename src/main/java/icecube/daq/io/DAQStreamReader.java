@@ -19,7 +19,7 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-public abstract class PayloadReader
+public abstract class DAQStreamReader
     implements DAQComponentInputProcessor, IOChannelParent, Runnable
 {
     class Flag
@@ -58,7 +58,7 @@ public abstract class PayloadReader
     static final int DEFAULT_BUFFER_SIZE = 2048;
 
     /** logging object */
-    private static final Log LOG = LogFactory.getLog(PayloadReader.class);
+    private static final Log LOG = LogFactory.getLog(DAQStreamReader.class);
 
     /** selector timeout (in msec.) */
     private static final int SELECTOR_TIMEOUT = 1000;
@@ -114,12 +114,12 @@ public abstract class PayloadReader
     // total records received by channels which have been removed
     private int totalReceivedFromRemovedChannels;
 
-    public PayloadReader(String name)
+    public DAQStreamReader(String name)
     {
         this(name, DEFAULT_BUFFER_SIZE);
     }
 
-    public PayloadReader(String name, int bufferSize)
+    public DAQStreamReader(String name, int bufferSize)
     {
         this.name = name;
         this.bufferSize = bufferSize;

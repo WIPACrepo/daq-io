@@ -5,9 +5,12 @@ import icecube.daq.io.test.IOTestUtil;
 import icecube.daq.io.test.LoggingCase;
 import icecube.daq.io.test.MockBufferCache;
 import icecube.daq.io.test.MockObserver;
+import icecube.daq.io.test.MockSpliceableFactory;
+import icecube.daq.io.test.MockSplicer;
+import icecube.daq.io.test.MockStrandTail;
 import icecube.daq.payload.IByteBufferCache;
+import icecube.daq.splicer.Splicer;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.Pipe;
@@ -21,57 +24,34 @@ import junit.framework.Test;
 import junit.framework.TestSuite;
 import junit.textui.TestRunner;
 
-class MockPushReader
-    extends PushPayloadReader
-{
-    private IByteBufferCache bufMgr;
-    private int recvCnt;
-    private boolean gotStop;
-
-    MockPushReader(String name, IByteBufferCache bufMgr)
-        throws IOException
-    {
-        super(name);
-
-        this.bufMgr = bufMgr;
-    }
-
-    int getReceiveCount()
-    {
-        return recvCnt;
-    }
-
-    @Override
-    public void pushBuffer(ByteBuffer bb)
-        throws IOException
-    {
-        bufMgr.returnBuffer(bb);
-        recvCnt++;
-    }
-
-    @Override
-    public void sendStop()
-    {
-        gotStop = true;
-    }
-}
-
-public class PushPayloadReaderTest
+public class SpliceableStreamReaderTest
     extends LoggingCase
 {
     private static final int BUFFER_LEN = 5000;
     private static final int INPUT_OUTPUT_LOOP_CNT = 5;
 
-    private MockPushReader tstRdr;
+    private SpliceableStreamReader tstRdr;
 
     /**
      * Construct an instance of this test.
      *
      * @param name the name of the test.
      */
-    public PushPayloadReaderTest(String name)
+    public SpliceableStreamReaderTest(String name)
     {
         super(name);
+    }
+
+    private static final int harvestStrands(MockSplicer splicer,
+                                            IByteBufferCache bufMgr)
+    {
+        int numReturned = 0;
+        for (Iterator tIter = splicer.iterator(); tIter.hasNext(); ) {
+            numReturned +=
+                ((MockStrandTail) tIter.next()).returnBuffers(bufMgr);
+        }
+
+        return numReturned;
     }
 
     @Override
@@ -90,7 +70,7 @@ public class PushPayloadReaderTest
      */
     public static Test suite()
     {
-        return new TestSuite(PushPayloadReaderTest.class);
+        return new TestSuite(SpliceableStreamReaderTest.class);
     }
 
     @Override
@@ -110,9 +90,10 @@ public class PushPayloadReaderTest
     public void testStartStop()
         throws Exception
     {
-        IByteBufferCache bufMgr = new MockBufferCache("StartStop");
+        MockSplicer splicer = new MockSplicer();
+        MockSpliceableFactory factory = new MockSpliceableFactory();
 
-        tstRdr = new MockPushReader("StartStop", bufMgr);
+        tstRdr = new SpliceableStreamReader("StartStop", splicer, factory);
 
         tstRdr.start();
         IOTestUtil.waitUntilStopped(tstRdr, "creation");
@@ -129,6 +110,10 @@ public class PushPayloadReaderTest
         tstRdr.startProcessing();
         IOTestUtil.waitUntilRunning(tstRdr);
 
+        assertLogMessage("Splicer should have been in STOPPED state, not" +
+                         " STARTED.  Calling Splicer.forceStop()");
+        assertNoLogMessages();
+
         tstRdr.forcedStopProcessing();
         IOTestUtil.waitUntilStopped(tstRdr, "forced stop");
 
@@ -143,23 +128,10 @@ public class PushPayloadReaderTest
         } catch (Error e) {
             // expect this to fail
         }
-    }
 
-    public void testStartDispose()
-        throws Exception
-    {
-        IByteBufferCache bufMgr = new MockBufferCache("StartDisp");
-
-        tstRdr = new MockPushReader("StartDisp", bufMgr);
-
-        tstRdr.start();
-        IOTestUtil.waitUntilStopped(tstRdr, "creation");
-
-        tstRdr.startProcessing();
-        IOTestUtil.waitUntilRunning(tstRdr);
-
-        tstRdr.startDisposing();
-        IOTestUtil.waitUntilDisposing(tstRdr);
+        assertLogMessage("Splicer should have been in STOPPED state, not" +
+                         " STARTED.  Calling Splicer.forceStop()");
+        assertNoLogMessages();
     }
 
     public void testOutputInput()
@@ -176,15 +148,18 @@ public class PushPayloadReaderTest
         Pipe.SourceChannel sourceChannel = testPipe.source();
         sourceChannel.configureBlocking(false);
 
+        MockSplicer splicer = new MockSplicer();
+        MockSpliceableFactory factory = new MockSpliceableFactory();
+
         MockObserver observer = new MockObserver("OutIn");
 
-        tstRdr = new MockPushReader("OutIn", bufMgr);
+        tstRdr = new SpliceableStreamReader("OutputInput", splicer, factory);
         tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
         IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
-        tstRdr.addDataChannel(sourceChannel, "OutIn", bufMgr, 1024);
+        tstRdr.addDataChannel(sourceChannel, "OutInChan", bufMgr, 1024);
 
         Thread.sleep(100);
 
@@ -198,7 +173,7 @@ public class PushPayloadReaderTest
 
         int xmitCnt = 0;
         int loopCnt = 0;
-        while (tstRdr.getReceiveCount() < INPUT_OUTPUT_LOOP_CNT) {
+        while (tstRdr.getTotalStrandDepth() < INPUT_OUTPUT_LOOP_CNT) {
             if (xmitCnt < INPUT_OUTPUT_LOOP_CNT) {
                 final int acquireLen = bufLen;
                 testBuf = bufMgr.acquireBuffer(acquireLen);
@@ -223,7 +198,7 @@ public class PushPayloadReaderTest
 
             loopCnt++;
             if (loopCnt > INPUT_OUTPUT_LOOP_CNT * 2) {
-                fail("Received " + tstRdr.getReceiveCount() +
+                fail("Received " + tstRdr.getTotalStrandDepth() +
                      " payloads after " + xmitCnt +
                      " buffers were transmitted");
             }
@@ -248,15 +223,18 @@ public class PushPayloadReaderTest
         Pipe.SourceChannel sourceChannel = testPipe.source();
         sourceChannel.configureBlocking(false);
 
+        MockSplicer splicer = new MockSplicer();
+        MockSpliceableFactory factory = new MockSpliceableFactory();
+
         MockObserver observer = new MockObserver("MultiOutIn");
 
-        tstRdr = new MockPushReader("MultiOutIn", bufMgr);
+        tstRdr = new SpliceableStreamReader("OutputInput", splicer, factory);
         tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
         IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
-        tstRdr.addDataChannel(sourceChannel, "MultiOutIn", bufMgr, 1024);
+        tstRdr.addDataChannel(sourceChannel, "MultiOIChan", bufMgr, 1024);
 
         Thread.sleep(100);
 
@@ -275,8 +253,9 @@ public class PushPayloadReaderTest
         int recvId = 0;
 
         int xmitCnt = 0;
+        int recvCnt = 0;
         int loopCnt = 0;
-        while (tstRdr.getReceiveCount() < numToSend) {
+        while (recvCnt < numToSend) {
             if (xmitCnt < numToSend) {
                 final int acquireLen = bufLen * groupSize;
                 testBuf = bufMgr.acquireBuffer(acquireLen);
@@ -303,10 +282,15 @@ public class PushPayloadReaderTest
                 }
             }
 
+            int numBufs = harvestStrands(splicer, bufMgr);
+            if (numBufs > 0) {
+                recvId += numBufs;
+                recvCnt += numBufs;
+            }
+
             loopCnt++;
-            if (loopCnt == numToSend * 2) {
-                fail("Received " + tstRdr.getReceiveCount() +
-                     " payloads after " + xmitCnt +
+            if (loopCnt > numToSend * 2) {
+                fail("Received " + recvCnt + " payloads after " + xmitCnt +
                      " buffers were transmitted");
             }
         }

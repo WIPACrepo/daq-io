@@ -21,7 +21,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 /**
- * Read payloads from a file.
+ * Read a set of payload files and return the data in ByteBuffer objects.
  */
 public class HitSpoolReader
     implements Iterator<ByteBuffer>, Iterable<ByteBuffer>
@@ -325,28 +325,14 @@ public class HitSpoolReader
     @Override
     public boolean hasNext()
     {
-        if (rdr == null) {
-            if (files.size() == 0) {
-                return false;
-            }
-
+        while (rdr == null || !rdr.hasNext()) {
             openNextFile();
             if (rdr == null) {
                 return false;
             }
         }
 
-        boolean val = rdr.hasNext();
-        if (!val) {
-            openNextFile();
-            if (rdr == null) {
-                return false;
-            }
-
-            val = rdr.hasNext();
-        }
-
-        return val;
+        return rdr.hasNext();
     }
 
     /**
@@ -354,7 +340,8 @@ public class HitSpoolReader
      *
      * @return this object
      */
-    public Iterator iterator()
+    @Override
+    public Iterator<ByteBuffer> iterator()
     {
         return this;
     }
@@ -364,31 +351,18 @@ public class HitSpoolReader
      *
      * @return next payload (or <tt>null</tt>)
      */
+    @Override
     public ByteBuffer next()
     {
-        try {
-            return nextBuffer();
-        } catch (PayloadException pe) {
-            LOG.error("Cannot return next payload", pe);
-            return null;
-        }
-    }
-
-    /**
-     * Get the next available payload in a ByteBuffer.
-     *
-     * @return next payload (or <tt>null</tt>)
-     *
-     * @throws PayloadException if there is a problem with the next payload
-     */
-    public ByteBuffer nextBuffer()
-        throws PayloadException
-    {
-        if (!hasNext()) {
-            return null;
+        if (hasNext()) {
+            try {
+                return rdr.nextBuffer();
+            } catch (PayloadException pe) {
+                LOG.error("Cannot return next payload", pe);
+            }
         }
 
-        return rdr.nextBuffer();
+        return null;
     }
 
     /**

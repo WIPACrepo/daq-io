@@ -21,14 +21,14 @@ import junit.framework.Test;
 import junit.framework.TestSuite;
 import junit.textui.TestRunner;
 
-class MockPushSimpleRdr
-    extends PushSimpleReader
+class MockPushReader
+    extends PushStreamReader
 {
     private IByteBufferCache bufMgr;
     private int recvCnt;
     private boolean gotStop;
 
-    MockPushSimpleRdr(String name, IByteBufferCache bufMgr)
+    MockPushReader(String name, IByteBufferCache bufMgr)
         throws IOException
     {
         super(name);
@@ -56,20 +56,20 @@ class MockPushSimpleRdr
     }
 }
 
-public class PushSimpleReaderTest
+public class PushStreamReaderTest
     extends LoggingCase
 {
     private static final int BUFFER_LEN = 5000;
     private static final int INPUT_OUTPUT_LOOP_CNT = 5;
 
-    private MockPushSimpleRdr tstRdr;
+    private MockPushReader tstRdr;
 
     /**
      * Construct an instance of this test.
      *
      * @param name the name of the test.
      */
-    public PushSimpleReaderTest(String name)
+    public PushStreamReaderTest(String name)
     {
         super(name);
     }
@@ -90,7 +90,7 @@ public class PushSimpleReaderTest
      */
     public static Test suite()
     {
-        return new TestSuite(PushSimpleReaderTest.class);
+        return new TestSuite(PushStreamReaderTest.class);
     }
 
     @Override
@@ -112,7 +112,7 @@ public class PushSimpleReaderTest
     {
         IByteBufferCache bufMgr = new MockBufferCache("StartStop");
 
-        tstRdr = new MockPushSimpleRdr("StartStop", bufMgr);
+        tstRdr = new MockPushReader("StartStop", bufMgr);
 
         tstRdr.start();
         IOTestUtil.waitUntilStopped(tstRdr, "creation");
@@ -150,7 +150,7 @@ public class PushSimpleReaderTest
     {
         IByteBufferCache bufMgr = new MockBufferCache("StartDisp");
 
-        tstRdr = new MockPushSimpleRdr("StartDisp", bufMgr);
+        tstRdr = new MockPushReader("StartDisp", bufMgr);
 
         tstRdr.start();
         IOTestUtil.waitUntilStopped(tstRdr, "creation");
@@ -178,13 +178,13 @@ public class PushSimpleReaderTest
 
         MockObserver observer = new MockObserver("OutIn");
 
-        tstRdr = new MockPushSimpleRdr("OutIn", bufMgr);
+        tstRdr = new MockPushReader("OutIn", bufMgr);
         tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
         IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
-        tstRdr.addDataChannel(sourceChannel, bufMgr, 1024);
+        tstRdr.addDataChannel(sourceChannel, "OutIn", bufMgr, 1024);
 
         Thread.sleep(100);
 
@@ -250,13 +250,13 @@ public class PushSimpleReaderTest
 
         MockObserver observer = new MockObserver("MultiOutIn");
 
-        tstRdr = new MockPushSimpleRdr("MultiOutIn", bufMgr);
+        tstRdr = new MockPushReader("MultiOutIn", bufMgr);
         tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
         IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
-        tstRdr.addDataChannel(sourceChannel, bufMgr, 1024);
+        tstRdr.addDataChannel(sourceChannel, "MultiOutIn", bufMgr, 1024);
 
         Thread.sleep(100);
 

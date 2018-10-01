@@ -18,14 +18,14 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-public abstract class SimpleReader
+public abstract class SimpleStreamReader
     implements DAQComponentInputProcessor, IOChannelParent, Runnable
 {
     /** default input buffer size */
     static final int DEFAULT_BUFFER_SIZE = 2048;
 
     /** logging object */
-    private static final Log LOG = LogFactory.getLog(SimpleReader.class);
+    private static final Log LOG = LogFactory.getLog(SimpleStreamReader.class);
 
     /** selector timeout (in msec.) */
     private static final int SELECTOR_TIMEOUT = 1000;
@@ -67,12 +67,12 @@ public abstract class SimpleReader
     /** Have the reverse connections been made? */
     private boolean madeReverseConnections;
 
-    public SimpleReader(String name)
+    public SimpleStreamReader(String name)
     {
         this(name, DEFAULT_BUFFER_SIZE);
     }
 
-    public SimpleReader(String name, int bufferSize)
+    public SimpleStreamReader(String name, int bufferSize)
     {
         this.name = name;
         this.bufferSize = bufferSize;
@@ -101,7 +101,7 @@ public abstract class SimpleReader
 
         int chanNum = nextChannelNum++;
 
-        String chanName = "SimpleReader#" + chanNum;
+        String chanName = "SimpleStreamReader#" + chanNum;
 
         SimpleChannel chanData =
             createChannel(chanName, channel, bufMgr, bufSize);

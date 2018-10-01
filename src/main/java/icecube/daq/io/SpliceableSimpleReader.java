@@ -12,7 +12,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 public class SpliceableSimpleReader
-    extends SimpleReader
+    extends SimpleStreamReader
 {
     private static final Log LOG =
         LogFactory.getLog(SpliceableSimpleReader.class);

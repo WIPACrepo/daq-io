@@ -42,8 +42,8 @@ public class SpliceableInputChannel
             throw new IllegalArgumentException(errMsg);
         }
 
-        if (parent instanceof SpliceablePayloadReader) {
-            parentName = "-" + ((SpliceablePayloadReader) parent).getName();
+        if (parent instanceof SpliceableStreamReader) {
+            parentName = "-" + ((SpliceableStreamReader) parent).getName();
         } else {
             parentName = "";
         }

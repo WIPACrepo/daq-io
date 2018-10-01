@@ -11,11 +11,11 @@ import java.util.ArrayList;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-public class SpliceablePayloadReader
-    extends PayloadReader
+public class SpliceableStreamReader
+    extends DAQStreamReader
 {
     private static final Log LOG =
-        LogFactory.getLog(SpliceablePayloadReader.class);
+        LogFactory.getLog(SpliceableStreamReader.class);
 
     // maximum number of stop attempts
     private static final int MAX_STOP_TRIES = 10;
@@ -23,15 +23,15 @@ public class SpliceablePayloadReader
     private Splicer splicer;
     private SpliceableFactory factory;
 
-    public SpliceablePayloadReader(String name, Splicer splicer,
-                                   SpliceableFactory factory)
+    public SpliceableStreamReader(String name, Splicer splicer,
+                                  SpliceableFactory factory)
         throws IOException
     {
         this(name, DEFAULT_BUFFER_SIZE, splicer, factory);
     }
 
-    public SpliceablePayloadReader(String name, int bufferSize,
-                                   Splicer splicer, SpliceableFactory factory)
+    public SpliceableStreamReader(String name, int bufferSize,
+                                  Splicer splicer, SpliceableFactory factory)
         throws IOException
     {
         super(name, bufferSize);
