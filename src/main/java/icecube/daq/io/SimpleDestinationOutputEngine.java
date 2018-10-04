@@ -31,10 +31,6 @@ public class SimpleDestinationOutputEngine
 {
     /** Byte buffer manager. */
     private IByteBufferCache bufMgr;
-    /** Mapping of ISourceID to destination. */
-    private HashMap idRegistry = new HashMap();
-    /** Total number of messages sent via the sendPayload() method. */
-    private long messagesSent = 0;
 
     /** Payload destination collection. */
     private IPayloadDestinationCollection payloadDestinationCollection;
@@ -65,8 +61,6 @@ public class SimpleDestinationOutputEngine
     {
         // ask payloadOutputEngine to make us a payloadTransmitEngine
         QueuedOutputChannel eng = super.addDataChannel(channel, bufMgr);
-        // register it locally so that we can find it when we need it
-        idRegistry.put(sourceID, eng);
 
         // add a PayloadDestination to the Collection
         ByteBufferPayloadDestination dest =
@@ -108,16 +102,6 @@ public class SimpleDestinationOutputEngine
     }
 
     /**
-     * Total number of messages sent via sendPayload()
-     *
-     * @return number of messages sent
-     */
-    public long getMessagesSent()
-    {
-        return messagesSent;
-    }
-
-    /**
      * Get the PayloadDestinationCollection.
      *
      * @return the PayloadDestinationCollection
@@ -126,20 +110,6 @@ public class SimpleDestinationOutputEngine
     public IPayloadDestinationCollection getPayloadDestinationCollection()
     {
         return payloadDestinationCollection;
-    }
-
-    /**
-     * Find the output channel associated with the specified source ID
-     *
-     * @return <tt>null</tt> if no channel is associated with the source ID
-     */
-    public QueuedOutputChannel lookUpEngineBySourceID(ISourceID id)
-    {
-        if (!idRegistry.containsKey(id)) {
-            return null;
-        }
-
-        return (QueuedOutputChannel) idRegistry.get(id);
     }
 
     /**
@@ -162,23 +132,6 @@ public class SimpleDestinationOutputEngine
     public void registerBufferManager(IByteBufferCache manager)
     {
         bufMgr = manager;
-    }
-
-    /**
-     * Sent the payload to the specified source ID.
-     *
-     * @param id target source ID
-     * @param payload data to be sent
-     */
-    public void sendPayload(ISourceID id, ByteBuffer payload)
-    {
-        if (!idRegistry.containsKey(id)) {
-            throw new RuntimeException("SourceID " + id + "not registered");
-        }
-
-        QueuedOutputChannel eng = (QueuedOutputChannel) idRegistry.get(id);
-        eng.receiveByteBuffer(payload);
-        messagesSent++;
     }
 
     /**
