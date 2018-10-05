@@ -1,6 +1,7 @@
 package icecube.daq.io;
 
 import icecube.daq.payload.IByteBufferCache;
+import icecube.daq.payload.impl.SourceID;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -99,23 +100,22 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
 
     @Override
     public QueuedOutputChannel addDataChannel(final WritableByteChannel channel,
-                                              final IByteBufferCache bufMgr)
+                                              final IByteBufferCache bufMgr,
+                                              String name)
     {
         if (state != State.STOPPED) {
             throw new Error("Engine should be stopped, not " +
                     getPresentState());
         }
 
-        if(this.channel != null)
-        {
+        if (this.channel != null) {
             throw new Error("Multiple connections not supported");
         }
 
         this.channel = new BufferedOutputChannel(this, bufMgr, channel,
-                bufferSize);
+                                                 bufferSize);
 
-        if(autoflush)
-        {
+        if (autoflush) {
             this.channel.enableAutoFlush(autoflushPeriod, autoflushPeriod);
         }
 
@@ -128,7 +128,7 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
                                        final int srcId)
             throws IOException
     {
-        return this.addDataChannel(channel, bufMgr);
+        return addDataChannel(channel, bufMgr, SourceID.toString(srcId));
     }
 
     @Override

@@ -183,7 +183,8 @@ public class SimpleOutputEngineTest
         engine.start();
         IOTestUtil.waitUntilStopped(engine, "creation");
 
-        transmitEng = engine.addDataChannel(testPipe.sink(), cacheMgr);
+        transmitEng = engine.addDataChannel(testPipe.sink(), cacheMgr,
+                                            "SSChan");
 
         engine.startProcessing();
         IOTestUtil.waitUntilRunning(engine);
@@ -200,7 +201,8 @@ public class SimpleOutputEngineTest
         testPipe.sink().configureBlocking(false);
         testPipe.source().configureBlocking(true);
 
-        transmitEng = engine.addDataChannel(testPipe.sink(), cacheMgr);
+        transmitEng = engine.addDataChannel(testPipe.sink(), cacheMgr,
+                                            "SSChan2");
 
         engine.startProcessing();
         IOTestUtil.waitUntilRunning(engine);
@@ -217,7 +219,8 @@ public class SimpleOutputEngineTest
         testPipe.sink().configureBlocking(false);
         testPipe.source().configureBlocking(true);
 
-        transmitEng = engine.addDataChannel(testPipe.sink(), cacheMgr);
+        transmitEng = engine.addDataChannel(testPipe.sink(), cacheMgr,
+                                            "SSStop");
 
         engine.startProcessing();
         IOTestUtil.waitUntilRunning(engine);
@@ -259,7 +262,7 @@ public class SimpleOutputEngineTest
         final String notificationId = "OutputLoop";
 
         QueuedOutputChannel transmitEng =
-            engine.addDataChannel(testPipe.sink(), cacheMgr);
+            engine.addDataChannel(testPipe.sink(), cacheMgr, "SSOut");
 
         assertNoLogMessages();
 

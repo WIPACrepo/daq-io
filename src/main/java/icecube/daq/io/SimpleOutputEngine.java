@@ -2,6 +2,7 @@ package icecube.daq.io;
 
 import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.payload.IByteBufferCache;
+import icecube.daq.payload.impl.SourceID;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -37,6 +38,8 @@ public class SimpleOutputEngine
     private int engineId;
     /** Engine function. */
     private String engineFunction;
+    /** Maximum channel depth */
+    private int maxChannelDepth;
 
     /** Current engine state. */
     private State state = State.STOPPED;
@@ -76,9 +79,25 @@ public class SimpleOutputEngine
      */
     public SimpleOutputEngine(String type, int id, String fcn)
     {
+        this(type, id, fcn, Integer.MAX_VALUE);
+    }
+
+    /**
+     * Create an output engine.
+     *
+     * @param type engine type
+     * @param id engine ID
+     * @param fcn engine function
+     * @param maxChanDepth maximum depth (new data for a channel will not be
+     *                     read if it contains more than maxChanDepth items)
+     */
+    public SimpleOutputEngine(String type, int id, String fcn,
+                              int maxChanDepth)
+    {
         engineType = type;
         engineId = id;
         engineFunction = fcn;
+        maxChannelDepth = maxChanDepth;
 
         try {
             selector = Selector.open();
@@ -92,10 +111,12 @@ public class SimpleOutputEngine
      *
      * @param channel output channel
      * @param bufMgr byte buffer manager
+     * @param name channel name (used in logging/exception messages)
      */
     @Override
     public QueuedOutputChannel addDataChannel(WritableByteChannel channel,
-                                              IByteBufferCache bufMgr)
+                                              IByteBufferCache bufMgr,
+                                              String name)
     {
         if (state != State.STOPPED) {
             throw new RuntimeException("Engine should be stopped, not " +
@@ -106,12 +127,15 @@ public class SimpleOutputEngine
             throw new Error("Channel is not selectable");
         }
 
-        int chanNum = nextChannelNum++;
+        if (name == null) {
+            name = Integer.toString(nextChannelNum++);
+        }
 
-        String name = engineFunction + ":" + chanNum;
+        String fullName = engineFunction + ":" + name;
 
         SimpleOutputChannel outChan =
-            new PayloadStopChannel(this, name, channel, bufMgr);
+            new PayloadStopChannel(this, fullName, channel, bufMgr,
+                                   maxChannelDepth);
 
         synchronized (channelList) {
             channelList.add(outChan);
@@ -135,7 +159,7 @@ public class SimpleOutputEngine
      *
      * @param bufMgr byte buffer manager
      * @param chan output channel
-     * @param srcId **UNUSED**
+     * @param srcId source ID of connecting channel
      *
      * @throws IOException if there is a problem
      */
@@ -144,7 +168,7 @@ public class SimpleOutputEngine
                                        WritableByteChannel chan, int srcId)
         throws IOException
     {
-        return addDataChannel(chan, bufMgr);
+        return addDataChannel(chan, bufMgr, new SourceID(srcId).toString());
     }
 
     /**
@@ -701,6 +725,8 @@ public class SimpleOutputEngine
     {
         /** Approximate maximum number of bytes to send at a time. */
         private static final int XMIT_GROUP_MAX_BYTES = 2048;
+        /** Amount of time to sleep when channel exceeds 'maxDepth' */
+        private static final int SLEEP_USEC = 1000;
 
         /** Parent engine. */
         private SimpleOutputEngine parent;
@@ -710,6 +736,8 @@ public class SimpleOutputEngine
         private WritableByteChannel channel;
         /** Byte buffer manager. */
         private IByteBufferCache bufferMgr;
+        /** Maximum channel depth */
+        private int maxDepth;
 
         /** Queue of records to be written. */
         private LinkedList<ByteBuffer> outputQueue =
@@ -739,12 +767,13 @@ public class SimpleOutputEngine
          */
         SimpleOutputChannel(SimpleOutputEngine parent, String name,
                             WritableByteChannel channel,
-                            IByteBufferCache bufferMgr)
+                            IByteBufferCache bufferMgr, int maxDepth)
         {
             this.parent = parent;
             this.name = name;
             this.channel = channel;
             this.bufferMgr = bufferMgr;
+            this.maxDepth = maxDepth;
         }
 
         /**
@@ -847,6 +876,24 @@ public class SimpleOutputEngine
             }
 
             synchronized (outputQueue) {
+                boolean warned = false;
+                while (outputQueue.size() > maxDepth) {
+                    if (!warned) {
+                        LOG.error("Pausing " + parent + ":" + name +
+                                  " queue (maxDepth=" + maxDepth);
+                        warned = true;
+                    }
+                    try {
+                        // IC86 sees ~2600 requests per second
+                        Thread.sleep(SLEEP_USEC);
+                    } catch (InterruptedException iex) {
+                    }
+                }
+                if (warned) {
+                    LOG.error("Resuming " + parent + ":" + name +
+                              " queue (maxDepth=" + maxDepth);
+                }
+
                 outputQueue.add(buf);
 
                 if (!registered) {
@@ -1072,9 +1119,9 @@ public class SimpleOutputEngine
          */
         PayloadStopChannel(SimpleOutputEngine parent, String name,
                            WritableByteChannel channel,
-                           IByteBufferCache bufferMgr)
+                           IByteBufferCache bufferMgr, int maxDepth)
         {
-            super(parent, name, channel, bufferMgr);
+            super(parent, name, channel, bufferMgr, maxDepth);
         }
 
         @Override

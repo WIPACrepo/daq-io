@@ -42,9 +42,10 @@ public class SimpleDestinationOutputEngine
      * @param id engine ID
      * @param fcn engine function
      */
-    public SimpleDestinationOutputEngine(String type, int id, String fcn)
+    public SimpleDestinationOutputEngine(String type, int id, String fcn,
+                                         int maxChannelDepth)
     {
-        super(type, id, fcn);
+        super(type, id, fcn, maxChannelDepth);
         payloadDestinationCollection = new PayloadDestinationCollection();
         payloadDestinationCollection.registerController(this);
     }
@@ -60,7 +61,8 @@ public class SimpleDestinationOutputEngine
                                               ISourceID sourceID)
     {
         // ask payloadOutputEngine to make us a payloadTransmitEngine
-        QueuedOutputChannel eng = super.addDataChannel(channel, bufMgr);
+        QueuedOutputChannel eng = super.addDataChannel(channel, bufMgr,
+                                                       sourceID.toString());
 
         // add a PayloadDestination to the Collection
         ByteBufferPayloadDestination dest =

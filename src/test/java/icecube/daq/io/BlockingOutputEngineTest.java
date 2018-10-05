@@ -15,7 +15,6 @@ import static org.junit.Assert.*;
  */
 public class BlockingOutputEngineTest
 {
-
     private BlockingOutputEngine engine;
     private MockBufferCache mockCache;
     private int bufferSize = 128 * 1024;
@@ -72,7 +71,7 @@ public class BlockingOutputEngineTest
         ///
 
         QueuedOutputChannel channel =
-                engine.connect(mockCache, new MockChannel(), 99);
+            engine.connect(mockCache, new MockChannel(), 99);
 
         assertNotNull(channel);
         assertTrue(engine.isConnected());
@@ -114,7 +113,7 @@ public class BlockingOutputEngineTest
         engine.start();
         assertTrue(engine.isStopped());
 
-        transmitEng = engine.addDataChannel(sink, mockCache);
+        transmitEng = engine.addDataChannel(sink, mockCache, "SSChan");
 
         engine.startProcessing();
         assertTrue(engine.isRunning());
@@ -133,7 +132,7 @@ public class BlockingOutputEngineTest
         // try it a second time
         sink = new MockChannel();
 
-        transmitEng = engine.addDataChannel(sink, mockCache);
+        transmitEng = engine.addDataChannel(sink, mockCache, "SSChan2");
 
         assertEquals(0, sink.written);
         assertEquals(0, engine.getRecordsSent());
@@ -154,7 +153,7 @@ public class BlockingOutputEngineTest
 
         // now try stopping via stop message
         sink = new MockChannel();
-        transmitEng = engine.addDataChannel(sink, mockCache);
+        transmitEng = engine.addDataChannel(sink, mockCache, "SSStop");
 
         engine.startProcessing();
         assertTrue(engine.isRunning());
@@ -175,7 +174,7 @@ public class BlockingOutputEngineTest
         // stop via sendLastAndStop() on channel
         sink = new MockChannel();
 
-        transmitEng = engine.addDataChannel(sink, mockCache);
+        transmitEng = engine.addDataChannel(sink, mockCache, "SSSndLst");
 
         assertEquals(0, sink.written);
         assertEquals(0, engine.getRecordsSent());
@@ -199,7 +198,7 @@ public class BlockingOutputEngineTest
 
         // stop via sendLastAndStop() on channel engine
         sink = new MockChannel();
-        transmitEng = engine.addDataChannel(sink, mockCache);
+        transmitEng = engine.addDataChannel(sink, mockCache, "SSSndLst2");
 
         engine.startProcessing();
         assertTrue(engine.isRunning());
@@ -247,7 +246,8 @@ public class BlockingOutputEngineTest
         assertTrue(engine.isStopped());
 
 
-        QueuedOutputChannel channel = engine.addDataChannel(sink, mockCache);
+        QueuedOutputChannel channel =
+            engine.addDataChannel(sink, mockCache, "SSOut");
 
         engine.startProcessing();
         assertTrue(engine.isRunning());
@@ -338,7 +338,8 @@ public class BlockingOutputEngineTest
         assertTrue(engine.isStopped());
 
 
-        QueuedOutputChannel channel = engine.addDataChannel(sink, mockCache);
+        QueuedOutputChannel channel =
+            engine.addDataChannel(sink, mockCache, "AFOut");
 
         engine.startProcessing();
         assertTrue(engine.isRunning());
