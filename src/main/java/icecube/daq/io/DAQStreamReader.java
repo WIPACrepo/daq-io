@@ -637,6 +637,9 @@ if(DEBUG_RUN)System.err.println("RpauseWait");
 if(DEBUG_RUN)System.err.println("RpauseAwake");
             }
 
+            // let subclasses do any special processing
+            runSubprocess();
+
             int numSelected;
             try {
 if(DEBUG_RUN)System.err.println("Rsel");
@@ -769,6 +772,14 @@ if(DEBUG_RUN)System.err.println("Rbottom");
 
         state = RunState.DESTROYED;
 if(DEBUG_RUN)System.err.println("Rexit");
+    }
+
+    /**
+     * Subprocesses may use this class do execute code within the thread's
+     * run() loop
+     */
+    public void runSubprocess()
+    {
     }
 
     private void setState(RunState newState)

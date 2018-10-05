@@ -26,14 +26,27 @@ public class SpliceableInputChannelTest
     extends LoggingCase
 {
     class MockParent
-        implements IOChannelParent
+        implements LimitedChannelParent
     {
+        @Override
         public void channelError(IOChannel chan, ByteBuffer buf, Exception ex)
         {
             throw new Error("Unimplemented");
         }
 
+        @Override
         public void channelStopped(IOChannel chan)
+        {
+        }
+
+        @Override
+        public String getName()
+        {
+            return "MockParent";
+        }
+
+        @Override
+        public void watchLimitedChannel(LimitedChannel chan)
         {
         }
     }
@@ -72,7 +85,7 @@ public class SpliceableInputChannelTest
 
         public int size()
         {
-            throw new Error("Unimplemented");
+            return 0;
         }
     }
 
@@ -241,7 +254,7 @@ public class SpliceableInputChannelTest
 
         SpliceableInputChannel chan =
             new SpliceableInputChannel(parent, pipe.source(), "OOO",  bufMgr,
-                                       256, factory);
+                                       256, factory, Integer.MAX_VALUE);
 
         final int type = 666;
         final long time = 123456L;
