@@ -880,7 +880,8 @@ public class SimpleOutputEngine
                 while (outputQueue.size() > maxDepth) {
                     if (!warned) {
                         LOG.error("Pausing " + parent + ":" + name +
-                                  " queue (maxDepth=" + maxDepth);
+                                  " queue (depth=" + outputQueue.size() +
+                                  ", maxDepth=" + maxDepth + ")");
                         warned = true;
                     }
                     try {
