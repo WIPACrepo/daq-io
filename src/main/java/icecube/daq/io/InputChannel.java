@@ -10,8 +10,7 @@ import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Logger;
 
 public abstract class InputChannel
     implements IOChannel
@@ -22,7 +21,7 @@ public abstract class InputChannel
     public static final long PERCENT_RESTART_ALLOCATION = 50;
 
     /** logging object */
-    private static final Log LOG = LogFactory.getLog(InputChannel.class);
+    private static final Logger LOG = Logger.getLogger(InputChannel.class);
 
     /** size of initial integer payload length */
     private static final int INT_SIZE = 4;
@@ -271,12 +270,10 @@ if(DEBUG_SELECT)System.err.println("  GotStop");
             // check for allocation limits
             if (bufMgr.getCurrentAquiredBytes() >= limitToStopAllocation) {
                 if (!allocationStopped) {
-                    if (LOG.isErrorEnabled()) {
-                        LOG.error(name + " channel#" + id +
-                                  " stopped: AcqBytes " +
-                                  bufMgr.getCurrentAquiredBytes() +
-                                  " >= limit " + limitToStopAllocation);
-                    }
+                    LOG.error(name + " channel#" + id +
+                              " stopped: AcqBytes " +
+                              bufMgr.getCurrentAquiredBytes() +
+                              " >= limit " + limitToStopAllocation);
 if(DEBUG_SELECT)System.err.println("  AllocStopped");
                     allocationStopped = true;
                 }
@@ -301,12 +298,10 @@ if(DEBUG_SELECT)System.err.println("  AllocStopped");
 if(DEBUG_SELECT)System.err.println("  RestartAlloc");
                 // restart allocation
                 allocationStopped = false;
-                if (LOG.isErrorEnabled()) {
-                    LOG.error(name + " channel#" + id +
-                              " restarted: AcqBytes " +
-                              bufMgr.getCurrentAquiredBytes() + " <= limit " +
-                              limitToRestartAllocation);
-                }
+                LOG.error(name + " channel#" + id +
+                          " restarted: AcqBytes " +
+                          bufMgr.getCurrentAquiredBytes() + " <= limit " +
+                          limitToRestartAllocation);
             }
 
             // if buffer does not contain enough bytes for the payload length...

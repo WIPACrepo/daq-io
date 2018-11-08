@@ -14,8 +14,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Logger;
 
 /**
  * Simplified output engine.
@@ -27,7 +26,7 @@ public class SimpleOutputEngine
     private static final int DEFAULT_SELECTOR_TIMEOUT_MSEC = 250;
 
     /** Error logger. */
-    private static final Log LOG = LogFactory.getLog(SimpleOutputEngine.class);
+    private static final Logger LOG = Logger.getLogger(SimpleOutputEngine.class);
 
     /** All possible states. */
     private enum State { STOPPED, RUNNING, DESTROYED, ERROR }

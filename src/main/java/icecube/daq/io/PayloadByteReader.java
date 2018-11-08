@@ -14,8 +14,7 @@ import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.zip.GZIPInputStream;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Logger;
 
 /**
  * Read payload bytes from a file.
@@ -23,7 +22,7 @@ import org.apache.commons.logging.LogFactory;
 public class PayloadByteReader
     implements Iterator<ByteBuffer>, Iterable<ByteBuffer>
 {
-    private static final Log LOG = LogFactory.getLog(PayloadByteReader.class);
+    private static final Logger LOG = Logger.getLogger(PayloadByteReader.class);
 
     /** maximum payload length (to avoid garbage inputs) */
     private static final int MAX_PAYLOAD_LEN = 10000000;

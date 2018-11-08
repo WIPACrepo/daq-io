@@ -1,7 +1,7 @@
 /*
  * class: PayloadTransmitChannel
  *
- * Version $Id: PayloadTransmitChannel.java 17114 2018-09-26 09:51:56Z dglo $
+ * Version $Id: PayloadTransmitChannel.java 17207 2018-11-08 16:08:59Z dglo $
  *
  * Date: May 15 2005
  *
@@ -21,20 +21,19 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.WritableByteChannel;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Logger;
 
 /**
  * This class provides the WritableByteChannel operations. It is also responsible
  * for returning buffers into the buffer cache.
  *
  * @author mcp
- * @version $Id: PayloadTransmitChannel.java 17114 2018-09-26 09:51:56Z dglo $
+ * @version $Id: PayloadTransmitChannel.java 17207 2018-11-08 16:08:59Z dglo $
  */
 public class PayloadTransmitChannel implements QueuedOutputChannel {
 
     // Log object for this class
-    private static final Log log = LogFactory.getLog(PayloadTransmitChannel.class);
+    private static final Logger log = Logger.getLogger(PayloadTransmitChannel.class);
 
     // decalre some state transitions
     private static final int STATE_IDLE = 0;

@@ -15,8 +15,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Logger;
 
 public abstract class SimpleStreamReader
     implements DAQComponentInputProcessor, IOChannelParent, Runnable
@@ -25,7 +24,7 @@ public abstract class SimpleStreamReader
     static final int DEFAULT_BUFFER_SIZE = 2048;
 
     /** logging object */
-    private static final Log LOG = LogFactory.getLog(SimpleStreamReader.class);
+    private static final Logger LOG = Logger.getLogger(SimpleStreamReader.class);
 
     /** selector timeout (in msec.) */
     private static final int SELECTOR_TIMEOUT = 1000;

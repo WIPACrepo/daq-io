@@ -19,13 +19,12 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Logger;
 import org.apache.log4j.BasicConfigurator;
 
 public class PayloadDumper
 {
-    private static final Log LOG = LogFactory.getLog(PayloadDumper.class);
+    private static final Logger LOG = Logger.getLogger(PayloadDumper.class);
 
     private static final String INDENT = "   ";
 

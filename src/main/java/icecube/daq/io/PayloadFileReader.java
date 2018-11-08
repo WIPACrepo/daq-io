@@ -10,8 +10,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Logger;
 
 /**
  * Read a payload file and return the data in IPayload objects.
@@ -19,7 +18,7 @@ import org.apache.commons.logging.LogFactory;
 public class PayloadFileReader
     implements Iterator<IPayload>, Iterable<IPayload>
 {
-    private static final Log LOG = LogFactory.getLog(PayloadFileReader.class);
+    private static final Logger LOG = Logger.getLogger(PayloadFileReader.class);
 
     /** Payload byte buffer reader */
     private PayloadByteReader rdr;

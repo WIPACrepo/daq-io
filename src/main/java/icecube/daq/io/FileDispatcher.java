@@ -10,8 +10,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Logger;
 
 /**
  * Dispatch payload files to PnF
@@ -19,7 +18,7 @@ import org.apache.commons.logging.LogFactory;
 public class FileDispatcher implements Dispatcher {
     public static final String DISPATCH_DEST_STORAGE = "/mnt/data/pdaqlocal";
 
-    private static final Log LOG = LogFactory.getLog(FileDispatcher.class);
+    private static final Logger LOG = Logger.getLogger(FileDispatcher.class);
 
     private static final long BYTES_IN_MB = 1024 * 1024;
 
