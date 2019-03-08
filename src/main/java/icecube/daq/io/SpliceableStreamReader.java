@@ -18,6 +18,9 @@ public class SpliceableStreamReader
     private static final Logger LOG =
         Logger.getLogger(SpliceableStreamReader.class);
 
+    // should we log every time the strand tail is paused/resumed?
+    private static final boolean LOG_PAUSE = false;
+
     // maximum number of stop attempts
     private static final int MAX_STOP_TRIES = 10;
 
@@ -202,13 +205,17 @@ public class SpliceableStreamReader
         synchronized (chan) {
             Thread thrd = Thread.currentThread();
 
-            LOG.error(chan.toString() +
-                      " strand tail is too large -- pausing " +
-                      thrd.getName());
+            if (LOG_PAUSE) {
+                LOG.error(chan.toString() +
+                          " strand tail is too large -- pausing " +
+                          thrd.getName());
+            }
             try {
                 chan.wait();
-                LOG.error(chan.toString() + " strand tail has resumed " +
-                          thrd.getName());
+                if (LOG_PAUSE) {
+                    LOG.error(chan.toString() + " strand tail has resumed " +
+                              thrd.getName());
+                }
             } catch (InterruptedException iex) {
                 LOG.error(chan.toString() + " interrupted waiting " +
                           thrd.getName(), iex);
