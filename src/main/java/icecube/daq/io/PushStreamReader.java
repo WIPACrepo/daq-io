@@ -7,13 +7,13 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
 import java.util.ArrayList;
 
-public abstract class PushPayloadReader
-    extends PayloadReader
+public abstract class PushStreamReader
+    extends DAQStreamReader
 {
     class PushInputChannel
         extends InputChannel
     {
-        private PushPayloadReader reader;
+        private PushStreamReader reader;
 
         PushInputChannel(IOChannelParent parent, SelectableChannel channel,
                          String name, IByteBufferCache bufMgr, int bufSize)
@@ -21,15 +21,17 @@ public abstract class PushPayloadReader
         {
             super(parent, channel, name, bufMgr, bufSize);
 
-            reader = (PushPayloadReader) parent;
+            reader = (PushStreamReader) parent;
         }
 
+        @Override
         public void notifyOnStop()
         {
             reader.channelStopped(this);
             super.notifyOnStop();
         }
 
+        @Override
         public void pushPayload(ByteBuffer payBuf)
             throws IOException
         {
@@ -43,6 +45,7 @@ public abstract class PushPayloadReader
          * @param compObserver component observer
          * @param notificationID ID string
          */
+        @Override
         public void registerComponentObserver(DAQComponentObserver compObserver,
                                               String notificationID)
         {
@@ -58,13 +61,14 @@ public abstract class PushPayloadReader
     private long totStops;
 
     // default maximum size of strand queue
-    public PushPayloadReader(String name)
+    public PushStreamReader(String name)
         throws IOException
     {
         super(name);
     }
 
-    void channelStopped(InputChannel chan)
+    @Override
+    public void channelStopped(IOChannel chan)
     {
         pushChanList.remove(chan);
         if (pushChanList.size() == 0) {
@@ -76,6 +80,7 @@ public abstract class PushPayloadReader
         super.channelStopped(chan);
     }
 
+    @Override
     public InputChannel createChannel(SelectableChannel channel, String name,
                                       IByteBufferCache bufMgr, int bufSize)
         throws IOException

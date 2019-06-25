@@ -12,7 +12,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 public class SpliceableSimpleReader
-    extends SimpleReader
+    extends SimpleStreamReader
 {
     private static final Log LOG =
         LogFactory.getLog(SpliceableSimpleReader.class);
@@ -48,6 +48,7 @@ public class SpliceableSimpleReader
         this.factory = factory;
     }
 
+    @Override
     public SimpleChannel createChannel(String name, SelectableChannel channel,
                                        IByteBufferCache bufMgr, int bufSize)
         throws IOException
@@ -59,7 +60,7 @@ public class SpliceableSimpleReader
     public synchronized Integer[] getStrandDepth()
     {
         // a negative number indicates a null strand end
-        Integer nullDepth = new Integer(-1);
+        Integer nullDepth = Integer.valueOf(-1);
 
         ArrayList strandDepth = new ArrayList();
         for (SimpleChannel chan : listChannels()) {
@@ -69,7 +70,7 @@ public class SpliceableSimpleReader
             if (!sChan.hasStrandTail()) {
                 depth = nullDepth;
             } else {
-                depth = new Integer(sChan.getStrandTailDepth());
+                depth = Integer.valueOf(sChan.getStrandTailDepth());
             }
             strandDepth.add(depth);
         }
@@ -93,17 +94,18 @@ public class SpliceableSimpleReader
         return totalDepth;
     }
 
+    @Override
     public void startProcessing()
     {
         int tries = 0;
-        while (splicer.getState() != Splicer.STOPPED) {
+        while (splicer.getState() != Splicer.State.STOPPED) {
             if (++tries > MAX_STOP_TRIES) {
                 throw new Error("Couldn't stop splicer");
             }
 
             if (tries == 1 && LOG.isWarnEnabled()) {
                 LOG.warn("Splicer should have been in STOPPED state, not " +
-                         splicer.getStateString() +
+                         splicer.getState().name() +
                          ".  Calling Splicer.forceStop()");
             }
 

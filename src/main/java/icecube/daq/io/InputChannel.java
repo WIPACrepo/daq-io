@@ -22,7 +22,7 @@ public abstract class InputChannel
     public static final long PERCENT_RESTART_ALLOCATION = 50;
 
     /** logging object */
-    private static final Log LOG = LogFactory.getLog(PayloadReader.class);
+    private static final Log LOG = LogFactory.getLog(InputChannel.class);
 
     /** size of initial integer payload length */
     private static final int INT_SIZE = 4;
@@ -83,7 +83,7 @@ public abstract class InputChannel
         }
 
         if (inputBuf.limit() != inputBuf.capacity()) {
-            LOG.error("******** Reset limit to capacity");
+            LOG.error("******** Reset " + name + " limit to capacity");
             inputBuf.limit(inputBuf.capacity());
         }
     }
@@ -96,13 +96,12 @@ public abstract class InputChannel
 
     private ByteBuffer fillBuffer(int length)
     {
-        final boolean DEBUG_FILL = false;
-        if (DEBUG_FILL) {
-            System.err.println("FillTop " + inputBuf + " bufPos " + bufPos);
-        }
+final boolean DEBUG_FILL = false;
+if(DEBUG_FILL)System.err.println("FillTop "+inputBuf+" bufPos "+bufPos);
         ByteBuffer payloadBuf = bufMgr.acquireBuffer(length);
         if (payloadBuf == null) {
-            LOG.error("Cannot acquire " + length + "-byte buffer");
+            LOG.error("Cannot acquire " + name + " " + length +
+                      "-byte buffer");
             return null;
         }
 
@@ -114,7 +113,7 @@ public abstract class InputChannel
         int lim = inputBuf.limit();
 
         if (lim != inputBuf.capacity()) {
-            LOG.error("Surprise!  Input buffer " + inputBuf +
+            LOG.error("Surprise!  " + name + " input buffer " + inputBuf +
                       " capacity != limit");
         }
 
@@ -136,11 +135,7 @@ public abstract class InputChannel
         bytesReceived += length;
         recordsReceived++;
 
-        if (DEBUG_FILL) {
-            System.err.println("FillEnd " + inputBuf + " bufPos " + 
-                bufPos + " payBuf " + payloadBuf);
-        }
-
+if(DEBUG_FILL)System.err.println("FillEnd "+inputBuf+" bufPos "+bufPos+" payBuf "+payloadBuf);
         return payloadBuf;
     }
 
@@ -209,10 +204,8 @@ public abstract class InputChannel
     public void processSelect(SelectionKey selKey)
         throws IOException
     {
-        final boolean DEBUG_SELECT = false;
-        if (DEBUG_SELECT) {
-            System.err.println("SelTop " + inputBuf);
-        }
+final boolean DEBUG_SELECT = false;
+if(DEBUG_SELECT)System.err.println("SelTop "+inputBuf);
         int numBytes = ((ReadableByteChannel) channel).read(inputBuf);
         if (numBytes < 0) {
             channel.close();
@@ -220,14 +213,10 @@ public abstract class InputChannel
             throw new ClosedChannelException();
         }
 
-        if (DEBUG_SELECT) {
-            System.err.println("SelGot " + inputBuf);
-        }   
+if(DEBUG_SELECT)System.err.println("SelGot "+inputBuf);
 
         if (stopped) {
-            if (DEBUG_SELECT) {
-                System.err.println("SelStopping");
-            }
+if(DEBUG_SELECT)System.err.println("SelStopping");
             // cancel our registration with the Selector
             selKey.cancel();
             // throw away input
@@ -237,15 +226,10 @@ public abstract class InputChannel
         }
 
         while (true) {
-            if (DEBUG_SELECT) {
-                System.err.println("SelLoop");
-            }
-            // if buffer does not contain enough bytes for the payload length..
+if(DEBUG_SELECT)System.err.println("SelLoop");
+            // if buffer does not contain enough bytes for the payload length...
             if (inputBuf.position() < bufPos + INT_SIZE) {
-                if (DEBUG_SELECT) {
-                    System.err.println("  NotSize " + 
-                        inputBuf + " bufPos " + bufPos);
-                }
+if(DEBUG_SELECT)System.err.println("  NotSize "+inputBuf+" bufPos "+bufPos);
                 // if buffer cannot hold the payload length...
                 if (inputBuf.limit() < bufPos + INT_SIZE) {
                     // adjust/expand buffer to make room for payload length
@@ -257,17 +241,14 @@ public abstract class InputChannel
             }
 
             int length = inputBuf.getInt(bufPos);
-            if (DEBUG_SELECT) {
-                System.err.println("  PayLen " + length);
-            }
+if(DEBUG_SELECT)System.err.println("  PayLen "+length);
 
             // if it's an impossible length...
             if (length < INT_SIZE) {
-                if (DEBUG_SELECT) {
-                    System.err.println("  BadLen");
-                }
+if(DEBUG_SELECT)System.err.println("  BadLen");
                 // this really should not happen
-                LOG.error("Huh?  Saw " + length + "-byte payload!?!?");
+                LOG.error("Huh?  Saw " + length + "-byte payload for " +
+                          name);
                 if (length <= 0) {
                     length = 4;
                 }
@@ -279,9 +260,7 @@ public abstract class InputChannel
 
             // if this is a stop message...
             if (length == INT_SIZE) {
-                if (DEBUG_SELECT) {
-                    System.err.println("  GotStop");
-                }
+if(DEBUG_SELECT)System.err.println("  GotStop");
                 stopped = true;
                 stopsReceived++;
                 notifyOnStop();
@@ -293,13 +272,12 @@ public abstract class InputChannel
             if (bufMgr.getCurrentAquiredBytes() >= limitToStopAllocation) {
                 if (!allocationStopped) {
                     if (LOG.isErrorEnabled()) {
-                        LOG.error("Channel#" + id + " stopped: AcqBytes " +
+                        LOG.error(name + " channel#" + id +
+                                  " stopped: AcqBytes " +
                                   bufMgr.getCurrentAquiredBytes() +
                                   " >= limit " + limitToStopAllocation);
                     }
-                    if (DEBUG_SELECT) {
-                        System.err.println("  AllocStopped");
-                    }
+if(DEBUG_SELECT)System.err.println("  AllocStopped");
                     allocationStopped = true;
                 }
 
@@ -320,13 +298,12 @@ public abstract class InputChannel
                     break;
                 }
 
-                if (DEBUG_SELECT) {
-                    System.err.println("  RestartAlloc");
-                }
+if(DEBUG_SELECT)System.err.println("  RestartAlloc");
                 // restart allocation
                 allocationStopped = false;
                 if (LOG.isErrorEnabled()) {
-                    LOG.error("Channel#" + id + " restarted: AcqBytes " +
+                    LOG.error(name + " channel#" + id +
+                              " restarted: AcqBytes " +
                               bufMgr.getCurrentAquiredBytes() + " <= limit " +
                               limitToRestartAllocation);
                 }
@@ -334,9 +311,7 @@ public abstract class InputChannel
 
             // if buffer does not contain enough bytes for the payload length...
             if (inputBuf.position() < bufPos + length) {
-                if (DEBUG_SELECT) {
-                    System.err.println("  SmallBuf");
-                }
+if(DEBUG_SELECT)System.err.println("  SmallBuf");
                 // if buffer cannot hold the payload length...
                 if (inputBuf.limit() < bufPos + length) {
                     // adjust/expand buffer to make room for payload length
@@ -349,9 +324,7 @@ public abstract class InputChannel
 
             ByteBuffer payBuf = fillBuffer(length);
             if (payBuf == null) {
-                if (DEBUG_SELECT) {
-                    System.err.println("  NullBuf");
-                }
+if(DEBUG_SELECT)System.err.println("  NullBuf");
                 break;
             }
 
@@ -363,9 +336,7 @@ public abstract class InputChannel
             //}
 
             payBuf.flip();
-            if (DEBUG_SELECT) {
-                System.err.println("  Got " + payBuf);
-            }
+if(DEBUG_SELECT)System.err.println("  Got "+payBuf);
             pushPayload(payBuf);
         }
     }
@@ -403,6 +374,7 @@ public abstract class InputChannel
         stopped = false;
     }
 
+    @Override
     public String toString()
     {
         return parent.toString() + "=>InputChannel#" + id;

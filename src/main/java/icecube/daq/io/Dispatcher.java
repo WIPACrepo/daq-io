@@ -1,7 +1,7 @@
 /*
  * interface: Dispatcher
  *
- * Version $Id: Dispatcher.java 13361 2011-09-15 22:29:54Z dglo $
+ * Version $Id: Dispatcher.java 16957 2018-03-29 16:56:20Z dglo $
  *
  * Date: April 1 2004
  *
@@ -13,13 +13,14 @@ package icecube.daq.io;
 import icecube.daq.payload.IByteBufferCache;
 import icecube.daq.payload.IWriteablePayload;
 
+import java.io.File;
 import java.nio.ByteBuffer;
 
 /**
  * This interface specifies how events are dispatched from the DAQ system.
  *
  * @author patton
- * @version $Id: Dispatcher.java 13361 2011-09-15 22:29:54Z dglo $
+ * @version $Id: Dispatcher.java 16957 2018-03-29 16:56:20Z dglo $
  */
 public interface Dispatcher
 {
@@ -27,6 +28,7 @@ public interface Dispatcher
     String STOP_PREFIX = "RunStop:";
     String SUBRUN_START_PREFIX = "SubrunStart:";
     String CLOSE_PREFIX = "Close:";
+    String SWITCH_PREFIX = "Switch:";
 
     /**
      * Close current file (if open)
@@ -40,22 +42,24 @@ public interface Dispatcher
      * Signals to the dispatch system that the set of events that preced this
      * call are separated, by some criteria, for those that succeed it.
      *
-     * @throws DispatchException is there is a problem in the Dispatch system.
+     * @throws DispatchException if there is a problem in the Dispatch system.
      */
-    void dataBoundary() throws DispatchException;
+    void dataBoundary()
+        throws DispatchException;
 
     /**
      * Signals to the dispatch system that the set of events that preced this
      * call are separated, by some criteria, for those that succeed it.
-     * <p/>
+     * <p>
      * The message supplied with this method is opaque to the system, i.e. it
      * is not used by the system, and it simple passed on through the any
      * delivery client.
      *
      * @param message a String explaining the reason for the boundary.
-     * @throws DispatchException is there is a problem in the Dispatch system.
+     * @throws DispatchException if there is a problem in the Dispatch system.
      */
-    void dataBoundary(String message)throws DispatchException;
+    void dataBoundary(String message)
+        throws DispatchException;
 
     /**
      * Copies the event in the buffer into this object. The buffer should be
@@ -64,46 +68,20 @@ public interface Dispatcher
      * afterwards.
      *
      * @param buffer the ByteBuffer containg the event.
-     * @throws DispatchException is there is a problem in the Dispatch system.
+     * @param ticks DAQ time for this payload
+     *
+     * @throws DispatchException if there is a problem in the Dispatch system.
      */
-    void dispatchEvent(ByteBuffer buffer) throws DispatchException;
+    void dispatchEvent(ByteBuffer buffer, long ticks)
+        throws DispatchException;
 
     /**
      * Dispatch a Payload event object
      *
      * @param event A payload object.
-     * @throws DispatchException is there is a problem in the Dispatch system.
+     * @throws DispatchException if there is a problem in the Dispatch system.
      */
-    void dispatchEvent(IWriteablePayload event) throws DispatchException;
-
-    /**
-     * Copies the events in the buffer into this object. The buffer should be
-     * prepared for reading so normally a {@link ByteBuffer#flip flip} should
-     * be done before this call and a {@link ByteBuffer#compact compact}
-     * afterwards.
-     * <p/>
-     * The number of events is taken to be the length of the indices array.
-     *
-     * @param buffer the ByteBuffer containg the events.
-     * @param indices the 'position' of each event inside the buffer.
-     * @throws DispatchException is there is a problem in the Dispatch system.
-     */
-    void dispatchEvents(ByteBuffer buffer, int[] indices)
-        throws DispatchException;
-
-    /**
-     * Copies the events in the buffer into this object. The buffer should be
-     * prepared for reading so normally a {@link ByteBuffer#flip flip} should
-     * be done before this call and a {@link ByteBuffer#compact compact}
-     * afterwards.
-     *
-     * @param buffer the ByteBuffer containg the events.
-     * @param indices the 'position' of each event inside the buffer.
-     * @param count the number of events, this must be less that the length of
-     * the indices array.
-     * @throws DispatchException is there is a problem in the Dispatch system.
-     */
-    void dispatchEvents(ByteBuffer buffer, int[] indices, int count)
+    void dispatchEvent(IWriteablePayload event)
         throws DispatchException;
 
     /**
@@ -114,11 +92,26 @@ public interface Dispatcher
     IByteBufferCache getByteBufferCache();
 
     /**
-     * Get the total of the dispatched events
-     * @return a long value
+     * Get the destination directory where the dispatch files will be saved.
+     *
+     * @return The absolute path where the dispatch files will be stored.
      */
-    long getTotalDispatchedEvents();
+    File getDispatchDestStorage();
 
+    /**
+     * Return the time (in 0.1ns ticks) of the first dispatched payload.
+     *
+     * @return first payload time
+     */
+    long getFirstDispatchedTime();
+
+    /**
+     * Get the stream metadata (currently number of dispatched events and
+     * last dispatched time)
+     *
+     * @return metadata object
+     */
+    StreamMetaData getMetaData();
 
     /**
      * Get the number of bytes written to disk
@@ -126,6 +119,24 @@ public interface Dispatcher
      * @return a long value ( number of bytes written to disk )
      */
     long getNumBytesWritten();
+
+    /**
+     * Get the  number of events dispatched during this run
+     * @return a long value
+     */
+    long getNumDispatchedEvents();
+
+    /**
+     * Get the current run number
+     * @return current run number
+     */
+    int getRunNumber();
+
+    /**
+     * Get the total number of events dispatched
+     * @return a long value
+     */
+    long getTotalDispatchedEvents();
 
     /**
      * Does this dispatcher have one or more active STARTs?
@@ -137,8 +148,8 @@ public interface Dispatcher
     /**
      * Set the destination directory where the dispatch files will be saved.
      *
-     * @param dirName The absolute path of directory 
-     * where the dispatch files will be stored.
+     * @param dirName The absolute path of directory where the dispatch files
+     *                will be stored.
      */
     void setDispatchDestStorage(String dirName);
 

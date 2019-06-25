@@ -6,37 +6,25 @@ import icecube.daq.payload.PayloadException;
 import icecube.daq.payload.impl.PayloadFactory;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.ReadableByteChannel;
 import java.util.Iterator;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Read payloads from a file.
+ * Read a payload file and return the data in IPayload objects.
  */
 public class PayloadFileReader
-    implements DAQFileReader
+    implements Iterator<IPayload>, Iterable<IPayload>
 {
     private static final Log LOG = LogFactory.getLog(PayloadFileReader.class);
 
-    /** maximum payload length (to avoid garbage inputs) */
-    private static final int MAX_PAYLOAD_LEN = 10000000;
-
-    /** Input channel */
-    private ReadableByteChannel chan;
+    /** Payload byte buffer reader */
+    private PayloadByteReader rdr;
     /** Factory used to build payloads */
     private PayloadFactory factory;
-    /** ByteBuffer used to read the payload length */
-    private ByteBuffer lenBuf;
-
-    /** <tt>true</tt> if we've checked for another payload */
-    private boolean gotNext;
-    /** Next available payload */
-    private IPayload nextPayload;
 
     /**
      * Open the named file.
@@ -51,8 +39,6 @@ public class PayloadFileReader
         this(new File(name), null);
     }
 
-    /**
-     * Open the file.
     /**
      * Open the named file.
      *
@@ -70,52 +56,28 @@ public class PayloadFileReader
     /**
      * Open the file.
      *
-     * @param file payload file
-     * @param cache byte buffer cache
+     * @param payFile payload file
      *
      * @throws IOException if the file cannot be opened
      */
-    public PayloadFileReader(File file)
+    public PayloadFileReader(File payFile)
         throws IOException
     {
-        this(file, null);
+        this(payFile, null);
     }
 
     /**
      * Open the file.
      *
-     * @param file payload file
+     * @param payFile payload file
      * @param cache byte buffer cache
      *
      * @throws IOException if the file cannot be opened
      */
-    private PayloadFileReader(File file, IByteBufferCache cache)
+    public PayloadFileReader(File payFile, IByteBufferCache cache)
         throws IOException
     {
-        this(new FileInputStream(file), cache);
-    }
-
-    /**
-     * Use the specified stream to read payloads.
-     *
-     * @param stream payload file stream
-     * @param cache byte buffer cache
-     */
-    private PayloadFileReader(FileInputStream stream, IByteBufferCache cache)
-    {
-        this(stream.getChannel(), cache);
-    }
-
-    /**
-     * Use the specified channel to read payloads.
-     *
-     * @param chan payload file channel
-     * @param cache byte buffer cache
-     */
-    private PayloadFileReader(ReadableByteChannel chan, IByteBufferCache cache)
-    {
-        this.chan = chan;
-
+        rdr = new PayloadByteReader(payFile);
         factory = new PayloadFactory(cache);
     }
 
@@ -127,57 +89,12 @@ public class PayloadFileReader
     public void close()
         throws IOException
     {
-        if (chan != null) {
+        if (rdr != null) {
             try {
-                chan.close();
+                rdr.close();
             } finally {
-                chan = null;
+                rdr = null;
             }
-        }
-    }
-
-    /**
-     * Read the next payload from the file.
-     *
-     * @throws IOException if there is a problem with the next payload
-     * @throws IOException if the next payload cannot be read
-     */
-    private void getNextPayload()
-        throws PayloadException
-    {
-        if (lenBuf == null) {
-            lenBuf = ByteBuffer.allocate(4);
-        }
-
-        gotNext = true;
-        nextPayload = null;
-
-        lenBuf.rewind();
-
-        int numBytes;
-        try {
-            numBytes = chan.read(lenBuf);
-        } catch (IOException ioe) {
-            throw new PayloadException("Cannot read length of next payload",
-                                       ioe);
-        }
-
-        if (numBytes >= 4) {
-            int len = lenBuf.getInt(0);
-            if (len < 4 || len > MAX_PAYLOAD_LEN) {
-                throw new PayloadException("Bad length " + len);
-            }
-
-            ByteBuffer buf = ByteBuffer.allocate(len);
-            buf.putInt(len);
-            try {
-                chan.read(buf);
-            } catch (IOException ioe) {
-                throw new PayloadException("Cannot read next payload (" + len +
-                                           " bytes)", ioe);
-            }
-
-            nextPayload = factory.getPayload(buf, 0);
         }
     }
 
@@ -185,19 +102,17 @@ public class PayloadFileReader
      * Is another payload available?
      *
      * @return <tt>true</tt> if there is another payload
+     *
+     * @throws Error if this reader has been closed
      */
+    @Override
     public boolean hasNext()
     {
-        if (!gotNext) {
-            try {
-                getNextPayload();
-            } catch (PayloadException pe) {
-                LOG.error("Cannot get next payload", pe);
-                nextPayload = null;
-            }
+        if (rdr == null) {
+            throw new Error("Reader has been closed");
         }
 
-        return nextPayload != null;
+        return rdr.hasNext();
     }
 
     /**
@@ -205,7 +120,8 @@ public class PayloadFileReader
      *
      * @return this object
      */
-    public Iterator iterator()
+    @Override
+    public Iterator<IPayload> iterator()
     {
         return this;
     }
@@ -213,38 +129,28 @@ public class PayloadFileReader
     /**
      * Get the next available payload.
      */
-    public Object next()
+    @Override
+    public IPayload next()
     {
-        try {
-            return nextPayload();
-        } catch (PayloadException pe) {
-            LOG.error("Cannot return next payload", pe);
-            return null;
-        }
-    }
-
-    /**
-     * Get the next available payload.
-     *
-     * @return next payload (or <tt>null</tt>)
-     *
-     * @throws PayloadException if there is a problem with the next payload
-     */
-    public IPayload nextPayload()
-        throws PayloadException
-    {
-        if (!gotNext) {
-            getNextPayload();
+        if (rdr != null) {
+            ByteBuffer buf;
+            try {
+                buf = rdr.nextBuffer();
+                if (buf != null) {
+                    return factory.getPayload(buf, 0);
+                }
+            } catch (PayloadException pe) {
+                LOG.error("Cannot return next payload", pe);
+            }
         }
 
-        gotNext = false;
-
-        return nextPayload;
+        return null;
     }
 
     /**
      * Unimplemented.
      */
+    @Override
     public void remove()
     {
         throw new Error("Unimplemented");

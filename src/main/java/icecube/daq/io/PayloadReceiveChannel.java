@@ -1,7 +1,7 @@
 /*
  * class: PayloadReceiveChannel
  *
- * Version $Id: PayloadReceiveChannel.java 13270 2011-08-16 18:50:16Z seshadrivija $
+ * Version $Id: PayloadReceiveChannel.java 17114 2018-09-26 09:51:56Z dglo $
  *
  * Date: May 15 2005
  *
@@ -29,15 +29,13 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * This class provides the ReadableByteChannel operations. 
- * It is also responsible for acquiring buffers into the 
- * buffer cache and managing the flow control.
+ * This class provides the ReadableByteChannel operations. It is also responsible
+ * for acquiring buffers into the buffer cache and managing the flow control.
  *
  * @author mcp
- * @version $Id: PayloadReceiveChannel.java 13270 2011-08-16 18:50:16Z seshadrivija $
+ * @version $Id: PayloadReceiveChannel.java 17114 2018-09-26 09:51:56Z dglo $
  */
-public class PayloadReceiveChannel implements IOChannel 
-{
+public class PayloadReceiveChannel implements IOChannel {
 
     protected static final int STATE_IDLE = 0;
     protected static final int STATE_GETBUFFER = 1;
@@ -131,8 +129,7 @@ public class PayloadReceiveChannel implements IOChannel
     private long limitToRestartAllocation = 0;
     private boolean allocationStopped = false;
     private long percentOfMaxStopAllocation = DEFAULT_PERCENT_STOP_ALLOCATION;
-    private long percentOfMaxRestartAllocation 
-        = DEFAULT_PERCENT_RESTART_ALLOCATION;
+    private long percentOfMaxRestartAllocation = DEFAULT_PERCENT_RESTART_ALLOCATION;
 
     private DAQComponentObserver compObserver;
     private String notificationID;
@@ -229,7 +226,7 @@ public class PayloadReceiveChannel implements IOChannel
 
     protected void exitRecvBody()
     {
-        if (payloadBuf.getInt(0) == INT_SIZE) {
+       if (payloadBuf.getInt(0) == INT_SIZE) {
             if (log.isInfoEnabled()) {
                 log.info("PayloadReceiveChannel " + id + " received STOP msg");
             }
@@ -334,6 +331,7 @@ public class PayloadReceiveChannel implements IOChannel
         stateMachineMUTEX.release();
     }
 
+    @Override
     public void registerComponentObserver(DAQComponentObserver compObserver,
                                           String notificationID)
     {
@@ -402,7 +400,8 @@ public class PayloadReceiveChannel implements IOChannel
                     try {
                         selectionKey =
                             ((SelectableChannel) channel).register(selector,
-                                SelectionKey.OP_READ, this);
+                                                                   SelectionKey.OP_READ,
+                                                                   this);
                         // make sure we don't cance the selector when we exit
                         cancelSelectorOnExit = false;
                     } catch (ClosedChannelException cce) {
@@ -471,10 +470,8 @@ public class PayloadReceiveChannel implements IOChannel
                 {
                     try {
                         int n = channel.read(inputBuf);
-                        if (log.isDebugEnabled()) {
-                            log.debug("STATE_RECVHEADER: Read " + n +
-                                " bytes - buffer position");
-                        }
+                        if (log.isDebugEnabled())
+                            log.debug("STATE_RECVHEADER: Read " + n + " bytes - buffer position");
                     } catch (IOException ioe) {
                         //need to do something here
                         transition(SIG_ERROR);
@@ -849,8 +846,7 @@ public class PayloadReceiveChannel implements IOChannel
         }
     }
 
-    protected void doTransition(int signal, int nextState) 
-    {
+    protected void doTransition(int signal, int nextState) {
         presState = nextState;
 
         switch (nextState) {
@@ -981,6 +977,7 @@ public class PayloadReceiveChannel implements IOChannel
         return name;
     }
 
+    @Override
     public String toString()
     {
         return "PayloadReceiveChannel#" + num + "[" + channel + "]";

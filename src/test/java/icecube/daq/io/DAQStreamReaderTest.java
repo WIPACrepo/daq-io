@@ -23,20 +23,19 @@ import junit.framework.Test;
 import junit.framework.TestSuite;
 import junit.textui.TestRunner;
 
-class SimpleTestReader
-    extends SimpleReader
+class SimpleDAQStreamReader
+    extends DAQStreamReader
 {
     private ArrayList<ByteBuffer> inputData = new ArrayList<ByteBuffer>();
 
     class TestChannel
-        extends SimpleChannel
+        extends InputChannel
     {
-        TestChannel(IOChannelParent parent, String name,
-                    SelectableChannel channel, IByteBufferCache bufMgr,
-                    int bufSize)
+        TestChannel(IOChannelParent parent, SelectableChannel channel,
+                    String name, IByteBufferCache bufMgr, int bufSize)
             throws IOException
         {
-            super(parent, name, channel, bufMgr, bufSize);
+            super(parent, channel, name, bufMgr, bufSize);
         }
 
         public void pushPayload(ByteBuffer buf)
@@ -45,19 +44,26 @@ class SimpleTestReader
                 inputData.add(buf);
             }
         }
+
+        public void registerComponentObserver(DAQComponentObserver compObserver,
+                                              String notificationID)
+        {
+            throw new Error("Unimplemented");
+        }
     }
 
-    SimpleTestReader(String name)
+    SimpleDAQStreamReader(String name)
         throws IOException
     {
         super(name);
     }
 
-    public SimpleChannel createChannel(String name, SelectableChannel channel,
-                                       IByteBufferCache bufMgr, int bufSize)
+    @Override
+    public InputChannel createChannel(SelectableChannel channel, String name,
+                                      IByteBufferCache bufMgr, int bufSize)
         throws IOException
     {
-        return new TestChannel(this, name, channel, bufMgr, bufSize);
+        return new TestChannel(this, channel, name, bufMgr, bufSize);
     }
 
     boolean hasPayloads()
@@ -78,20 +84,20 @@ class SimpleTestReader
     }
 }
 
-public class SimpleReaderTest
+public class DAQStreamReaderTest
     extends LoggingCase
 {
     private static final int BUFFER_LEN = 5000;
     private static final int INPUT_OUTPUT_LOOP_CNT = 5;
 
-    private SimpleTestReader tstRdr;
+    private SimpleDAQStreamReader tstRdr;
 
     /**
      * Constructs an instance of this test.
      *
      * @param name the name of the test.
      */
-    public SimpleReaderTest(String name)
+    public DAQStreamReaderTest(String name)
     {
         super(name);
     }
@@ -137,27 +143,24 @@ public class SimpleReaderTest
         return chan;
     }
 
-    private static final void checkGetters(SimpleReader rdr,
-                                           IByteBufferCache bufMgr,
+    private static final void checkGetters(DAQStreamReader rdr,
                                            int numReceiveChans,
                                            long bufsAcquired,
                                            long bytesAcquired,
                                            long bytesRcvd, long recsRcvd,
                                            long stopsRcvd)
     {
-        boolean[] allocStopped = rdr.getAllocationStopped();
+        Boolean[] allocStopped = rdr.getAllocationStopped();
         assertNotNull("Got null allocationStopped array", allocStopped);
         assertEquals("Bad allocationStopped length",
                      numReceiveChans, allocStopped.length);
         if (numReceiveChans > 0) {
             assertFalse("allocationStopped[0] was not false",
-                        allocStopped[0]);
+                        allocStopped[0].booleanValue());
         }
 
-        long[] bufArray = new long[1];
-
-        for (int i = 0; i < 3; i++) {
-            long[] data;
+        for (int i = 0; i < 7; i++) {
+            Long[] data;
             String name;
             long val;
 
@@ -168,39 +171,35 @@ public class SimpleReaderTest
                 val = bytesRcvd;
                 break;
             case 1:
-                name = "recsRcvd";
-                data = rdr.getRecordsReceived();
-                val = recsRcvd;
-                break;
-            case 2:
-                name = "stopsRcvd";
-                data = rdr.getStopMessagesReceived();
-                val = stopsRcvd;
-                break;
-            case 3:
-                name = "curAcqBuf";
-                bufArray[0] = bufMgr.getCurrentAquiredBuffers();
-                data = bufArray;
-                val = bufsAcquired;
-                break;
-            case 4:
-                name = "curAcqByt";
-                bufArray[0] = bufMgr.getCurrentAquiredBytes();
-                data = bufArray;
-                val = bytesAcquired;
-                break;
-/*
-            case 5:
                 name = "lim2Rest";
                 data = rdr.getLimitToRestartAllocation();
                 val = 100000000;
                 break;
-            case 6:
+            case 2:
                 name = "lim2Stop";
                 data = rdr.getLimitToStopAllocation();
                 val = 140000000;
                 break;
-*/
+            case 3:
+                name = "recsRcvd";
+                data = rdr.getRecordsReceived();
+                val = recsRcvd;
+                break;
+            case 4:
+                name = "stopsRcvd";
+                data = rdr.getStopMessagesReceived();
+                val = stopsRcvd;
+                break;
+            case 5:
+                name = "curAcqBuf";
+                data = rdr.getBufferCurrentAcquiredBuffers();
+                val = bufsAcquired;
+                break;
+            case 6:
+                name = "curAcqByt";
+                data = rdr.getBufferCurrentAcquiredBytes();
+                val = bytesAcquired;
+                break;
             default:
                 name = "unknown";
                 data = null;
@@ -212,7 +211,8 @@ public class SimpleReaderTest
             assertEquals("Bad " + name + " length",
                          numReceiveChans, data.length);
             if (numReceiveChans > 0) {
-                assertEquals("Bad " + name + "[0] value", val, data[0]);
+                assertEquals("Bad " + name + "[0] value",
+                             val, data[0].longValue());
             }
         }
     }
@@ -231,14 +231,14 @@ public class SimpleReaderTest
         return ssChan.socket().getLocalPort();
     }
 
-    private static final int harvestBuffers(SimpleTestReader tstRdr,
+    private static final int harvestBuffers(SimpleDAQStreamReader tstRdr,
                                             int bufLen,
                                             IByteBufferCache bufMgr)
     {
         return harvestBuffers(tstRdr, bufLen, bufMgr, false, 0);
     }
 
-    private static final int harvestBuffers(SimpleTestReader tstRdr,
+    private static final int harvestBuffers(SimpleDAQStreamReader tstRdr,
                                             int bufLen,
                                             IByteBufferCache bufMgr,
                                             boolean checkId, int prevId)
@@ -275,6 +275,7 @@ public class SimpleReaderTest
         return numHarvested;
     }
 
+    @Override
     protected void setUp()
         throws Exception
     {
@@ -290,9 +291,10 @@ public class SimpleReaderTest
      */
     public static Test suite()
     {
-        return new TestSuite(SimpleReaderTest.class);
+        return new TestSuite(DAQStreamReaderTest.class);
     }
 
+    @Override
     protected void tearDown()
         throws Exception
     {
@@ -314,12 +316,12 @@ public class SimpleReaderTest
 
         Pipe.SourceChannel sourceChannel = testPipe.source();
 
-        tstRdr = new SimpleTestReader("Basic");
+        tstRdr = new SimpleDAQStreamReader("Basic");
 
         tstRdr.start();
         IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
-        tstRdr.addDataChannel(sourceChannel, bufMgr, 256);
+        tstRdr.addDataChannel(sourceChannel, "Basic", bufMgr, 256);
 
         tstRdr.startProcessing();
         IOTestUtil.waitUntilRunning(tstRdr);
@@ -365,7 +367,7 @@ public class SimpleReaderTest
     public void testStartStop()
         throws Exception
     {
-        tstRdr = new SimpleTestReader("StartStop");
+        tstRdr = new SimpleDAQStreamReader("StartStop");
 
         tstRdr.start();
         IOTestUtil.waitUntilStopped(tstRdr, "creation");
@@ -376,8 +378,7 @@ public class SimpleReaderTest
         tstRdr.forcedStopProcessing();
         IOTestUtil.waitUntilStopped(tstRdr, "forced stop");
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         // try it a second time
         tstRdr.startProcessing();
@@ -389,8 +390,7 @@ public class SimpleReaderTest
         tstRdr.destroyProcessor();
         IOTestUtil.waitUntilDestroyed(tstRdr);
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         try {
             tstRdr.startProcessing();
@@ -414,15 +414,15 @@ public class SimpleReaderTest
         Pipe.SourceChannel sourceChannel = testPipe.source();
         sourceChannel.configureBlocking(false);
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("OutputInput");
 
-        tstRdr = new SimpleTestReader("OutputInput");
+        tstRdr = new SimpleDAQStreamReader("OutputInput");
         tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
         IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
-        tstRdr.addDataChannel(sourceChannel, bufMgr);
+        tstRdr.addDataChannel(sourceChannel, "OutIn", bufMgr);
 
         tstRdr.startProcessing();
         IOTestUtil.waitUntilRunning(tstRdr);
@@ -480,15 +480,15 @@ public class SimpleReaderTest
         Pipe.SourceChannel sourceChannel = testPipe.source();
         sourceChannel.configureBlocking(false);
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("MultiOutputInput");
 
-        tstRdr = new SimpleTestReader("MultiOutputInput");
+        tstRdr = new SimpleDAQStreamReader("MultiOutputInput");
         tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
         IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
-        tstRdr.addDataChannel(sourceChannel, bufMgr, 1024);
+        tstRdr.addDataChannel(sourceChannel, "MultiOutIn", bufMgr, 1024);
 
         tstRdr.startProcessing();
         IOTestUtil.waitUntilRunning(tstRdr);
@@ -558,9 +558,9 @@ public class SimpleReaderTest
         // buffer caching manager
         IByteBufferCache bufMgr = new MockBufferCache("MultiSzOutIn");
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("MultiSzOutIn");
 
-        tstRdr = new SimpleTestReader("MultiSize");
+        tstRdr = new SimpleDAQStreamReader("MultiSize");
         tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
@@ -583,7 +583,8 @@ public class SimpleReaderTest
                 Pipe.SourceChannel sourceChannel = testPipe.source();
                 sourceChannel.configureBlocking(false);
 
-                tstRdr.addDataChannel(sourceChannel, bufMgr, bufLen);
+                tstRdr.addDataChannel(sourceChannel, "MS#" + bufLen, bufMgr,
+                                      bufLen);
 
                 tstRdr.startProcessing();
                 IOTestUtil.waitUntilRunning(tstRdr, " (msgSize " + msgSize +
@@ -625,7 +626,7 @@ public class SimpleReaderTest
                         xmitCnt += groupSize;
                     } else {
                         try {
-                            Thread.sleep(10);
+                            Thread.sleep(100);
                         } catch (Exception ex) {
                             // ignore interrupts
                         }
@@ -639,7 +640,7 @@ public class SimpleReaderTest
                     }
 
                     loopCnt++;
-                    if (loopCnt == (recvCnt + INPUT_OUTPUT_LOOP_CNT) * 10) {
+                    if (loopCnt == recvCnt + INPUT_OUTPUT_LOOP_CNT) {
                         fail("Received " + recvCnt + " payloads after " +
                              xmitCnt + " buffers were transmitted (msgSize " +
                              msgSize + ", bufLen " + bufLen + ")");
@@ -648,24 +649,14 @@ public class SimpleReaderTest
 
                 IOTestUtil.sendStopMsg(sinkChannel);
                 IOTestUtil.waitUntilStopped(tstRdr, "stop msg");
-                assertTrue("Observer didn't see sinkStop",
+                assertTrue("Observer didn't see sinkStop (msgSize " +
+                           msgSize + ", bufLen " + bufLen + ")",
                            observer.gotSinkStop());
 
-                for (int i = 0; i < 5; i++) {
-                    if (bufMgr.getCurrentAquiredBuffers() == 0) {
-                        break;
-                    }
+                assertEquals("There are still unreturned byte buffers" +
+                             " (msgSize " + msgSize + ", bufLen " + bufLen +
+                             ")", 0, bufMgr.getCurrentAquiredBuffers());
 
-                    try {
-System.err.println("sleep#"+i+" BM "+bufMgr);
-                        Thread.sleep(100);
-                    } catch (Exception ex) {
-                        // ignore exceptions
-                    }
-                }
-
-                assertEquals("There are still unreturned byte buffers",
-                             0, bufMgr.getCurrentAquiredBuffers());
             }
         }
     }
@@ -684,15 +675,15 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
         Pipe.SourceChannel sourceChannel = testPipe.source();
         sourceChannel.configureBlocking(false);
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("Disposing");
 
-        tstRdr = new SimpleTestReader("Disposing");
+        tstRdr = new SimpleDAQStreamReader("Disposing");
         tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
         IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
-        tstRdr.addDataChannel(sourceChannel, bufMgr);
+        tstRdr.addDataChannel(sourceChannel, "Dispo", bufMgr);
 
         tstRdr.startProcessing();
         IOTestUtil.waitUntilRunning(tstRdr);
@@ -742,20 +733,20 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
         Pipe.SourceChannel sourceChannel = testPipe.source();
         sourceChannel.configureBlocking(false);
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("Getters");
 
-        tstRdr = new SimpleTestReader("Getters");
+        tstRdr = new SimpleDAQStreamReader("Getters");
         tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
         IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
-        tstRdr.addDataChannel(sourceChannel, bufMgr);
+        tstRdr.addDataChannel(sourceChannel, "Getters", bufMgr);
 
         tstRdr.startProcessing();
         IOTestUtil.waitUntilRunning(tstRdr);
 
-        checkGetters(tstRdr, bufMgr, 1, 0, 0, 0, 0, 0);
+        checkGetters(tstRdr, 1, 0, 0, 0, 0, 0);
 
         // now move some buffers
         ByteBuffer testBuf;
@@ -766,7 +757,7 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
         testBuf = bufMgr.acquireBuffer(acquireLen);
         assertNotNull("Unable to acquire transmit buffer", testBuf);
 
-        checkGetters(tstRdr, bufMgr, 1, 1, acquireLen, 0, 0, 0);
+        checkGetters(tstRdr, 1, 1, acquireLen, 0, 0, 0);
 
         testBuf.putInt(0, bufLen);
         testBuf.limit(bufLen);
@@ -777,11 +768,14 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
 
         bufMgr.returnBuffer(testBuf);
 
-        for (int i = 0; tstRdr.getRecordsReceived()[0] == 0 && i < 10; i++) {
+        // wait for buffer to be received
+        for (int i = 0;
+             tstRdr.getRecordsReceived()[0].longValue() == 0 && i < 10; i++)
+        {
             Thread.sleep(100);
         }
 
-        checkGetters(tstRdr, bufMgr, 1, 1, acquireLen, bufLen, 1, 0);
+        checkGetters(tstRdr, 1, 1, acquireLen, bufLen, 1, 0);
 
         assertFalse("Reader in Error state after ErrorSig",
                     tstRdr.isError());
@@ -791,7 +785,7 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
         IOTestUtil.waitUntilStopped(tstRdr, "stop msg");
         assertTrue("Observer didn't see sinkStop", observer.gotSinkStop());
 
-        checkGetters(tstRdr, bufMgr, 0, 0, BUFFER_LEN, bufLen, 1, 1);
+        checkGetters(tstRdr, 0, 0, BUFFER_LEN, bufLen, 1, 1);
     }
 
     /**
@@ -802,13 +796,15 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
     {
         IByteBufferCache bufMgr = new MockBufferCache("InetSrvr");
 
-        tstRdr = new SimpleTestReader("InetServer");
+        tstRdr = new SimpleDAQStreamReader("InetServer");
 
         tstRdr.start();
         IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
         tstRdr.startServer(bufMgr);
-        waitUntilServerStarted(tstRdr);
+
+        assertTrue("Reader in " + tstRdr.getPresentState() +
+                   ", not Idle after server start", tstRdr.isStopped());
 
         InetSocketAddress addr =
             new InetSocketAddress("localhost", tstRdr.getServerPort());
@@ -825,8 +821,7 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
         tstRdr.startProcessing();
         IOTestUtil.waitUntilRunning(tstRdr);
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         ByteBuffer testBuf;
 
@@ -863,11 +858,14 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
         }
 
 
+        assertLogMessage("Closed InetServer socket channel," +
+                         " 1 channels remain");
+        assertNoLogMessages();
+
         tstRdr.forcedStopProcessing();
         IOTestUtil.waitUntilStopped(tstRdr, "forced stop");
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         // try it a second time
         tstRdr.startProcessing();
@@ -879,8 +877,7 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
         tstRdr.destroyProcessor();
         IOTestUtil.waitUntilDestroyed(tstRdr);
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         try {
             tstRdr.startProcessing();
@@ -900,11 +897,12 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
 
         final int numTstRdrs = 4;
 
-        SimpleReader[] tstRdrs = new SimpleTestReader[numTstRdrs];
+        DAQStreamReader[] tstRdrs =
+            new SimpleDAQStreamReader[numTstRdrs];
 
         // create a bunch of engines
         for (int i = 0; i < numTstRdrs; i++) {
-            tstRdrs[i] = new SimpleTestReader("MultiServer");
+            tstRdrs[i] = new SimpleDAQStreamReader("MultiServer");
 
             tstRdrs[i].start();
             IOTestUtil.waitUntilStopped(tstRdrs[i], "creation",
@@ -914,7 +912,9 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
         // start all the servers
         for (int i = 0; i < numTstRdrs; i++) {
             tstRdrs[i].startServer(bufMgr);
-            waitUntilServerStarted(tstRdrs[i], " (#" + i + ")");
+
+            assertTrue("Reader in " + tstRdrs[i].getPresentState() +
+                       ", not Idle after server start", tstRdrs[i].isStopped());
         }
 
         SocketChannel[] chans = new SocketChannel[numTstRdrs];
@@ -963,12 +963,12 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
         for (int i = 0; !gotAll && i < numTries; i++) {
             boolean rcvdData = true;
             for (int j = 0; rcvdData && j < numTstRdrs; j++) {
-                long[] rcvd = tstRdrs[j].getBytesReceived();
+                Long[] rcvd = tstRdrs[j].getBytesReceived();
                 assertNotNull("Got null byteRcvd array from engine#" + j,
                               rcvd);
                 assertEquals("Unexpected number of connections for tstRdr#" + j,
                              1, rcvd.length);
-                if (rcvd[0] < bufLen) {
+                if (rcvd[0].longValue() < bufLen) {
                     rcvdData = false;
                 }
             }
@@ -1009,7 +1009,7 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
 
         int port = createServer(sel);
 
-        tstRdr = new SimpleTestReader("ServerInput");
+        tstRdr = new SimpleDAQStreamReader("ServerInput");
         tstRdr.start();
         IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
@@ -1041,11 +1041,11 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
             final int numTries = 5;
             for (int t = 0; !gotAll && t < numTries; t++) {
                 boolean rcvdData = true;
-                long[] rcvd = tstRdr.getBytesReceived();
+                Long[] rcvd = tstRdr.getBytesReceived();
                 assertNotNull("Got null byteRcvd array from engine", rcvd);
                 assertEquals("Unexpected number of connections for engine",
                              1, rcvd.length);
-                if (rcvd[0] < bufLen) {
+                if (rcvd[0].longValue() < bufLen) {
                     rcvdData = false;
                 }
 
@@ -1057,11 +1057,11 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
                 }
             }
 
-            long[] totRcvd = tstRdr.getBytesReceived();
+            Long[] totRcvd = tstRdr.getBytesReceived();
             assertNotNull("Got null byteRcvd array from engine", totRcvd);
             assertEquals("Unexpected number of connections for engine",
                          1, totRcvd.length);
-            assertEquals("Bad number of bytes", bufLen, totRcvd[0]);
+            assertEquals("Bad number of bytes", bufLen, totRcvd[0].longValue());
 
             testBuf = bufMgr.acquireBuffer(4);
             assertNotNull("Unable to acquire stop buffer", testBuf);
@@ -1078,7 +1078,7 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
             IOTestUtil.waitUntilStopped(tstRdr, "stop msg");
 
             // make sure receive engines have been detatched
-            long[] postRcvd = tstRdr.getBytesReceived();
+            Long[] postRcvd = tstRdr.getBytesReceived();
             assertNotNull("Got null byteRcvd array from engine", postRcvd);
             assertEquals("Unexpected number of connections for engine",
                          0, postRcvd.length);
@@ -1088,112 +1088,48 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
         IOTestUtil.waitUntilDestroyed(tstRdr);
     }
 
-    public void testAllocRestart()
+    /**
+     * Test server which never starts
+     */
+    public void testNonStart()
         throws Exception
     {
-        final int bufLen = 64;
-        final int maxLoopCnt = 15;
+        IByteBufferCache bufMgr = new MockBufferCache("InetSrvr");
 
-        // buffer caching manager
-        IByteBufferCache bufMgr =
-            new MockBufferCache("AllocRe", (long) (bufLen * 4));
-
-        // create a pipe for use in testing
-        Pipe testPipe = Pipe.open();
-        Pipe.SinkChannel sinkChannel = testPipe.sink();
-        sinkChannel.configureBlocking(false);
-
-        Pipe.SourceChannel sourceChannel = testPipe.source();
-        sourceChannel.configureBlocking(false);
-
-        MockObserver observer = new MockObserver();
-
-        tstRdr = new SimpleTestReader("OutputInput");
-        tstRdr.registerComponentObserver(observer);
+        tstRdr = new SimpleDAQStreamReader("InetServer");
 
         tstRdr.start();
         IOTestUtil.waitUntilStopped(tstRdr, "creation");
 
-        tstRdr.addDataChannel(sourceChannel, bufMgr);
+        tstRdr.startServer(bufMgr);
 
-        tstRdr.startProcessing();
-        IOTestUtil.waitUntilRunning(tstRdr);
+        assertTrue("Reader in " + tstRdr.getPresentState() +
+                   ", not Idle after server start", tstRdr.isStopped());
 
-        // now move some buffers
-        ByteBuffer testBuf;
+        InetSocketAddress addr =
+            new InetSocketAddress("localhost", tstRdr.getServerPort());
 
-        int id = 0;
+        SocketChannel chan = SocketChannel.open(addr);
 
-        int xmitCnt = 0;
-        int recvCnt = 0;
-        int loopCnt = 0;
-        while (recvCnt < maxLoopCnt) {
-            if (xmitCnt < maxLoopCnt) {
-                final int acquireLen = bufLen;
-                testBuf = bufMgr.acquireBuffer(acquireLen);
-                assertNotNull("Unable to acquire transmit buffer on " +
-                              xmitCnt + " try", testBuf);
+        Thread.sleep(100);
 
-                testBuf.putInt(0, bufLen);
-                testBuf.putInt(4, ++id);
-                testBuf.limit(bufLen);
-                testBuf.position(0);
-                sinkChannel.write(testBuf);
+        assertNoLogMessages();
 
-                bufMgr.returnBuffer(testBuf);
+        chan.close();
 
-                xmitCnt++;
-            }
+        Thread.sleep(100);
 
-            boolean allocStopped = tstRdr.getAllocationStopped()[0];
-            if (allocStopped || (xmitCnt - recvCnt) > (maxLoopCnt / 2) ||
-                (xmitCnt == maxLoopCnt))
-            {
-                recvCnt += harvestBuffers(tstRdr, bufLen, bufMgr,
-                                          true, recvCnt);
+        final int numChans = tstRdr.getNumberOfChannels();
+        assertEquals("Reader should not have any open channels (found " +
+                     numChans + ")", 0, numChans);
 
-                if (allocStopped || xmitCnt == maxLoopCnt) {
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException ie) {
-                        // ignore interrupts
-                    }
-                }
-            }
+        assertLogMessage("Closed InetServer socket channel, stopping reader");
+        assertNoLogMessages();
 
-            loopCnt++;
-            if (loopCnt == recvCnt + maxLoopCnt) {
-                fail("Received " + recvCnt + " payloads after " + xmitCnt +
-                     " buffers were transmitted");
-            }
-        }
+        tstRdr.destroyProcessor();
+        IOTestUtil.waitUntilDestroyed(tstRdr);
 
-        IOTestUtil.sendStopMsg(sinkChannel);
-        IOTestUtil.waitUntilStopped(tstRdr, "stop msg");
-        assertTrue("Observer didn't see sinkStop", observer.gotSinkStop());
-
-        // don't even bother checking stop/restart log msgs
-        clearMessages();
-    }
-
-    private static final void waitUntilServerStarted(SimpleReader rdr)
-    {
-        waitUntilServerStarted(rdr, "");
-    }
-
-    private static final void waitUntilServerStarted(SimpleReader rdr,
-                                                     String extra)
-    {
-        for (int i = 0; i < 5 && !rdr.isServerStarted(); i++) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ie) {
-                // ignore interrupts
-            }
-        }
-
-        assertTrue("Server thread has not started" + extra,
-                   rdr.isServerStarted());
+        assertNoLogMessages();
     }
 
     /**

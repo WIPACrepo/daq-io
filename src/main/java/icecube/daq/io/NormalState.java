@@ -10,10 +10,9 @@ package icecube.daq.io;
  * @author artur
  * @version : , v 1.1, Nov 13, 2006 4:23:25 PM artur $
  */
-public final class NormalState 
-{
+public final class NormalState {
 
-    // to-do: Add more states here as needed
+    // TODO: Add more states here as needed
     public static final NormalState IDLE = new NormalState("IDLE");
     public static final NormalState READY = new NormalState("READY");
     public static final NormalState STOPPED = new NormalState("STOPPED");
@@ -22,15 +21,14 @@ public final class NormalState
     public static final NormalState DISPOSING = new NormalState("DISPOSING");
     public static final NormalState DESTROYED = new NormalState("DESTROYED");
 
-    private final String myName;
+    private final String myName; // for debug only
 
-    private NormalState(String name) 
-    {
+    private NormalState(String name) {
         myName = name;
     }
 
-    public String toString() 
-    {
+    @Override
+    public String toString() {
         return myName;
     }
 }

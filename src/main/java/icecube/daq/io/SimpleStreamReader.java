@@ -18,14 +18,14 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-public abstract class SimpleReader
+public abstract class SimpleStreamReader
     implements DAQComponentInputProcessor, IOChannelParent, Runnable
 {
     /** default input buffer size */
     static final int DEFAULT_BUFFER_SIZE = 2048;
 
     /** logging object */
-    private static final Log LOG = LogFactory.getLog(SimpleReader.class);
+    private static final Log LOG = LogFactory.getLog(SimpleStreamReader.class);
 
     /** selector timeout (in msec.) */
     private static final int SELECTOR_TIMEOUT = 1000;
@@ -67,12 +67,12 @@ public abstract class SimpleReader
     /** Have the reverse connections been made? */
     private boolean madeReverseConnections;
 
-    public SimpleReader(String name)
+    public SimpleStreamReader(String name)
     {
         this(name, DEFAULT_BUFFER_SIZE);
     }
 
-    public SimpleReader(String name, int bufferSize)
+    public SimpleStreamReader(String name, int bufferSize)
     {
         this.name = name;
         this.bufferSize = bufferSize;
@@ -101,7 +101,7 @@ public abstract class SimpleReader
 
         int chanNum = nextChannelNum++;
 
-        String chanName = "SimpleReader#" + chanNum;
+        String chanName = "SimpleStreamReader#" + chanNum;
 
         SimpleChannel chanData =
             createChannel(chanName, channel, bufMgr, bufSize);
@@ -134,8 +134,9 @@ public abstract class SimpleReader
      *
      * @param chan channel
      * @param buf ByteBuffer which caused the error (may ne <tt>null</tt>)
-     * @ex exception (may be null)
+     * @param ex exception (may be null)
      */
+    @Override
     public void channelError(IOChannel chan, ByteBuffer buf,
                              Exception ex)
     {
@@ -149,6 +150,7 @@ public abstract class SimpleReader
      *
      * @param chan channel
      */
+    @Override
     public void channelStopped(IOChannel chan)
     {
         synchronized (channelList) {
@@ -174,6 +176,7 @@ public abstract class SimpleReader
                                                 int bufSize)
         throws IOException;
 
+    @Override
     public void destroyProcessor()
     {
         synchronized (channelList) {
@@ -189,6 +192,7 @@ public abstract class SimpleReader
         thread = null;
     }
 
+    @Override
     public void forcedStopProcessing()
     {
         if (state != State.RUNNING && state != State.DISPOSING) {
@@ -211,8 +215,7 @@ public abstract class SimpleReader
         }
     }
 
-    public boolean[] getAllocationStopped() 
-    {
+    public boolean[] getAllocationStopped() {
         boolean[] array;
         synchronized (channelList) {
             array = new boolean[channelList.size()];
@@ -244,16 +247,19 @@ public abstract class SimpleReader
      *
      * @return number of active channels
      */
+    @Override
     public int getNumberOfChannels()
     {
         return channelList.size();
     }
 
+    @Override
     public String getPresentState()
     {
         return state.toString();
     }
 
+    @Override
     public int getServerPort()
     {
         return port;
@@ -285,8 +291,7 @@ public abstract class SimpleReader
         return array;
     }
 
-    public long getTotalRecordsReceived() 
-    {
+    public long getTotalRecordsReceived() {
         long total = 0;
         synchronized (channelList) {
             for (SimpleChannel chan : channelList) {
@@ -296,11 +301,13 @@ public abstract class SimpleReader
         return total;
     }
 
+    @Override
     public boolean isDestroyed()
     {
         return state == State.DESTROYED;
     }
 
+    @Override
     public boolean isDisposing()
     {
         return state == State.DISPOSING;
@@ -311,6 +318,7 @@ public abstract class SimpleReader
         return state == State.ERROR;
     }
 
+    @Override
     public boolean isRunning()
     {
         return state == State.RUNNING;
@@ -321,6 +329,7 @@ public abstract class SimpleReader
         return serverStarted;
     }
 
+    @Override
     public boolean isStopped()
     {
         return state == State.IDLE;
@@ -350,7 +359,7 @@ public abstract class SimpleReader
             int numRetries = 0;
             IOException ex = null;
 
-            for (; numRetries < MAX_RETRIES; numRetries++) {
+            for ( ; numRetries < MAX_RETRIES; numRetries++) {
                 Iterator<ReverseConnection> iter = retries.iterator();
                 while (iter.hasNext()) {
                     ReverseConnection rc = iter.next();
@@ -395,6 +404,7 @@ public abstract class SimpleReader
      *
      * @param compObserver observer
      */
+    @Override
     public void registerComponentObserver(DAQComponentObserver compObserver)
     {
         this.observer = compObserver;
@@ -403,6 +413,7 @@ public abstract class SimpleReader
     /**
      * Server thread which accepts connections from remote components.
      */
+    @Override
     public void run()
     {
         Selector selector;
@@ -491,6 +502,7 @@ public abstract class SimpleReader
     /**
      * Start the reader.
      */
+    @Override
     public void start()
     {
         state = State.IDLE;
@@ -499,6 +511,7 @@ public abstract class SimpleReader
     /**
      * Start disposing incoming payloads.
      */
+    @Override
     public void startDisposing()
     {
         if (state != State.RUNNING) {
@@ -519,6 +532,7 @@ public abstract class SimpleReader
     /**
      * Start processing data from the connected channels.
      */
+    @Override
     public void startProcessing()
     {
         if (state != State.IDLE) {
@@ -549,6 +563,7 @@ public abstract class SimpleReader
      *
      * @param bufMgr cache manager used payloads from connected sockets
      */
+    @Override
     public void startServer(IByteBufferCache bufMgr)
         throws IOException
     {
@@ -567,7 +582,7 @@ public abstract class SimpleReader
         thread = new Thread(this);
         thread.setName(name);
         thread.start();
-    }
+   }
 
     /**
      * An internet port which input engine needs to connect to in order to

@@ -7,31 +7,53 @@ import icecube.daq.splicer.Splicer;
 import java.io.IOException;
 import java.nio.channels.SelectableChannel;
 import java.util.ArrayList;
+import java.util.Iterator;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-public class SpliceablePayloadReader
-    extends PayloadReader
+public class SpliceableStreamReader
+    extends DAQStreamReader
+    implements LimitedChannelParent
 {
     private static final Log LOG =
-        LogFactory.getLog(SpliceablePayloadReader.class);
+        LogFactory.getLog(SpliceableStreamReader.class);
 
     // maximum number of stop attempts
     private static final int MAX_STOP_TRIES = 10;
 
     private Splicer splicer;
     private SpliceableFactory factory;
+    /** maximum strand depth */
+    private int maxDepth;
 
-    public SpliceablePayloadReader(String name, Splicer splicer,
-                                   SpliceableFactory factory)
+    private ArrayList<LimitedChannel> limitedChannels =
+        new ArrayList<LimitedChannel>();
+
+    public SpliceableStreamReader(String name, Splicer splicer,
+                                  SpliceableFactory factory)
         throws IOException
     {
-        this(name, DEFAULT_BUFFER_SIZE, splicer, factory);
+        this(name, DEFAULT_BUFFER_SIZE, splicer, factory, Integer.MAX_VALUE);
     }
 
-    public SpliceablePayloadReader(String name, int bufferSize,
-                                   Splicer splicer, SpliceableFactory factory)
+    public SpliceableStreamReader(String name, Splicer splicer,
+                                  SpliceableFactory factory, int maxDepth)
+        throws IOException
+    {
+        this(name, DEFAULT_BUFFER_SIZE, splicer, factory, maxDepth);
+    }
+
+    public SpliceableStreamReader(String name, int bufferSize,
+                                  Splicer splicer, SpliceableFactory factory)
+        throws IOException
+    {
+        this(name, DEFAULT_BUFFER_SIZE, splicer, factory, Integer.MAX_VALUE);
+    }
+
+    public SpliceableStreamReader(String name, int bufferSize,
+                                  Splicer splicer, SpliceableFactory factory,
+                                  int maxDepth)
         throws IOException
     {
         super(name, bufferSize);
@@ -46,20 +68,23 @@ public class SpliceablePayloadReader
             throw new IllegalArgumentException(errMsg);
         }
         this.factory = factory;
+
+        this.maxDepth = maxDepth;
     }
 
+    @Override
     public InputChannel createChannel(SelectableChannel channel, String name,
                                       IByteBufferCache bufMgr, int bufSize)
         throws IOException
     {
         return new SpliceableInputChannel(this, channel, name, bufMgr, bufSize,
-                                          factory);
+                                          factory, maxDepth);
     }
 
     public synchronized Integer[] getStrandDepth()
     {
         // a negative number indicates a null strand end
-        Integer nullDepth = new Integer(-1);
+        Integer nullDepth = Integer.valueOf(-1);
 
         ArrayList strandDepth = new ArrayList();
         for (InputChannel chan : listChannels()) {
@@ -69,11 +94,17 @@ public class SpliceablePayloadReader
             if (!sChan.hasStrandTail()) {
                 depth = nullDepth;
             } else {
-                depth = new Integer(sChan.getStrandTailDepth());
+                depth = Integer.valueOf(sChan.getStrandTailDepth());
             }
             strandDepth.add(depth);
         }
         return (Integer[]) strandDepth.toArray(new Integer[0]);
+    }
+
+    @Override
+    public String getStringExtra()
+    {
+        return ",depth " + getTotalStrandDepth();
     }
 
     public synchronized int getTotalStrandDepth()
@@ -93,17 +124,36 @@ public class SpliceablePayloadReader
         return totalDepth;
     }
 
+    /**
+     * Find and wake limited channels which have dropped below their limit.
+     */
+    @Override
+    public void runSubprocess()
+    {
+        synchronized (limitedChannels) {
+            Iterator<LimitedChannel> iter = limitedChannels.iterator();
+            while (iter.hasNext()) {
+                LimitedChannel chan = iter.next();
+                if (chan.isUnderLimit()) {
+                    chan.wakeChannel();
+                    iter.remove();
+                }
+            }
+        }
+    }
+
+    @Override
     public void startProcessing()
     {
         int tries = 0;
-        while (splicer.getState() != Splicer.STOPPED) {
+        while (splicer.getState() != Splicer.State.STOPPED) {
             if (++tries > MAX_STOP_TRIES) {
                 throw new Error("Couldn't stop splicer");
             }
 
             if (tries == 1 && LOG.isWarnEnabled()) {
                 LOG.warn("Splicer should have been in STOPPED state, not " +
-                         splicer.getStateString() +
+                         splicer.getState().name() +
                          ".  Calling Splicer.forceStop()");
             }
 
@@ -137,5 +187,35 @@ public class SpliceablePayloadReader
         splicer.start();
 
         super.startProcessing();
+    }
+
+    /**
+     * Add the limited channel to a watchlist and put the calling thread in
+     * a WAIT state.  The channel will be notified (via
+     * <tt>LimitedChannel.wakeChannel()<tt>) when it's no longer limited.
+     *
+     * @param chan linmited channel
+     */
+    @Override
+    public void watchLimitedChannel(LimitedChannel chan)
+    {
+        synchronized (limitedChannels) {
+            limitedChannels.add(chan);
+        }
+        synchronized (chan) {
+            Thread thrd = Thread.currentThread();
+
+            LOG.error(chan.toString() +
+                      " strand tail is too large -- pausing " +
+                      thrd.getName());
+            try {
+                chan.wait();
+                LOG.error(chan.toString() + " strand tail has resumed " +
+                          thrd.getName());
+            } catch (InterruptedException iex) {
+                LOG.error(chan.toString() + " interrupted waiting " +
+                          thrd.getName(), iex);
+            }
+        }
     }
 }

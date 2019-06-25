@@ -2,6 +2,7 @@ package icecube.daq.io;
 
 import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.payload.IByteBufferCache;
+import icecube.daq.payload.impl.SourceID;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -37,8 +38,8 @@ public class SimpleOutputEngine
     private int engineId;
     /** Engine function. */
     private String engineFunction;
-    /** Use track engine stop message instead of payload stop message */
-    private boolean useTrackEngineStop;
+    /** Maximum channel depth */
+    private int maxChannelDepth;
 
     /** Current engine state. */
     private State state = State.STOPPED;
@@ -64,6 +65,8 @@ public class SimpleOutputEngine
     /** Has this engine been connected to one or more input channels? */
     private boolean isConnected = false;
 
+    /** Number of records sent. */
+    private long numSent;
     /** Total number of records sent. */
     private long totalSent;
 
@@ -76,7 +79,7 @@ public class SimpleOutputEngine
      */
     public SimpleOutputEngine(String type, int id, String fcn)
     {
-        this(type, id, fcn, false);
+        this(type, id, fcn, Integer.MAX_VALUE);
     }
 
     /**
@@ -85,16 +88,16 @@ public class SimpleOutputEngine
      * @param type engine type
      * @param id engine ID
      * @param fcn engine function
-     * @param teStop <tt>false</tt> for standard 4 byte payload stop message,
-     *               <tt>true</tt> to send 11 bytes of zeros
+     * @param maxChanDepth maximum depth (new data for a channel will not be
+     *                     read if it contains more than maxChanDepth items)
      */
     public SimpleOutputEngine(String type, int id, String fcn,
-                              boolean teStop)
+                              int maxChanDepth)
     {
         engineType = type;
         engineId = id;
         engineFunction = fcn;
-        useTrackEngineStop = teStop;
+        maxChannelDepth = maxChanDepth;
 
         try {
             selector = Selector.open();
@@ -108,9 +111,12 @@ public class SimpleOutputEngine
      *
      * @param channel output channel
      * @param bufMgr byte buffer manager
+     * @param name channel name (used in logging/exception messages)
      */
+    @Override
     public QueuedOutputChannel addDataChannel(WritableByteChannel channel,
-                                              IByteBufferCache bufMgr)
+                                              IByteBufferCache bufMgr,
+                                              String name)
     {
         if (state != State.STOPPED) {
             throw new RuntimeException("Engine should be stopped, not " +
@@ -121,16 +127,15 @@ public class SimpleOutputEngine
             throw new Error("Channel is not selectable");
         }
 
-        int chanNum = nextChannelNum++;
-
-        String name = engineFunction + ":" + chanNum;
-
-        SimpleOutputChannel outChan;
-        if (useTrackEngineStop) {
-            outChan = new TrackEngineStopChannel(this, name, channel, bufMgr);
-        } else {
-            outChan = new PayloadStopChannel(this, name, channel, bufMgr);
+        if (name == null) {
+            name = Integer.toString(nextChannelNum++);
         }
+
+        String fullName = engineFunction + ":" + name;
+
+        SimpleOutputChannel outChan =
+            new PayloadStopChannel(this, fullName, channel, bufMgr,
+                                   maxChannelDepth);
 
         synchronized (channelList) {
             channelList.add(outChan);
@@ -154,20 +159,22 @@ public class SimpleOutputEngine
      *
      * @param bufMgr byte buffer manager
      * @param chan output channel
-     * @param srcId **UNUSED**
+     * @param srcId source ID of connecting channel
      *
      * @throws IOException if there is a problem
      */
+    @Override
     public QueuedOutputChannel connect(IByteBufferCache bufMgr,
                                        WritableByteChannel chan, int srcId)
         throws IOException
     {
-        return addDataChannel(chan, bufMgr);
+        return addDataChannel(chan, bufMgr, new SourceID(srcId).toString());
     }
 
     /**
      * Destroy this engine.
      */
+    @Override
     public void destroyProcessor()
     {
         synchronized (channelList) {
@@ -186,12 +193,18 @@ public class SimpleOutputEngine
         }
 
         if (selector != null) {
+            Selector tmpSel = selector;
+            selector = null;
+
             try {
-                selector.close();
+                tmpSel.close();
             } catch (IOException ioe) {
                 LOG.error("Cannot close selector", ioe);
             }
-            selector = null;
+        }
+
+        if (observer != null) {
+            observer.update(NormalState.DESTROYED, DAQCmdInterface.SOURCE);
         }
 
         state = State.DESTROYED;
@@ -200,6 +213,7 @@ public class SimpleOutputEngine
     /**
      * Disconnect all channels.
      */
+    @Override
     public void disconnect()
     {
         if (state == State.DESTROYED) {
@@ -235,6 +249,7 @@ public class SimpleOutputEngine
     /**
      * Force all channels to stop.
      */
+    @Override
     public void forcedStopProcessing()
     {
         if (state == State.DESTROYED) {
@@ -261,19 +276,22 @@ public class SimpleOutputEngine
      *
      * @throws Error if there is more than one output channel
      */
+    @Override
     public OutputChannel getChannel()
     {
-        if (channelList.size() == 0) {
-            return null;
-        }
+        synchronized (channelList) {
+            if (channelList.size() == 0) {
+                return null;
+            }
 
-        if (channelList.size() != 1) {
-            throw new Error("Engine " + toString() +
-                            " should only contain one channel, not " +
-                            channelList.size());
-        }
+            if (channelList.size() != 1) {
+                throw new Error("Engine " + toString() +
+                                " should only contain one channel, not " +
+                                channelList.size());
+            }
 
-        return channelList.get(0);
+            return channelList.get(0);
+        }
     }
 
     /**
@@ -302,6 +320,7 @@ public class SimpleOutputEngine
      *
      * @return number of active channels
      */
+    @Override
     public int getNumberOfChannels()
     {
         return channelList.size();
@@ -312,6 +331,7 @@ public class SimpleOutputEngine
      *
      * @return engine state
      */
+    @Override
     public String getPresentState()
     {
         switch (state) {
@@ -331,21 +351,11 @@ public class SimpleOutputEngine
     }
 
     /**
-     * Get the total number of records written.
-     *
-     * @return total number of records written
-     */
-    public long getTotalRecordsSent()
-    {
-        return totalSent;
-    }
-
-    /**
      * Get the number of records written by all output channel queues.
      *
      * @return number of records written by each output channel
      */
-    public long[] getRecordsSent()
+    public long[] getChannelRecordsSent()
     {
         long[] sentList;
 
@@ -359,6 +369,28 @@ public class SimpleOutputEngine
         }
 
         return sentList;
+    }
+
+    /**
+     * Get the total number of records written.
+     *
+     * @return total number of records written
+     */
+    @Override
+    public long getRecordsSent()
+    {
+        return numSent;
+    }
+
+    /**
+     * Get the total number of records written.
+     *
+     * @return total number of records written
+     */
+    @Override
+    public long getTotalRecordsSent()
+    {
+        return totalSent;
     }
 
     /**
@@ -381,6 +413,7 @@ public class SimpleOutputEngine
      *
      * @return <tt>true</tt> if engine has been connected to a channel
      */
+    @Override
     public boolean isConnected()
     {
         return isConnected;
@@ -391,6 +424,7 @@ public class SimpleOutputEngine
      *
      * @return <tt>true</tt> if engine has been destroyed
      */
+    @Override
     public boolean isDestroyed()
     {
         return state == State.DESTROYED;
@@ -411,6 +445,7 @@ public class SimpleOutputEngine
      *
      * @return <tt>true</tt> if engine is running
      */
+    @Override
     public boolean isRunning()
     {
         return state == State.RUNNING;
@@ -421,6 +456,7 @@ public class SimpleOutputEngine
      *
      * @return <tt>true</tt> if engine is stopped
      */
+    @Override
     public boolean isStopped()
     {
         return state == State.STOPPED;
@@ -434,18 +470,29 @@ public class SimpleOutputEngine
     private void registerChannel(SimpleOutputChannel outChan)
     {
         synchronized (regList) {
+            if (selector == null) {
+                throw new Error("Engine has been closed; cannot register " +
+                                outChan);
+            }
+
             regList.add(outChan);
             wakeup();
         }
-    }
+   }
 
     /**
-     * Observer to notify when this engine stops.
+     * Observer to notify when this engine changes state.
      *
      * @param compObserver observer
      */
+    @Override
     public void registerComponentObserver(DAQComponentObserver compObserver)
     {
+        if (compObserver != null && observer != null) {
+            LOG.error("Overriding observer " + observer + " with new " +
+                      compObserver);
+        }
+
         observer = compObserver;
     }
 
@@ -465,7 +512,7 @@ public class SimpleOutputEngine
                 try {
                     chan.close();
                 } catch (IOException ioe) {
-                    LOG.error("Couldn't close stopped channel", ioe);
+                    LOG.error("Couldn't close stopped channel " + chan, ioe);
                 }
             }
 
@@ -480,14 +527,23 @@ public class SimpleOutputEngine
     /**
      * Main thread loop.
      */
+    @Override
     public void run()
     {
-        totalSent = 0;
+        numSent = 0;
 
         // stop immediately if there are no channels
         if (channelList.size() > 0) {
+            if (observer != null) {
+                observer.update(NormalState.RUNNING, DAQCmdInterface.SOURCE);
+            }
+
             state = State.RUNNING;
         } else {
+            if (observer != null) {
+                observer.update(NormalState.STOPPED, DAQCmdInterface.SOURCE);
+            }
+
             state = State.STOPPED;
         }
 
@@ -518,7 +574,7 @@ public class SimpleOutputEngine
                 if (channelList.size() > 0) {
                     // check for stopped channels
                     synchronized (channelList) {
-                        for (int i = 0; i < channelList.size();) {
+                        for (int i = 0; i < channelList.size(); ) {
                             SimpleOutputChannel chan = channelList.get(i);
                             if (chan.isStopped()) {
                                 channelList.remove(i);
@@ -560,6 +616,10 @@ public class SimpleOutputEngine
         }
 
         if (state == State.RUNNING) {
+            if (observer != null) {
+                observer.update(NormalState.STOPPED, DAQCmdInterface.SOURCE);
+            }
+
             state = State.STOPPED;
         }
     }
@@ -567,6 +627,7 @@ public class SimpleOutputEngine
     /**
      * Queue a stop message on all active output channels.
      */
+    @Override
     public void sendLastAndStop()
     {
         if (state == State.DESTROYED) {
@@ -575,6 +636,11 @@ public class SimpleOutputEngine
 
         synchronized (channelList) {
             if (channelList.size() == 0) {
+                if (observer != null) {
+                    observer.update(NormalState.STOPPED,
+                                    DAQCmdInterface.SOURCE);
+                }
+
                 state = State.STOPPED;
             } else {
                 for (SimpleOutputChannel outChan : channelList) {
@@ -589,6 +655,7 @@ public class SimpleOutputEngine
     /**
      * Do nothing.
      */
+    @Override
     public void start()
     {
         // nothing to do
@@ -597,6 +664,7 @@ public class SimpleOutputEngine
     /**
      * Start sending records.
      */
+    @Override
     public void startProcessing()
     {
         if (state != State.STOPPED) {
@@ -622,6 +690,7 @@ public class SimpleOutputEngine
      *
      * @return debugging string
      */
+    @Override
     public String toString()
     {
         return engineType + "#" + engineId + ":" + engineFunction +
@@ -632,6 +701,7 @@ public class SimpleOutputEngine
     /**
      * Unimplemented.
      */
+    @Override
     public void update(Object obj, String notificationID)
     {
         throw new Error("Unimplemented");
@@ -642,7 +712,9 @@ public class SimpleOutputEngine
      */
     private void wakeup()
     {
-        selector.wakeup();
+        if (selector != null) {
+            selector.wakeup();
+        }
     }
 
     /**
@@ -653,6 +725,8 @@ public class SimpleOutputEngine
     {
         /** Approximate maximum number of bytes to send at a time. */
         private static final int XMIT_GROUP_MAX_BYTES = 2048;
+        /** Amount of time to sleep when channel exceeds 'maxDepth' */
+        private static final int SLEEP_USEC = 1000;
 
         /** Parent engine. */
         private SimpleOutputEngine parent;
@@ -662,6 +736,8 @@ public class SimpleOutputEngine
         private WritableByteChannel channel;
         /** Byte buffer manager. */
         private IByteBufferCache bufferMgr;
+        /** Maximum channel depth */
+        private int maxDepth;
 
         /** Queue of records to be written. */
         private LinkedList<ByteBuffer> outputQueue =
@@ -670,13 +746,16 @@ public class SimpleOutputEngine
         /** Is this channel registered with the parent engine? */
         private boolean registered;
 
-        /** Number of records sent. */
-        private long numSent;
+        /** Number of records sent by this channel. */
+        private long chanSent;
         /** <tt>True</tt> if this channel has been stopped. */
         private boolean stopped;
 
         /** <tt>true</tt> if the remote end of this channel has been closed */
         private boolean brokenPipe;
+
+        /** Count of post-stop buffers queued */
+        private int numPostStopData;
 
         /**
          * Create a simple output channel.
@@ -688,12 +767,13 @@ public class SimpleOutputEngine
          */
         SimpleOutputChannel(SimpleOutputEngine parent, String name,
                             WritableByteChannel channel,
-                            IByteBufferCache bufferMgr)
+                            IByteBufferCache bufferMgr, int maxDepth)
         {
             this.parent = parent;
             this.name = name;
             this.channel = channel;
             this.bufferMgr = bufferMgr;
+            this.maxDepth = maxDepth;
         }
 
         /**
@@ -708,16 +788,9 @@ public class SimpleOutputEngine
         }
 
         /**
-         * Unimplemented.
-         */
-        public void destinationClosed()
-        {
-            throw new Error("Unimplemented");
-        }
-
-        /**
          * Wake the parent so it starts telling me to write data.
          */
+        @Override
         public void flushOutQueue()
         {
             if (outputQueue.size() > 0) {
@@ -744,7 +817,7 @@ public class SimpleOutputEngine
          */
         public long getRecordsSent()
         {
-            return numSent;
+            return chanSent;
         }
 
         /**
@@ -752,9 +825,10 @@ public class SimpleOutputEngine
          *
          * @return <tt>true</tt> if the output queue is not empty
          */
+        @Override
         public boolean isOutputQueued()
         {
-            return !outputQueue.isEmpty();
+            return !outputQueue.isEmpty() ;
         }
 
         /**
@@ -782,15 +856,45 @@ public class SimpleOutputEngine
          *
          * @param buf new record buffer
          */
+        @Override
         public void receiveByteBuffer(ByteBuffer buf)
         {
+            final int warningFrequency = 10000;
             if (stopped) {
-                LOG.error("Queuing buffer after channel has been stopped");
+                if (++numPostStopData % warningFrequency == 1) {
+                    LOG.error("Queuing " + buf.limit() +
+                              "-byte buffer after channel " + name +
+                              " has been stopped (num=" + numPostStopData +
+                              ")");
+                }
             } else if (parent.isStopped()) {
-                LOG.error("Queuing buffer after engine has stopped");
+                if (++numPostStopData % warningFrequency == 1) {
+                    LOG.error("Queuing " + buf.limit() + "-byte buffer after" +
+                              " engine " + parent + " has stopped (num=" +
+                              numPostStopData + ")");
+                }
             }
 
             synchronized (outputQueue) {
+                boolean warned = false;
+                while (outputQueue.size() > maxDepth) {
+                    if (!warned) {
+                        LOG.error("Pausing " + parent + ":" + name +
+                                  " queue (depth=" + outputQueue.size() +
+                                  ", maxDepth=" + maxDepth + ")");
+                        warned = true;
+                    }
+                    try {
+                        // IC86 sees ~2600 requests per second
+                        Thread.sleep(SLEEP_USEC);
+                    } catch (InterruptedException iex) {
+                    }
+                }
+                if (warned) {
+                    LOG.error("Resuming " + parent + ":" + name +
+                              " queue (maxDepth=" + maxDepth);
+                }
+
                 outputQueue.add(buf);
 
                 if (!registered) {
@@ -824,20 +928,27 @@ public class SimpleOutputEngine
          * @param observer observer object
          * @param notificationID identifier for this observer
          */
+        @Override
         public void registerComponentObserver(DAQComponentObserver observer,
                                               String notificationID)
         {
-            // do nothing
+            throw new Error("Unimplemented");
         }
 
         /**
          * If the channel hasn't stopped, add a "stop" message to the output
          * queue.
          */
+        @Override
         public void sendLastAndStop()
         {
             if (!stopped) {
-                queueStopMessage();
+                if (selector == null) {
+                    LOG.error("Cannot queue stop message after engine has" +
+                              " been destroyed");
+                } else {
+                    queueStopMessage();
+                }
             }
         }
 
@@ -880,6 +991,10 @@ public class SimpleOutputEngine
             while (channel.isOpen()) {
                 ByteBuffer buf;
                 synchronized (outputQueue) {
+                    if (outputQueue.size() == 0) {
+                        LOG.error("Cannot transmit; no records found");
+                        break;
+                    }
                     buf = outputQueue.remove(0);
                 }
 
@@ -920,7 +1035,9 @@ public class SimpleOutputEngine
                             }
                             numWritten += bytes;
                         } catch (IOException ioe) {
-                            if (ioe.getMessage().endsWith("Broken pipe")) {
+                            if (ioe.getMessage() != null &&
+                                ioe.getMessage().endsWith("Broken pipe"))
+                            {
                                 if (!brokenPipe) {
                                     brokenPipe = true;
                                     LOG.error("Channel " + name + " failed",
@@ -936,6 +1053,7 @@ public class SimpleOutputEngine
 
                     bytesLeft -= numWritten;
 
+                    chanSent++;
                     numSent++;
                     totalSent++;
                 }
@@ -959,6 +1077,7 @@ public class SimpleOutputEngine
          *
          * @return debugging string
          */
+        @Override
         public String toString()
         {
             return name + (outputQueue.size() == 0 ? "" :
@@ -1001,19 +1120,25 @@ public class SimpleOutputEngine
          */
         PayloadStopChannel(SimpleOutputEngine parent, String name,
                            WritableByteChannel channel,
-                           IByteBufferCache bufferMgr)
+                           IByteBufferCache bufferMgr, int maxDepth)
         {
-            super(parent, name, channel, bufferMgr);
+            super(parent, name, channel, bufferMgr, maxDepth);
         }
 
+        @Override
         int getRecordLength(ByteBuffer buf)
         {
+            if (buf.limit() < 4) {
+                return 0;
+            }
+
             return buf.getInt(0);
         }
 
         /**
          * Is this a stop message?
          */
+        @Override
         boolean isStopMessage(ByteBuffer buf, int payLen)
         {
             return payLen == STOP_MESSAGE_SIZE;
@@ -1022,85 +1147,11 @@ public class SimpleOutputEngine
         /**
          * Add a "stop" message to the output queue.
          */
+        @Override
         void queueStopMessage()
         {
             ByteBuffer stopMessage = ByteBuffer.allocate(STOP_MESSAGE_SIZE);
             stopMessage.putInt(0, STOP_MESSAGE_SIZE);
-            receiveByteBuffer(stopMessage);
-        }
-    }
-
-    /** Buffer used to check for stop message */
-    private static ByteBuffer stopTEMessage;
-
-    static {
-        stopTEMessage =
-            ByteBuffer.allocate(TrackEngineStopChannel.STOP_MESSAGE_SIZE);
-        for (int i = 0; i < TrackEngineStopChannel.STOP_MESSAGE_SIZE; i++) {
-            stopTEMessage.put((byte) 0);
-        }
-    }
-
-    /**
-     * Simple output channel which sends an 11 byte track engine stop message.
-     */
-    class TrackEngineStopChannel
-        extends SimpleOutputChannel
-    {
-        /** Number of bytes in 'stop' message'. */
-        static final int STOP_MESSAGE_SIZE = 11;
-
-        /**
-         * Create a simple output channel which uses track engine stop messages.
-         *
-         * @param parent parent output engine
-         * @param name channel name
-         * @param channel output channel
-         * @param bufferMgr byte buffer manager
-         */
-        TrackEngineStopChannel(SimpleOutputEngine parent, String name,
-                               WritableByteChannel channel,
-                               IByteBufferCache bufferMgr)
-        {
-            super(parent, name, channel, bufferMgr);
-        }
-
-        int getRecordLength(ByteBuffer buf)
-        {
-            return 11;
-        }
-
-        /**
-         * Is this a stop message?
-         */
-        boolean isStopMessage(ByteBuffer buf, int payLen)
-        {
-            if (buf == null) {
-                return false;
-            }
-
-            if (buf.limit() != STOP_MESSAGE_SIZE) {
-                return false;
-            }
-
-            for (int i = 0; i < STOP_MESSAGE_SIZE; i++) {
-                if (buf.get(i) != (byte) 0) {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        /**
-         * Add a "stop" message to the output queue.
-         */
-        void queueStopMessage()
-        {
-            ByteBuffer stopMessage = ByteBuffer.allocate(STOP_MESSAGE_SIZE);
-            for (int i = 0; i < STOP_MESSAGE_SIZE; i++) {
-                stopMessage.put((byte) 0);
-            }
             receiveByteBuffer(stopMessage);
         }
     }

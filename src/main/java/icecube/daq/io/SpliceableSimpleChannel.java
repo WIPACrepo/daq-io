@@ -6,7 +6,6 @@ import icecube.daq.splicer.ClosedStrandException;
 import icecube.daq.splicer.OrderingException;
 import icecube.daq.splicer.Spliceable;
 import icecube.daq.splicer.SpliceableFactory;
-import icecube.daq.splicer.Splicer;
 import icecube.daq.splicer.StrandTail;
 
 import java.io.IOException;
@@ -54,6 +53,7 @@ public class SpliceableSimpleChannel
         return strandTail != null;
     }
 
+    @Override
     public void notifyOnStop()
     {
         // since this is a SpliceablePayloadReceiveChannel, we
@@ -62,11 +62,12 @@ public class SpliceableSimpleChannel
             LOG.info("pushing LAST_POSSIBLE_SPLICEABLE");
         }
 
-        pushSpliceable(Splicer.LAST_POSSIBLE_SPLICEABLE);
+        pushSpliceable(SpliceableFactory.LAST_POSSIBLE_SPLICEABLE);
 
         super.notifyOnStop();
     }
 
+    @Override
     public void pushPayload(ByteBuffer payBuf)
     {
         Spliceable spliceable = factory.createSpliceable(payBuf);
@@ -108,7 +109,7 @@ public class SpliceableSimpleChannel
                         LOG.error("Couldn't push payload type " +
                                   payload.getPayloadType() +
                                   ", length " +
-                                  payload.getPayloadLength() +
+                                  payload.length() +
                                   ", time " +
                                   payload.getPayloadTimeUTC() +
                                   "; recycling", ex);
@@ -132,6 +133,7 @@ public class SpliceableSimpleChannel
         this.strandTail = strandTail;
     }
 
+    @Override
     public void startProcessing()
     {
         if (strandTail == null) {

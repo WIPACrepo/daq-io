@@ -17,7 +17,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Pipe;
 import java.nio.channels.SelectableChannel;
 import java.util.List;
-import java.util.zip.DataFormatException;
 
 import junit.framework.Test;
 import junit.framework.TestSuite;
@@ -29,48 +28,56 @@ public class SpliceableSimpleChannelTest
     class MockParent
         implements IOChannelParent
     {
+        @Override
         public void channelError(IOChannel chan, ByteBuffer buf, Exception ex)
         {
             throw new Error("Unimplemented");
         }
 
+        @Override
         public void channelStopped(IOChannel chan)
         {
         }
     }
 
     class MockStrandTail
-        implements StrandTail
+        implements StrandTail<Spliceable>
     {
         private boolean closed;
 
+        @Override
         public void close()
         {
             closed = true;
         }
 
+        @Override
         public Spliceable head()
         {
             throw new Error("Unimplemented");
         }
 
+        @Override
         public boolean isClosed()
         {
             return closed;
         }
 
+        @Override
         public StrandTail push(List spliceables)
             throws OrderingException, ClosedStrandException
         {
             throw new Error("Unimplemented");
         }
 
+        @Override
         public StrandTail push(Spliceable spliceable)
             throws OrderingException, ClosedStrandException
         {
             throw new Error("Unimplemented");
         }
 
+        @Override
         public int size()
         {
             throw new Error("Unimplemented");
@@ -87,6 +94,7 @@ public class SpliceableSimpleChannelTest
             this.throwOrderingEx = throwOrderingEx;
         }
 
+        @Override
         public StrandTail push(Spliceable spliceable)
             throws OrderingException, ClosedStrandException
         {
@@ -118,31 +126,31 @@ public class SpliceableSimpleChannelTest
             time = buf.getLong(8);
         }
 
+        @Override
         public int compareSpliceable(Spliceable spl)
         {
             throw new Error("Unimplemented");
         }
 
+        @Override
         public Object deepCopy()
         {
             throw new Error("Unimplemented");
         }
 
+        @Override
         public ByteBuffer getPayloadBacking()
         {
             throw new Error("Unimplemented");
         }
 
+        @Override
         public int getPayloadInterfaceType()
         {
             throw new Error("Unimplemented");
         }
 
-        public int getPayloadLength()
-        {
-            return len;
-        }
-
+        @Override
         public IUTCTime getPayloadTimeUTC()
         {
             if (timeObj == null) {
@@ -152,27 +160,37 @@ public class SpliceableSimpleChannelTest
             return timeObj;
         }
 
+        @Override
         public int getPayloadType()
         {
             return type;
         }
 
+        @Override
         public long getUTCTime()
         {
             return time;
         }
 
+        @Override
+        public int length()
+        {
+            return len;
+        }
+
+        @Override
         public void loadPayload()
-            throws IOException, DataFormatException
         {
             throw new Error("Unimplemented");
         }
 
+        @Override
         public void recycle()
         {
             bufMgr.returnBuffer(buf);
         }
 
+        @Override
         public void setCache(IByteBufferCache cache)
         {
             throw new Error("Unimplemented");
@@ -189,21 +207,25 @@ public class SpliceableSimpleChannelTest
             this.bufMgr = bufMgr;
         }
 
+        @Override
         public void backingBufferShift(List list, int index, int shift)
         {
             throw new Error("Unimplemented");
         }
 
+        @Override
         public Spliceable createSpliceable(ByteBuffer buf)
         {
             return new MockSpliceable(bufMgr, buf);
         }
 
+        @Override
         public void invalidateSpliceables(List list)
         {
             throw new Error("Unimplemented");
         }
 
+        @Override
         public boolean skipSpliceable(ByteBuffer buf)
         {
             throw new Error("Unimplemented");
@@ -261,7 +283,7 @@ public class SpliceableSimpleChannelTest
                 chan.startProcessing();
             }
 
-            assertEquals("Unexpected log message", 0, getNumberOfMessages());
+            assertNoLogMessages();
 
             chan.pushPayload(buf);
 
@@ -288,12 +310,11 @@ public class SpliceableSimpleChannelTest
                 // ignore interrupts
             }
 
-            assertEquals("Expected log message", 2, getNumberOfMessages());
-            assertEquals("Bad log message",
-                         "Couldn't push payload type " + type + ", length " +
-                         buf.capacity() + ", time " + time + "; recycling",
-                         getMessage(0));
-            clearMessages();
+            assertLogMessage("Couldn't push payload type " + type +
+                             ", length " + buf.capacity() + ", time " +
+                             time + "; recycling");
+            assertLogMessage("Couldn't push ");
+            assertNoLogMessages();
         }
     }
 

@@ -118,6 +118,7 @@ public class SimpleOutputEngineTest
         return ssChan.socket().getLocalPort();
     }
 
+    @Override
     protected void setUp()
         throws Exception
     {
@@ -139,6 +140,7 @@ public class SimpleOutputEngineTest
      *
      * @throws Exception if super class tearDown fails.
      */
+    @Override
     protected void tearDown()
         throws Exception
     {
@@ -181,7 +183,8 @@ public class SimpleOutputEngineTest
         engine.start();
         IOTestUtil.waitUntilStopped(engine, "creation");
 
-        transmitEng = engine.addDataChannel(testPipe.sink(), cacheMgr);
+        transmitEng = engine.addDataChannel(testPipe.sink(), cacheMgr,
+                                            "SSChan");
 
         engine.startProcessing();
         IOTestUtil.waitUntilRunning(engine);
@@ -198,7 +201,8 @@ public class SimpleOutputEngineTest
         testPipe.sink().configureBlocking(false);
         testPipe.source().configureBlocking(true);
 
-        transmitEng = engine.addDataChannel(testPipe.sink(), cacheMgr);
+        transmitEng = engine.addDataChannel(testPipe.sink(), cacheMgr,
+                                            "SSChan2");
 
         engine.startProcessing();
         IOTestUtil.waitUntilRunning(engine);
@@ -215,7 +219,8 @@ public class SimpleOutputEngineTest
         testPipe.sink().configureBlocking(false);
         testPipe.source().configureBlocking(true);
 
-        transmitEng = engine.addDataChannel(testPipe.sink(), cacheMgr);
+        transmitEng = engine.addDataChannel(testPipe.sink(), cacheMgr,
+                                            "SSStop");
 
         engine.startProcessing();
         IOTestUtil.waitUntilRunning(engine);
@@ -232,121 +237,6 @@ public class SimpleOutputEngineTest
         } catch (Exception e) {
             // expect this to fail
         }
-	
-	try {
-	engine.clearError();
-	} catch(Error e) {
-	if(!e.getMessage().equals("Unimplemented")) {
-	    throw new Error("Unimplemented");
-	}
-	}
-
-	assertNull("output channel", engine.getChannel());
-
-	assertNotNull("depth of output channel queues", engine.getDepth());
-
-	assertEquals("Number of channels", 0, engine.getNumberOfChannels());
-
-	assertNotNull("no. of records written", engine.getTotalRecordsSent());
-
-	assertNotNull("no. of records written by all output channel queues", 
-	    engine.getRecordsSent());
-
-	assertTrue("Has this engine been connected to any output channels?", 
-	    engine.isConnected());
-
-	assertNotNull("number of records written", engine.getRecordsSent());
-
-	assertNotNull("String returned", engine.toString());
-	
-    }
-
-    public void testOneByteTEPayload()
-        throws Exception
-    {
-        // buffer caching manager
-        IByteBufferCache cacheMgr = new MockBufferCache("OutLoop");
-
-        // create a pipe for use in testing
-        Pipe testPipe = Pipe.open();
-        testPipe.sink().configureBlocking(false);
-        testPipe.source().configureBlocking(true);
-
-        MockObserver observer = new MockObserver();
-
-        engine = new SimpleOutputEngine("OutputLoop", 0, "test", true);
-        engine.registerComponentObserver(observer);
-        engine.start();
-        IOTestUtil.waitUntilStopped(engine, "creation");
-
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
-
-        final String notificationId = "OutputLoop";
-
-        MockObserver xmitObserver = new MockObserver();
-        xmitObserver.setSourceNotificationId(notificationId);
-
-        QueuedOutputChannel transmitEng =
-            engine.addDataChannel(testPipe.sink(), cacheMgr);
-        transmitEng.registerComponentObserver(xmitObserver, notificationId);
-
-        assertEquals("Bad number of log messages", 0, getNumberOfMessages());
-
-        assertTrue("SimpleOutputEngine in " + engine.getPresentState() +
-                   ", not Idle after StopSig", engine.isStopped());
-        engine.startProcessing();
-        IOTestUtil.waitUntilRunning(engine);
-
-        final int bufLen = 11;
-
-        // now move some buffers
-        ByteBuffer testInBuf = ByteBuffer.allocate(bufLen * 2);
-
-        ByteBuffer testOutBuf;
-        for (int i = 0; i < 100; i++) {
-            testOutBuf = cacheMgr.acquireBuffer(bufLen);
-            assertNotNull("Unable to acquire buffer#" + i, testOutBuf);
-            testOutBuf.putInt(5, bufLen);
-            testOutBuf.putShort(9, (short) i);
-            testOutBuf.limit(bufLen);
-            testOutBuf.position(bufLen);
-            testOutBuf.flip();
-
-            transmitEng.receiveByteBuffer(testOutBuf);
-            for (int j = 0; j < 100; j++) {
-                if (!transmitEng.isOutputQueued()) {
-                    break;
-                }
-
-                Thread.sleep(10);
-            }
-            assertFalse("PayloadTransmitChannel did not send buf#" + i,
-                        transmitEng.isOutputQueued());
-
-            testInBuf.position(0);
-            testInBuf.limit(bufLen);
-            int numBytes = testPipe.source().read(testInBuf);
-            assertEquals("Bad return count on read#" + i,
-                         bufLen, numBytes);
-            assertEquals("Bad message byte count on read#" + i,
-                         bufLen, testInBuf.getInt(5));
-        }
-
-        engine.sendLastAndStop();
-        transmitEng.flushOutQueue();
-        IOTestUtil.waitUntilStopped(engine, "send last");
-
-        assertTrue("Failure on sendLastAndStop command.",
-                   observer.gotSourceStop());
-        assertFalse("Got sinkStop notification",
-                   observer.gotSinkStop());
-        assertFalse("Got sourceError notification",
-                   observer.gotSourceError());
-        assertFalse("Got sinkError notification",
-                   observer.gotSinkError());
-
-        assertTrue("ByteBufferCache is not balanced", cacheMgr.isBalanced());
     }
 
     public void testOutputLoop()
@@ -360,26 +250,21 @@ public class SimpleOutputEngineTest
         testPipe.sink().configureBlocking(false);
         testPipe.source().configureBlocking(true);
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("OutputLoop");
 
         engine = new SimpleOutputEngine("OutputLoop", 0, "test");
         engine.registerComponentObserver(observer);
         engine.start();
         IOTestUtil.waitUntilStopped(engine, "creation");
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         final String notificationId = "OutputLoop";
 
-        MockObserver xmitObserver = new MockObserver();
-        xmitObserver.setSourceNotificationId(notificationId);
-
         QueuedOutputChannel transmitEng =
-            engine.addDataChannel(testPipe.sink(), cacheMgr);
-        transmitEng.registerComponentObserver(xmitObserver, notificationId);
+            engine.addDataChannel(testPipe.sink(), cacheMgr, "SSOut");
 
-        assertEquals("Bad number of log messages", 0, getNumberOfMessages());
+        assertNoLogMessages();
 
         assertTrue("SimpleOutputEngine in " + engine.getPresentState() +
                    ", not Idle after StopSig", engine.isStopped());
@@ -451,7 +336,7 @@ public class SimpleOutputEngineTest
 
         int port = createServer(sel);
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("BrokenPipe");
 
         engine = new SimpleOutputEngine("ServerOutput", 0, "test");
         engine.registerComponentObserver(observer);
@@ -462,18 +347,13 @@ public class SimpleOutputEngineTest
             SocketChannel.open(new InetSocketAddress("localhost", port));
         sock.configureBlocking(false);
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         final String notificationId = "ServerOutput";
 
-        MockObserver xmitObserver = new MockObserver();
-        xmitObserver.setSourceNotificationId(notificationId);
-
         QueuedOutputChannel transmitEng = engine.connect(cacheMgr, sock, 1);
-        transmitEng.registerComponentObserver(xmitObserver, notificationId);
 
-        assertEquals("Bad number of log messages", 0, getNumberOfMessages());
+        assertNoLogMessages();
 
         SocketChannel chan = acceptChannel(sel);
 
@@ -526,7 +406,7 @@ public class SimpleOutputEngineTest
         }
 
         engine.sendLastAndStop();
-        Thread.sleep(10);
+        IOTestUtil.waitUntilStopped(engine, "send last");
         transmitEng.flushOutQueue();
 
         IOTestUtil.waitUntilStopped(engine, "finished");
@@ -560,7 +440,7 @@ public class SimpleOutputEngineTest
 
         int port = createServer(sel);
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("ServerOutput");
 
         engine = new SimpleOutputEngine("ServerOutput", 0, "test");
         engine.registerComponentObserver(observer);
@@ -571,18 +451,13 @@ public class SimpleOutputEngineTest
             SocketChannel.open(new InetSocketAddress("localhost", port));
         sock.configureBlocking(false);
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         final String notificationId = "ServerOutput";
 
-        MockObserver xmitObserver = new MockObserver();
-        xmitObserver.setSourceNotificationId(notificationId);
-
         QueuedOutputChannel transmitEng = engine.connect(cacheMgr, sock, 1);
-        transmitEng.registerComponentObserver(xmitObserver, notificationId);
 
-        assertEquals("Bad number of log messages", 0, getNumberOfMessages());
+        assertNoLogMessages();
 
         SocketChannel chan = acceptChannel(sel);
 
@@ -631,7 +506,7 @@ public class SimpleOutputEngineTest
         }
 
         engine.sendLastAndStop();
-        Thread.sleep(10);
+        IOTestUtil.waitUntilStopped(engine, "send last");
         transmitEng.flushOutQueue();
 
         assertTrue("Failure on sendLastAndStop command.",
@@ -658,7 +533,7 @@ public class SimpleOutputEngineTest
 
         int port = createServer(sel);
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("Disconnect");
 
         engine = new SimpleOutputEngine(testName, 0, "test");
         engine.registerComponentObserver(observer);
@@ -669,16 +544,11 @@ public class SimpleOutputEngineTest
             SocketChannel.open(new InetSocketAddress("localhost", port));
         sock.configureBlocking(false);
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
-
-        MockObserver xmitObserver = new MockObserver();
-        xmitObserver.setSourceNotificationId(testName);
+        assertNoLogMessages();
 
         QueuedOutputChannel transmitEng = engine.connect(cacheMgr, sock, 1);
-        transmitEng.registerComponentObserver(xmitObserver, testName);
 
-        assertEquals("Bad number of log messages", 0, getNumberOfMessages());
+        assertNoLogMessages();
 
         SocketChannel chan = acceptChannel(sel);
 
@@ -688,15 +558,15 @@ public class SimpleOutputEngineTest
         IOTestUtil.waitUntilRunning(engine);
 
         engine.disconnect();
-        Thread.sleep(10);
+        IOTestUtil.waitUntilStopped(engine, "disconnect");
 
-        assertTrue("Failure on sendLastAndStop command.",
+        assertTrue("Failure on sendLastAndStop command: " + observer,
                    observer.gotSourceStop());
-        assertFalse("Got sinkStop notification",
+        assertFalse("Got sinkStop notification: " + observer,
                    observer.gotSinkStop());
-        assertFalse("Got sourceError notification",
+        assertFalse("Got sourceError notification: " + observer,
                    observer.gotSourceError());
-        assertFalse("Got sinkError notification",
+        assertFalse("Got sinkError notification: " + observer,
                    observer.gotSinkError());
 
         assertTrue("ByteBufferCache is not balanced", cacheMgr.isBalanced());

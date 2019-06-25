@@ -54,6 +54,7 @@ public class SpliceableSimpleReaderTest
         return numReturned;
     }
 
+    @Override
     protected void setUp()
         throws Exception
     {
@@ -72,6 +73,7 @@ public class SpliceableSimpleReaderTest
         return new TestSuite(SpliceableSimpleReaderTest.class);
     }
 
+    @Override
     protected void tearDown()
         throws Exception
     {
@@ -102,20 +104,15 @@ public class SpliceableSimpleReaderTest
         tstRdr.forcedStopProcessing();
         IOTestUtil.waitUntilStopped(tstRdr, "forced stop");
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         // try it a second time
         tstRdr.startProcessing();
         IOTestUtil.waitUntilRunning(tstRdr);
 
-        assertEquals("Bad number of log messages",
-                     1, getNumberOfMessages());
-        assertEquals("Unexpected log message 0",
-                     "Splicer should have been in STOPPED state," +
-                     " not MockState.  Calling Splicer.forceStop()",
-                     getMessage(0));
-        clearMessages();
+        assertLogMessage("Splicer should have been in STOPPED state, not" +
+                         " STARTED.  Calling Splicer.forceStop()");
+        assertNoLogMessages();
 
         tstRdr.forcedStopProcessing();
         IOTestUtil.waitUntilStopped(tstRdr, "forced stop");
@@ -123,8 +120,7 @@ public class SpliceableSimpleReaderTest
         tstRdr.destroyProcessor();
         IOTestUtil.waitUntilDestroyed(tstRdr);
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         try {
             tstRdr.startProcessing();
@@ -133,13 +129,9 @@ public class SpliceableSimpleReaderTest
             // expect this to fail
         }
 
-        assertEquals("Bad number of log messages",
-                     1, getNumberOfMessages());
-        assertEquals("Unexpected log message 0",
-                     "Splicer should have been in STOPPED state," +
-                     " not MockState.  Calling Splicer.forceStop()",
-                     getMessage(0));
-        clearMessages();
+        assertLogMessage("Splicer should have been in STOPPED state, not" +
+                         " STARTED.  Calling Splicer.forceStop()");
+        assertNoLogMessages();
     }
 
     public void testOutputInput()
@@ -159,7 +151,7 @@ public class SpliceableSimpleReaderTest
         MockSplicer splicer = new MockSplicer();
         MockSpliceableFactory factory = new MockSpliceableFactory();
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("OutIn");
 
         tstRdr = new SpliceableSimpleReader("OutputInput", splicer, factory);
         tstRdr.registerComponentObserver(observer);
@@ -234,7 +226,7 @@ public class SpliceableSimpleReaderTest
         MockSplicer splicer = new MockSplicer();
         MockSpliceableFactory factory = new MockSpliceableFactory();
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("MultiOutIn");
 
         tstRdr = new SpliceableSimpleReader("OutputInput", splicer, factory);
         tstRdr.registerComponentObserver(observer);

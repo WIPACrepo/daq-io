@@ -24,20 +24,20 @@ import junit.framework.Test;
 import junit.framework.TestSuite;
 import junit.textui.TestRunner;
 
-public class SpliceablePayloadReaderTest
+public class SpliceableStreamReaderTest
     extends LoggingCase
 {
     private static final int BUFFER_LEN = 5000;
     private static final int INPUT_OUTPUT_LOOP_CNT = 5;
 
-    private SpliceablePayloadReader tstRdr;
+    private SpliceableStreamReader tstRdr;
 
     /**
      * Construct an instance of this test.
      *
      * @param name the name of the test.
      */
-    public SpliceablePayloadReaderTest(String name)
+    public SpliceableStreamReaderTest(String name)
     {
         super(name);
     }
@@ -54,6 +54,7 @@ public class SpliceablePayloadReaderTest
         return numReturned;
     }
 
+    @Override
     protected void setUp()
         throws Exception
     {
@@ -69,9 +70,10 @@ public class SpliceablePayloadReaderTest
      */
     public static Test suite()
     {
-        return new TestSuite(SpliceablePayloadReaderTest.class);
+        return new TestSuite(SpliceableStreamReaderTest.class);
     }
 
+    @Override
     protected void tearDown()
         throws Exception
     {
@@ -91,7 +93,7 @@ public class SpliceablePayloadReaderTest
         MockSplicer splicer = new MockSplicer();
         MockSpliceableFactory factory = new MockSpliceableFactory();
 
-        tstRdr = new SpliceablePayloadReader("StartStop", splicer, factory);
+        tstRdr = new SpliceableStreamReader("StartStop", splicer, factory);
 
         tstRdr.start();
         IOTestUtil.waitUntilStopped(tstRdr, "creation");
@@ -102,20 +104,15 @@ public class SpliceablePayloadReaderTest
         tstRdr.forcedStopProcessing();
         IOTestUtil.waitUntilStopped(tstRdr, "forced stop");
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         // try it a second time
         tstRdr.startProcessing();
         IOTestUtil.waitUntilRunning(tstRdr);
 
-        assertEquals("Bad number of log messages",
-                     1, getNumberOfMessages());
-        assertEquals("Unexpected log message 0",
-                     "Splicer should have been in STOPPED state," +
-                     " not MockState.  Calling Splicer.forceStop()",
-                     getMessage(0));
-        clearMessages();
+        assertLogMessage("Splicer should have been in STOPPED state, not" +
+                         " STARTED.  Calling Splicer.forceStop()");
+        assertNoLogMessages();
 
         tstRdr.forcedStopProcessing();
         IOTestUtil.waitUntilStopped(tstRdr, "forced stop");
@@ -123,8 +120,7 @@ public class SpliceablePayloadReaderTest
         tstRdr.destroyProcessor();
         IOTestUtil.waitUntilDestroyed(tstRdr);
 
-        assertEquals("Bad number of log messages",
-                     0, getNumberOfMessages());
+        assertNoLogMessages();
 
         try {
             tstRdr.startProcessing();
@@ -133,13 +129,9 @@ public class SpliceablePayloadReaderTest
             // expect this to fail
         }
 
-        assertEquals("Bad number of log messages",
-                     1, getNumberOfMessages());
-        assertEquals("Unexpected log message 0",
-                     "Splicer should have been in STOPPED state," +
-                     " not MockState.  Calling Splicer.forceStop()",
-                     getMessage(0));
-        clearMessages();
+        assertLogMessage("Splicer should have been in STOPPED state, not" +
+                         " STARTED.  Calling Splicer.forceStop()");
+        assertNoLogMessages();
     }
 
     public void testOutputInput()
@@ -159,9 +151,9 @@ public class SpliceablePayloadReaderTest
         MockSplicer splicer = new MockSplicer();
         MockSpliceableFactory factory = new MockSpliceableFactory();
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("OutIn");
 
-        tstRdr = new SpliceablePayloadReader("OutputInput", splicer, factory);
+        tstRdr = new SpliceableStreamReader("OutputInput", splicer, factory);
         tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();
@@ -234,9 +226,9 @@ public class SpliceablePayloadReaderTest
         MockSplicer splicer = new MockSplicer();
         MockSpliceableFactory factory = new MockSpliceableFactory();
 
-        MockObserver observer = new MockObserver();
+        MockObserver observer = new MockObserver("MultiOutIn");
 
-        tstRdr = new SpliceablePayloadReader("OutputInput", splicer, factory);
+        tstRdr = new SpliceableStreamReader("OutputInput", splicer, factory);
         tstRdr.registerComponentObserver(observer);
 
         tstRdr.start();

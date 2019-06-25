@@ -19,7 +19,7 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-public abstract class PayloadReader
+public abstract class DAQStreamReader
     implements DAQComponentInputProcessor, IOChannelParent, Runnable
 {
     class Flag
@@ -47,6 +47,7 @@ public abstract class PayloadReader
             flag = true;
         }
 
+        @Override
         public String toString()
         {
             return (flag ? "" : "!") + name;
@@ -57,7 +58,7 @@ public abstract class PayloadReader
     static final int DEFAULT_BUFFER_SIZE = 2048;
 
     /** logging object */
-    private static final Log LOG = LogFactory.getLog(PayloadReader.class);
+    private static final Log LOG = LogFactory.getLog(DAQStreamReader.class);
 
     /** selector timeout (in msec.) */
     private static final int SELECTOR_TIMEOUT = 1000;
@@ -110,12 +111,15 @@ public abstract class PayloadReader
     // channel on which server listens for connections
     private ServerSocketChannel serverChannel;
 
-    public PayloadReader(String name)
+    // total records received by channels which have been removed
+    private int totalReceivedFromRemovedChannels;
+
+    public DAQStreamReader(String name)
     {
         this(name, DEFAULT_BUFFER_SIZE);
     }
 
-    public PayloadReader(String name, int bufferSize)
+    public DAQStreamReader(String name, int bufferSize)
     {
         this.name = name;
         this.bufferSize = bufferSize;
@@ -135,51 +139,36 @@ public abstract class PayloadReader
                                        IByteBufferCache bufMgr, int bufSize)
         throws IOException
     {
-        final boolean DEBUG_ADD = false;
-        if (DEBUG_ADD) {
-            System.err.println("AddChanTop");
-        }
+final boolean DEBUG_ADD = false;
+if(DEBUG_ADD)System.err.println("AddChanTop");
         if (state != RunState.IDLE) {
             final String errMsg = "Cannot add data channel while engine is " +
                 getPresentState();
             throw new RuntimeException(errMsg);
         }
 
-        if (DEBUG_ADD) {
-            System.err.println("AddChanCre " + channel);
-        }
-
+if(DEBUG_ADD)System.err.println("AddChanCre "+channel);
         InputChannel chanData = createChannel(channel, name, bufMgr, bufSize);
-        if (DEBUG_ADD) {
-            System.err.println("AddChan " + chanData);
-        }
+if(DEBUG_ADD)System.err.println("AddChan "+chanData);
         synchronized (newChanList) {
             newChanList.add(chanData);
             if (selector != null) {
                 selector.wakeup();
             }
         }
-        if (DEBUG_ADD) {
-            System.err.println("AddChanDone");
-        }
+if(DEBUG_ADD)System.err.println("AddChanDone");
 
-        if (DEBUG_ADD) {
-            System.err.println("AddChanEnd");
-        }
+if(DEBUG_ADD)System.err.println("AddChanEnd");
         return chanData;
     }
 
     private void addNewChannels(Selector sel)
     {
-        final boolean DEBUG_NEW = false;
-        if (DEBUG_NEW) {
-            System.err.println("ANtop");
-        }
+final boolean DEBUG_NEW = false;
+if(DEBUG_NEW)System.err.println("ANtop");
         synchronized (newChanList) {
             for (InputChannel cd : newChanList) {
-                if (DEBUG_NEW) {
-                    System.err.println("ANreg " + cd);
-                }
+if(DEBUG_NEW)System.err.println("ANreg "+cd);
                 try {
                     cd.register(sel);
                 } catch (ClosedChannelException cce) {
@@ -187,9 +176,7 @@ public abstract class PayloadReader
                     continue;
                 }
 
-                if (DEBUG_NEW) {
-                    System.err.println("ANadd " + cd);
-                }
+if(DEBUG_NEW)System.err.println("ANadd "+cd);
                 synchronized (chanList) {
                     chanList.add(cd);
                 }
@@ -201,9 +188,7 @@ public abstract class PayloadReader
             newChanList.clear();
             newChanList.notify();
         }
-        if (DEBUG_NEW) {
-            System.err.println("ANend");
-        }
+if(DEBUG_NEW)System.err.println("ANend");
     }
 
     public void addReverseConnection(String hostName, int port,
@@ -239,6 +224,7 @@ public abstract class PayloadReader
      * @param buf ByteBuffer which caused the error (may ne <tt>null</tt>)
      * @param ex exception (may be null)
      */
+    @Override
     public void channelError(IOChannel chan, ByteBuffer buf,
                              Exception ex)
     {
@@ -250,6 +236,7 @@ public abstract class PayloadReader
      *
      * @param chan channel
      */
+    @Override
     public void channelStopped(IOChannel chan)
     {
         channelStopFlag.set();
@@ -264,6 +251,7 @@ public abstract class PayloadReader
                                                int bufSize)
         throws IOException;
 
+    @Override
     public void destroyProcessor()
     {
         thread = null;
@@ -281,15 +269,21 @@ public abstract class PayloadReader
         setState(RunState.DESTROYED);
     }
 
+    @Override
     public void forcedStopProcessing()
     {
         setState(RunState.IDLE);
 
+        synchronized (chanList) {
+            for (InputChannel cd : chanList) {
+                cd.notifyOnStop();
+            }
+        }
+
         notifyClient();
     }
 
-    public synchronized Boolean[] getAllocationStopped()
-    {
+    public synchronized Boolean[] getAllocationStopped() {
         ArrayList allocationStatus = new ArrayList();
         synchronized (chanList) {
             for (InputChannel cd : chanList) {
@@ -301,57 +295,52 @@ public abstract class PayloadReader
         return (Boolean[]) allocationStatus.toArray(new Boolean[0]);
     }
 
-    public synchronized Long[] getBufferCurrentAcquiredBuffers()
-    {
+    public synchronized Long[] getBufferCurrentAcquiredBuffers() {
         ArrayList byteLimit = new ArrayList();
         synchronized (chanList) {
             for (InputChannel cd : chanList) {
-                byteLimit.add(new Long(cd.getBufferCurrentAcquiredBuffers()));
+                byteLimit.add(Long.valueOf(cd.getBufferCurrentAcquiredBuffers()));
             }
         }
 
         return (Long[]) byteLimit.toArray(new Long[0]);
     }
 
-    public synchronized Long[] getBufferCurrentAcquiredBytes()
-    {
+    public synchronized Long[] getBufferCurrentAcquiredBytes() {
         ArrayList byteLimit = new ArrayList();
         synchronized (chanList) {
             for (InputChannel cd : chanList) {
-                byteLimit.add(new Long(cd.getBufferCurrentAcquiredBytes()));
+                byteLimit.add(Long.valueOf(cd.getBufferCurrentAcquiredBytes()));
             }
         }
         return (Long[]) byteLimit.toArray(new Long[0]);
     }
 
-    public synchronized Long[] getBytesReceived()
-    {
+    public synchronized Long[] getBytesReceived() {
         ArrayList byteCount = new ArrayList();
         synchronized (chanList) {
             for (InputChannel cd : chanList) {
-                byteCount.add(new Long(cd.getBytesReceived()));
+                byteCount.add(Long.valueOf(cd.getBytesReceived()));
             }
         }
         return (Long[]) byteCount.toArray(new Long[0]);
     }
 
-    public synchronized Long[] getLimitToRestartAllocation()
-    {
+    public synchronized Long[] getLimitToRestartAllocation() {
         ArrayList byteLimit = new ArrayList();
         synchronized (chanList) {
             for (InputChannel cd : chanList) {
-                byteLimit.add(new Long(cd.getLimitToRestartAllocation()));
+                byteLimit.add(Long.valueOf(cd.getLimitToRestartAllocation()));
             }
         }
         return (Long[]) byteLimit.toArray(new Long[0]);
     }
 
-    public synchronized Long[] getLimitToStopAllocation()
-    {
+    public synchronized Long[] getLimitToStopAllocation() {
         ArrayList byteLimit = new ArrayList();
         synchronized (chanList) {
             for (InputChannel cd : chanList) {
-                byteLimit.add(new Long(cd.getLimitToStopAllocation()));
+                byteLimit.add(Long.valueOf(cd.getLimitToStopAllocation()));
             }
         }
         return (Long[]) byteLimit.toArray(new Long[0]);
@@ -372,44 +361,48 @@ public abstract class PayloadReader
      *
      * @return number of active channels
      */
+    @Override
     public int getNumberOfChannels()
     {
         return chanList.size();
     }
 
+    @Override
     public String getPresentState()
     {
         return state.toString();
     }
 
-    public synchronized Long[] getRecordsReceived()
-    {
+    public synchronized Long[] getRecordsReceived() {
         ArrayList recordCount = new ArrayList();
         for (InputChannel cd : chanList) {
-            recordCount.add(new Long(cd.getRecordsReceived()));
+            recordCount.add(Long.valueOf(cd.getRecordsReceived()));
         }
         return (Long[]) recordCount.toArray(new Long[0]);
     }
 
-    public int getServerPort()
-    {
+    @Override
+    public int getServerPort() {
         return port;
     }
 
-    public synchronized Long[] getStopMessagesReceived()
-    {
+    public synchronized Long[] getStopMessagesReceived() {
         ArrayList recordCount = new ArrayList();
         synchronized (chanList) {
             for (InputChannel cd : chanList) {
-                recordCount.add(new Long(cd.getStopMessagesReceived()));
+                recordCount.add(Long.valueOf(cd.getStopMessagesReceived()));
             }
         }
         return (Long[]) recordCount.toArray(new Long[0]);
     }
 
-    public synchronized long getTotalRecordsReceived()
+    public String getStringExtra()
     {
-        long total = 0;
+        return "";
+    }
+
+    public synchronized long getTotalRecordsReceived() {
+        long total = totalReceivedFromRemovedChannels;
         synchronized (chanList) {
             for (InputChannel cd : chanList) {
                 total += cd.getRecordsReceived();
@@ -418,11 +411,13 @@ public abstract class PayloadReader
         return total;
     }
 
+    @Override
     public boolean isDestroyed()
     {
         return state == RunState.DESTROYED;
     }
 
+    @Override
     public boolean isDisposing()
     {
         return state == RunState.DISPOSING;
@@ -433,11 +428,20 @@ public abstract class PayloadReader
         return state == RunState.ERROR;
     }
 
+    public boolean isPaused()
+    {
+        synchronized (pauseThread) {
+            return pauseThread.isSet();
+        }
+    }
+
+    @Override
     public boolean isRunning()
     {
         return state == RunState.RUNNING;
     }
 
+    @Override
     public boolean isStopped()
     {
         return state == RunState.IDLE;
@@ -464,7 +468,7 @@ public abstract class PayloadReader
             int numRetries = 0;
             IOException ex = null;
 
-            for (; numRetries < MAX_RETRIES; numRetries++) {
+            for ( ; numRetries < MAX_RETRIES; numRetries++) {
                 Iterator<ReverseConnection> iter = retries.iterator();
                 while (iter.hasNext()) {
                     ReverseConnection rc = iter.next();
@@ -511,6 +515,36 @@ public abstract class PayloadReader
         }
     }
 
+
+    public void pause()
+    {
+        synchronized (pauseThread) {
+            if (pauseThread.isSet()) {
+                LOG.error("Thread is already paused!");
+                return;
+            }
+
+            // indicate to worker thread that it should pause
+            pauseThread.set();
+
+            // make sure worker thread isn't stuck someplace
+            synchronized (stateLock) {
+                stateLock.notify();
+                if (selector != null) {
+                    selector.wakeup();
+                }
+            }
+
+            // wait for thread to notify us that it has paused
+            try {
+                pauseThread.wait();
+            } catch (Exception ex) {
+                LOG.error("Couldn't wait for pauseThread", ex);
+            }
+        }
+    }
+
+    @Override
     public void registerComponentObserver(DAQComponentObserver compObserver)
     {
         this.compObserver = compObserver;
@@ -531,41 +565,32 @@ public abstract class PayloadReader
         }
     }
 
+    @Override
     public void run()
     {
         newState = RunState.IDLE;
 
-        final boolean DEBUG_RUN = false;
-        if (DEBUG_RUN) {
-            System.err.println("R-2");
-        }
+final boolean DEBUG_RUN = false;
+if(DEBUG_RUN)System.err.println("R-2");
 
         try {
             selector = Selector.open();
         } catch (IOException ioe) {
             throw new Error("Cannot create selector", ioe);
         }
-        if (DEBUG_RUN) {
-            System.err.println("R-1");
-        }
+if(DEBUG_RUN)System.err.println("R-1");
 
         while (thread != null) {
-            if (DEBUG_RUN) {
-                System.err.println("Rtop " + state + " new " + newState);
-            }
+if(DEBUG_RUN)System.err.println("Rtop "+state+" new "+newState);
 
             if (newState != state) {
-                if (DEBUG_RUN) {
-                    System.err.println("Rstate " + state + "->" + newState);
-                }
+if(DEBUG_RUN)System.err.println("Rstate "+state+"->"+newState);
 
                 switch (newState) {
                 case RUNNING:
                     synchronized (chanList) {
                         for (InputChannel cd : chanList) {
-                        if (DEBUG_RUN) {
-                            System.err.println("Rstart " + cd);
-                        }
+if(DEBUG_RUN)System.err.println("Rstart "+cd);
                             cd.startReading();
                         }
                     }
@@ -591,9 +616,7 @@ public abstract class PayloadReader
 
             // if startServer() wants thread to pause...
             if (pauseThread.isSet()) {
-                if (DEBUG_RUN) {
-                    System.err.println("Rpause");
-                }
+if(DEBUG_RUN)System.err.println("Rpause");
 
                 synchronized (pauseThread) {
                     // notify startServer() that we've paused
@@ -601,9 +624,7 @@ public abstract class PayloadReader
 
                     // wait for startServer() to register server socket
                     try {
-                        if (DEBUG_RUN) {
-                            System.err.println("RpauseWait");
-                        }
+if(DEBUG_RUN)System.err.println("RpauseWait");
                         pauseThread.wait();
                     } catch (Exception ex) {
                         LOG.error("Thread pause was interrupted", ex);
@@ -613,71 +634,53 @@ public abstract class PayloadReader
                 if (pauseThread.isSet()) {
                     LOG.error("'pauseThread' set to true after pause");
                 }
-                if (DEBUG_RUN) {
-                    System.err.println("RpauseAwake");
-                }
+if(DEBUG_RUN)System.err.println("RpauseAwake");
             }
+
+            // let subclasses do any special processing
+            runSubprocess();
 
             int numSelected;
             try {
-                if (DEBUG_RUN) {
-                    System.err.println("Rsel");
-                }
+if(DEBUG_RUN)System.err.println("Rsel");
                 numSelected = selector.select(SELECTOR_TIMEOUT);
             } catch (IOException ioe) {
                 LOG.error("Error on selection: ", ioe);
                 numSelected = 0;
-                if (DEBUG_RUN) {
-                    System.err.println("Rselerr");
-                }
+if(DEBUG_RUN)System.err.println("Rselerr");
             }
-            if (DEBUG_RUN) {
-                System.err.println("Rnumsel=" + numSelected);
-            }
+if(DEBUG_RUN)System.err.println("Rnumsel="+numSelected);
 
             if (newChanList.size() > 0) {
-                if (DEBUG_RUN) {
-                    System.err.println("Radd");
-                }
+if(DEBUG_RUN)System.err.println("Radd");
                 addNewChannels(selector);
             }
 
             if (numSelected != 0) {
                 Iterator iter =  selector.selectedKeys().iterator();
-                    if (DEBUG_RUN) {
-                        System.err.println("RnotRun");
-                    }
-                    while (iter.hasNext()) {
+                while (iter.hasNext()) {
                     SelectionKey selKey = (SelectionKey) iter.next();
                     iter.remove();
 
                     // if this is a new connection to the input server...
                     if (selKey.isAcceptable()) {
-                        if (DEBUG_RUN) {
-                            System.err.println("Raccept " + state);
-                        }
+if(DEBUG_RUN)System.err.println("Raccept " + state);
                         ServerSocketChannel ssChan =
                             (ServerSocketChannel) selKey.channel();
 
                         try {
                             SocketChannel chan = ssChan.accept();
-                            if (DEBUG_RUN) {
-                                System.err.println("RsockChan " + chan);
-                            }
+if(DEBUG_RUN)System.err.println("RsockChan "+chan);
 
                             // if server channel is non-blocking,
                             // chan may be null
 
                             if (chan != null) {
                                 addSocketChannel(chan);
-                                if (DEBUG_RUN) {
-                                    System.err.println("Radded");
-                                }
+if(DEBUG_RUN)System.err.println("Radded");
                             }
 
-                            if (DEBUG_RUN) {
-                                System.err.println("New chan is" + (chan.isRegistered() ? "" : " NOT") + " registered");
-                            }
+if(DEBUG_RUN)System.err.println("New chan is"+(chan.isRegistered()?"":" NOT")+" registered");
                         } catch (IOException ioe) {
                             LOG.error("Couldn't accept client socket", ioe);
                         }
@@ -689,9 +692,7 @@ public abstract class PayloadReader
                     if (state != RunState.RUNNING &&
                         state != RunState.DISPOSING)
                     {
-                        if (DEBUG_RUN) {
-                            System.err.println("Rremove " + state);
-                        }
+if(DEBUG_RUN)System.err.println("Rremove "+state);
                         if (!chanData.isOpen()) {
                             try {
                                 chanData.close();
@@ -704,10 +705,7 @@ public abstract class PayloadReader
                         selKey.cancel();
                     } else {
                         try {
-                            if (DEBUG_RUN) {
-                                System.err.println("Rproc chanData " +
-                                    chanData);
-                            }
+if(DEBUG_RUN)System.err.println("Rproc chanData "+chanData);
                             chanData.processSelect(selKey);
                         } catch (ClosedChannelException cce) {
                             // channel went away
@@ -723,10 +721,7 @@ public abstract class PayloadReader
 
             if (channelStopFlag.isSet()) {
                 channelStopFlag.clear();
-                if (DEBUG_RUN) {
-                    System.err.println("RchkStop " +
-                        chanList.size() + " chans " + chanList);
-                }
+if(DEBUG_RUN)System.err.println("RchkStop "+chanList.size()+" chans "+chanList);
 
                 boolean running = false;
                 synchronized (chanList) {
@@ -736,14 +731,12 @@ public abstract class PayloadReader
                         InputChannel chanData = iter.next();
 
                         if (!chanData.isStopped()) {
-                        if (DEBUG_RUN) {
-                            System.err.println("RchanRun " + chanData);
-                        }
+if(DEBUG_RUN)System.err.println("RchanRun "+chanData);
                             running = true;
                         } else {
-                        if (DEBUG_RUN) {
-                            System.err.println("Rkill " + chanData);
-                        }
+if(DEBUG_RUN)System.err.println("Rkill "+chanData);
+                            totalReceivedFromRemovedChannels +=
+                                chanData.getRecordsReceived();
                             try {
                                 chanData.close();
                             } catch (IOException ioe) {
@@ -757,23 +750,17 @@ public abstract class PayloadReader
                 }
 
                 if (!running) {
-                    if (DEBUG_RUN) {
-                        System.err.println("RnotRun");
-                    }
+if(DEBUG_RUN)System.err.println("RnotRun");
 
                     synchronized (stateLock) {
                         newState = RunState.IDLE;
                     }
                     madeReverseConnections = false;
                     notifyClient();
-                    if (DEBUG_RUN) {
-                        System.err.println("Ridle");
-                    }
+if(DEBUG_RUN)System.err.println("Ridle");
                 }
             }
-            if (DEBUG_RUN) {
-                System.err.println("Rbottom");
-            }
+if(DEBUG_RUN)System.err.println("Rbottom");
         }
 
         try {
@@ -784,32 +771,33 @@ public abstract class PayloadReader
         }
 
         state = RunState.DESTROYED;
-        if (DEBUG_RUN) {
-            System.err.println("Rexit");
-        }
+if(DEBUG_RUN)System.err.println("Rexit");
+    }
+
+    /**
+     * Subprocesses may use this class do execute code within the thread's
+     * run() loop
+     */
+    public void runSubprocess()
+    {
     }
 
     private void setState(RunState newState)
     {
-        final boolean DEBUG_SET = false;
-        if (DEBUG_SET) {
-            System.err.println("SSTtop");
-        }
+final boolean DEBUG_SET = false;
+if(DEBUG_SET)System.err.println("SSTtop");
         synchronized (stateLock) {
             this.newState = newState;
-            if (DEBUG_SET) {
-                System.err.println("SSTnewState=" + newState);
-            }
+if(DEBUG_SET)System.err.println("SSTnewState="+newState);
             stateLock.notify();
             if (selector != null) {
                 selector.wakeup();
             }
         }
-        if (DEBUG_SET) {
-            System.err.println("SSTend");
-        }
+if(DEBUG_SET)System.err.println("SSTend");
     }
 
+    @Override
     public void start()
     {
         if (thread != null) {
@@ -822,6 +810,7 @@ public abstract class PayloadReader
         thread.start();
     }
 
+    @Override
     public void startDisposing()
     {
         synchronized (stateLock) {
@@ -834,6 +823,7 @@ public abstract class PayloadReader
         }
     }
 
+    @Override
     public void startProcessing()
     {
         if (reverseConnList.size() > 0) {
@@ -854,57 +844,20 @@ public abstract class PayloadReader
         }
     }
 
+    @Override
     public void startServer(IByteBufferCache serverCache)
         throws IOException
     {
-        final boolean DEBUG_SS = false;
-        if (DEBUG_SS) {
-            System.err.println("SStop");
-        }
+final boolean DEBUG_SS = false;
+if(DEBUG_SS)System.err.println("SStop");
         // hack around Linux kernel bug:
         //     ssChan.register() blocks for an indefinite amount of time if
         //     called while a select is in progress, so we pause the thread,
         //     register the server socket, and then resume the thread
         //
-        synchronized (pauseThread)
-        {
-            if (DEBUG_SS) {
-                System.err.println("SSinBlk");
-            }
-            if (pauseThread.isSet()) {
-                LOG.error("Thread is already paused -- this could be bad!");
-            }
-
-            if (DEBUG_SS) {
-                System.err.println("SSsetFlag");
-            }
-            // indicate to worker thread that it should pause
-            pauseThread.set();
-
-            // make sure worker thread isn't stuck someplace
-            if (DEBUG_SS) {
-                System.err.println("SSnotify");
-            }
-            synchronized (stateLock) {
-                stateLock.notify();
-                if (selector != null) {
-                    selector.wakeup();
-                }
-            }
-
-            // wait for thread to notify us that it has paused
-            try {
-                if (DEBUG_SS) {
-                    System.err.println("SSwait");
-                }
-                pauseThread.wait();
-            } catch (Exception ex) {
-                LOG.error("Couldn't wait for pauseThread", ex);
-            }
-        }
-        if (DEBUG_SS) {
-            System.err.println("SSwork");
-        }
+if(DEBUG_SS)System.err.println("SSpause");
+        pause();
+if(DEBUG_SS)System.err.println("SSwork");
 
         serverChannel = ServerSocketChannel.open();
         serverChannel.configureBlocking(false);
@@ -913,40 +866,34 @@ public abstract class PayloadReader
         port = serverChannel.socket().getLocalPort();
 
         serverChannel.register(selector, SelectionKey.OP_ACCEPT);
-        if (DEBUG_SS) {
-            System.err.println("SSready");
-        }
-        synchronized (pauseThread) {
-            // turn off pause flag
-            if (!pauseThread.isSet()) {
-                if (DEBUG_SS) {
-                    System.err.println("SSerr");
-                }
-                LOG.error("Expected thread to be paused!");
-            } else {
-                if (DEBUG_SS) {
-                    System.err.println("SSclr");
-                }
-                pauseThread.clear();
-            }
 
-            // let the thread know that we're done
-            if (DEBUG_SS) {
-                System.err.println("Srenotify");
-            }
-            pauseThread.notify();
-        }
-        if (DEBUG_SS) {
-            System.err.println("SSdone");
-        }
+if(DEBUG_SS)System.err.println("SSready");
+        unpause();
+if(DEBUG_SS)System.err.println("SSdone");
 
         this.serverCache = serverCache;
     }
 
+    public void unpause()
+    {
+        synchronized (pauseThread) {
+            // turn off pause flag
+            if (!pauseThread.isSet()) {
+                LOG.error("Expected thread to be paused!");
+            } else {
+                pauseThread.clear();
+            }
+
+            // let the thread know that we're done
+            pauseThread.notify();
+        }
+    }
+
+    @Override
     public String toString()
     {
         return name + "[" + state + "," + chanList.size() + " chan," +
-            getTotalRecordsReceived() + " sent]";
+            getTotalRecordsReceived() + " sent" + getStringExtra() + "]";
     }
 
     /**
@@ -994,6 +941,7 @@ public abstract class PayloadReader
             addSocketChannel(sock, bufCache);
         }
 
+        @Override
         public String toString()
         {
             return hostName + ":" + port;

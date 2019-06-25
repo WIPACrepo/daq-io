@@ -1,5 +1,7 @@
 package icecube.daq.io.test;
 
+import icecube.daq.common.MockAppender;
+
 import junit.framework.TestCase;
 
 import org.apache.log4j.BasicConfigurator;
@@ -17,6 +19,21 @@ public class LoggingCase
     public LoggingCase(String name)
     {
         super(name);
+    }
+
+    public void assertLogMessage(String message)
+    {
+        appender.assertLogMessage(message);
+    }
+
+    public void assertNoLogMessages()
+    {
+        appender.assertNoLogMessages();
+    }
+
+    public void assertNoLogMessages(String description)
+    {
+        appender.assertNoLogMessages(description);
     }
 
     public void clearMessages()
@@ -39,6 +56,7 @@ public class LoggingCase
         return appender.getNumberOfMessages();
     }
 
+    @Override
     protected void setUp()
         throws Exception
     {
@@ -53,11 +71,11 @@ public class LoggingCase
         appender.setVerbose(val);
     }
 
+    @Override
     protected void tearDown()
         throws Exception
     {
-        assertEquals("Bad number of log messages",
-                     0, appender.getNumberOfMessages());
+        assertNoLogMessages();
 
         super.tearDown();
     }

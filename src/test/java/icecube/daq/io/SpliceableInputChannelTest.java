@@ -17,7 +17,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Pipe;
 import java.nio.channels.SelectableChannel;
 import java.util.List;
-import java.util.zip.DataFormatException;
 
 import junit.framework.Test;
 import junit.framework.TestSuite;
@@ -27,20 +26,33 @@ public class SpliceableInputChannelTest
     extends LoggingCase
 {
     class MockParent
-        implements IOChannelParent
+        implements LimitedChannelParent
     {
+        @Override
         public void channelError(IOChannel chan, ByteBuffer buf, Exception ex)
         {
             throw new Error("Unimplemented");
         }
 
+        @Override
         public void channelStopped(IOChannel chan)
+        {
+        }
+
+        @Override
+        public String getName()
+        {
+            return "MockParent";
+        }
+
+        @Override
+        public void watchLimitedChannel(LimitedChannel chan)
         {
         }
     }
 
     class MockStrandTail
-        implements StrandTail
+        implements StrandTail<Spliceable>
     {
         private boolean closed;
 
@@ -73,7 +85,7 @@ public class SpliceableInputChannelTest
 
         public int size()
         {
-            throw new Error("Unimplemented");
+            return 0;
         }
     }
 
@@ -138,11 +150,6 @@ public class SpliceableInputChannelTest
             throw new Error("Unimplemented");
         }
 
-        public int getPayloadLength()
-        {
-            return len;
-        }
-
         public IUTCTime getPayloadTimeUTC()
         {
             if (timeObj == null) {
@@ -162,8 +169,12 @@ public class SpliceableInputChannelTest
             return time;
         }
 
+        public int length()
+        {
+            return len;
+        }
+
         public void loadPayload()
-            throws IOException, DataFormatException
         {
             // do nothing
         }
@@ -243,7 +254,7 @@ public class SpliceableInputChannelTest
 
         SpliceableInputChannel chan =
             new SpliceableInputChannel(parent, pipe.source(), "OOO",  bufMgr,
-                                       256, factory);
+                                       256, factory, Integer.MAX_VALUE);
 
         final int type = 666;
         final long time = 123456L;
@@ -259,11 +270,15 @@ public class SpliceableInputChannelTest
             chan.setStrandTail(new UnpushableStrandTail(i == 0));
             chan.startReading();
 
-            assertEquals("Unexpected log message", 0, getNumberOfMessages());
+            assertNoLogMessages();
 
             chan.pushPayload(buf);
 
-            for (int q = 0; q < 10 && chan.getQueueDepth() > 0; q++) {
+            for (int q = 0; q < 10 &&
+                 (chan.getQueueDepth() > 0 ||
+                  bufMgr.getCurrentAquiredBytes() != expBytes);
+                 q++)
+            {
                 try {
                     Thread.sleep(100);
                 } catch (InterruptedException ie) {
@@ -284,12 +299,11 @@ public class SpliceableInputChannelTest
                 // ignore interrupts
             }
 
-            assertEquals("Expected log message", 2, getNumberOfMessages());
-            assertEquals("Bad log message",
-                         "Couldn't push payload type " + type + ", length " +
-                         buf.capacity() + ", time " + time + "; recycling",
-                         getMessage(0));
-            clearMessages();
+            assertLogMessage("Couldn't push payload type " + type +
+                             ", length " + buf.capacity() + ", time " +
+                             time + "; recycling");
+            assertLogMessage("Couldn't push ");
+            assertNoLogMessages();
         }
     }
 

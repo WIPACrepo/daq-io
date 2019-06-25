@@ -8,7 +8,6 @@ import icecube.daq.payload.IByteBufferCache;
 
 import java.io.IOException;
 import java.nio.channels.Pipe;
-import java.nio.ByteBuffer;
 import java.nio.channels.Selector;
 
 import junit.framework.Test;
@@ -55,61 +54,6 @@ public class PayloadReceiveChannelTest
 
         assertFalse("Expected channel to be non-blocking",
                     srcChan.isBlocking());
-    }
-
-    public void testMethods()
-	throws Exception
-    {
-	ByteBuffer buf = ByteBuffer.allocate(10);
-	Selector sel = Selector.open();
-
-        Pipe testPipe = Pipe.open();
-
-        Pipe.SinkChannel sinkChan = testPipe.sink();
-        sinkChan.configureBlocking(false);
-
-        Pipe.SourceChannel srcChan = testPipe.source();
-
-        IByteBufferCache cacheMgr = new MockBufferCache("Ctor");
-
-        Semaphore inputSem = new Semaphore(0);
-
-        PayloadReceiveChannel rcvChan =
-            new PayloadReceiveChannel("basic", sel, srcChan, cacheMgr,
-                                      inputSem);
-
-	rcvChan.setInputBufferSize( 1);
-	rcvChan.returnBuffer( buf);
-	rcvChan.exitIdle();
-	rcvChan.exitRecvHeader();
-	rcvChan.enterError();
-	rcvChan.enterSplicerWait();
-	rcvChan.notifyOnStop();
-	rcvChan.startEngine();
-	rcvChan.startDisposing();
-	rcvChan.injectError();
-	rcvChan.processTimer();
-	rcvChan.transition( 1);
-	rcvChan.doTransition( 1, 2);
-
-	assertFalse("placeholder for code in SpliceablePayloadReceiveChannel", 
-	    rcvChan.splicerAvailable());
-	assertFalse(" returns if more payload can be handled ",
-	    rcvChan.handleMorePayloads());
-	assertNotNull("Current acquired bytes", 
-	    rcvChan.getBufferCurrentAcquiredBytes());
-	assertNotNull("current acquired buffers", 
-	    rcvChan.getBufferCurrentAcquiredBuffers());
-	assertNotNull("present state", rcvChan.presentState());
-	assertNotNull("String returned", rcvChan.toString());
-	assertEquals("get Number", 1, rcvChan.getNum());
-
-	rcvChan.stopEngine();
-	rcvChan.close();
-	
-
-
-	
     }
 
     public static void main(String[] args)

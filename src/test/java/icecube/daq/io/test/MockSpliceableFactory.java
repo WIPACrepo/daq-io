@@ -13,26 +13,27 @@ public class MockSpliceableFactory
     {
     }
 
+    @Override
     public void backingBufferShift(List x0, int i1, int i2)
     {
-try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
         throw new Error("Unimplemented");
     }
 
+    @Override
     public Spliceable createSpliceable(ByteBuffer bBuf)
     {
         return new MockSpliceable(bBuf);
     }
 
+    @Override
     public void invalidateSpliceables(List x0)
     {
-try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
         throw new Error("Unimplemented");
     }
 
+    @Override
     public boolean skipSpliceable(ByteBuffer x0)
     {
-try{throw new Error("StackTrace");}catch(Error e){e.printStackTrace();}
         throw new Error("Unimplemented");
     }
 }

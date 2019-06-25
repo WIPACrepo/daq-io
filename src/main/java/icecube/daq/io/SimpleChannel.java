@@ -328,12 +328,14 @@ public abstract class SimpleChannel
      * @param compObserver component observer
      * @param notificationID ID string
      */
+    @Override
     public void registerComponentObserver(DAQComponentObserver compObserver,
                                           String notificationID)
     {
         throw new Error("Unimplemented");
     }
 
+    @Override
     public void run()
     {
         Selector selector;
@@ -459,6 +461,7 @@ public abstract class SimpleChannel
      *
      * @return debugging string
      */
+    @Override
     public String toString()
     {
         return name;
