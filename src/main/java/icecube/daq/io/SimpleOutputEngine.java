@@ -747,6 +747,8 @@ public class SimpleOutputEngine
 
         /** Number of records sent by this channel. */
         private long chanSent;
+        /** <tt>True</tt> if this channel has been paused. */
+        private boolean paused;
         /** <tt>True</tt> if this channel has been stopped. */
         private boolean stopped;
 
@@ -820,6 +822,16 @@ public class SimpleOutputEngine
         }
 
         /**
+         * Is this channel paused because of a full output queue?
+         *
+         * @return <tt>true</tt> if the channel is paused
+         */
+        public boolean isOutputPaused()
+        {
+            return paused;
+        }
+
+        /**
          * Are there records waiting to be written?
          *
          * @return <tt>true</tt> if the output queue is not empty
@@ -877,6 +889,7 @@ public class SimpleOutputEngine
             synchronized (outputQueue) {
                 boolean warned = false;
                 while (outputQueue.size() > maxDepth) {
+                    paused = true;
                     if (!warned) {
                         LOG.error("Pausing " + parent + ":" + name +
                                   " queue (depth=" + outputQueue.size() +
@@ -885,10 +898,11 @@ public class SimpleOutputEngine
                     }
                     try {
                         // IC86 sees ~2600 requests per second
-                        Thread.sleep(SLEEP_USEC);
+                        outputQueue.wait(SLEEP_USEC);
                     } catch (InterruptedException iex) {
                     }
                 }
+                paused = false;
                 if (warned) {
                     LOG.error("Resuming " + parent + ":" + name +
                               " queue (maxDepth=" + maxDepth);

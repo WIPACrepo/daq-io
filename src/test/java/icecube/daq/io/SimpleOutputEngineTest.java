@@ -572,6 +572,149 @@ public class SimpleOutputEngineTest
         assertTrue("ByteBufferCache is not balanced", cacheMgr.isBalanced());
     }
 
+    class BufferWriter
+        implements Runnable
+    {
+        private QueuedOutputChannel chan;
+        private IByteBufferCache cache;
+        private int bufLen;
+        private int numToSend;
+
+        private int received;
+
+        private Thread thread;
+
+        BufferWriter(QueuedOutputChannel chan, IByteBufferCache cache,
+                     int bufLen, int numToSend)
+        {
+            this.chan = chan;
+            this.cache = cache;
+            this.bufLen = bufLen;
+            this.numToSend = numToSend;
+        }
+
+        public int getNumReceived()
+        {
+            return received;
+        }
+
+        @Override
+        public void run()
+        {
+            ByteBuffer buf;
+            for (int i = 0; i < numToSend; i++) {
+                buf = cache.acquireBuffer(bufLen);
+                assertNotNull("Unable to acquire buffer#" + i, buf);
+                buf.putInt(0, bufLen);
+                buf.limit(bufLen);
+                buf.position(bufLen);
+                buf.flip();
+
+                chan.receiveByteBuffer(buf);
+                received++;
+            }
+        }
+
+        public void start()
+        {
+            thread = new Thread(this);
+            thread.setName(getClass().getName() + ": " + chan);
+            thread.start();
+        }
+    }
+
+    public void testOutputPause()
+        throws Exception
+    {
+        // buffer caching manager
+        IByteBufferCache cacheMgr = new MockBufferCache("OutPause");
+
+        // create a pipe for use in testing
+        Pipe testPipe = Pipe.open();
+        testPipe.sink().configureBlocking(false);
+        testPipe.source().configureBlocking(true);
+
+        MockObserver observer = new MockObserver("OutputPause");
+
+        engine = new SimpleOutputEngine("OutputPause", 0, "test", 10);
+        engine.registerComponentObserver(observer);
+        engine.start();
+        IOTestUtil.waitUntilStopped(engine, "creation");
+
+        assertNoLogMessages();
+
+        final String notificationId = "OutputPause";
+
+        QueuedOutputChannel transmitEng =
+            engine.addDataChannel(testPipe.sink(), cacheMgr, "SSOut");
+
+        assertNoLogMessages();
+
+        assertTrue("SimpleOutputEngine in " + engine.getPresentState() +
+                   ", not Idle after StopSig", engine.isStopped());
+        engine.startProcessing();
+        IOTestUtil.waitUntilRunning(engine);
+
+        final int bufLen = 4096;
+        final int numSent = 100;
+
+        // start a thread to fill the output queue
+        BufferWriter out = new BufferWriter(transmitEng, cacheMgr, bufLen,
+                                            numSent);
+        out.start();
+
+        // wait for output engine to pause input
+        int prevRcvd = 0;
+        while (!transmitEng.isOutputPaused()) {
+            final int rcvd = out.getNumReceived();
+            if (rcvd >= numSent) {
+                break;
+            }
+
+            Thread.sleep(10);
+        }
+
+        // read everything from the output engine
+        ByteBuffer testInBuf = ByteBuffer.allocate(bufLen * 2);
+        for (int i = 0; i < numSent; i++) {
+            testInBuf.position(0);
+            testInBuf.limit(4);
+            int numBytes = testPipe.source().read(testInBuf);
+            assertEquals("Bad return count on read#" + i,
+                         4, numBytes);
+            assertEquals("Bad message byte count on read#" + i,
+                         bufLen, testInBuf.getInt(0));
+
+            testInBuf.limit(bufLen);
+            int remBytes = testPipe.source().read(testInBuf);
+            assertEquals("Bad remainder count on read#" + i,
+                         bufLen - 4, remBytes);
+        }
+
+        engine.sendLastAndStop();
+        transmitEng.flushOutQueue();
+        IOTestUtil.waitUntilStopped(engine, "send last");
+
+        assertTrue("Failure on sendLastAndStop command.",
+                   observer.gotSourceStop());
+        assertFalse("Got sinkStop notification",
+                   observer.gotSinkStop());
+        assertFalse("Got sourceError notification",
+                   observer.gotSourceError());
+        assertFalse("Got sinkError notification",
+                   observer.gotSinkError());
+
+        for (int i = 0; i < getNumberOfMessages(); i++) {
+            String msg = (String) getMessage(i);
+            assertTrue("Bad log message \"" + msg + "\"",
+                       msg.startsWith("Pausing ") ||
+                       msg.startsWith("Resuming "));
+        }
+        clearMessages();
+
+        assertTrue("ByteBufferCache is not balanced", cacheMgr.isBalanced());
+    }
+
     /**
      * Main routine which runs text test in standalone mode.
      *

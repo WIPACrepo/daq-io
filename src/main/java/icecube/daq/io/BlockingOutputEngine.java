@@ -344,6 +344,20 @@ public class BlockingOutputEngine implements DAQComponentOutputProcess
             }
         }
 
+        /**
+         * This channel will never be paused
+         *
+         * @return <tt>false</tt> always
+         */
+        public boolean isOutputPaused() {
+            return false;
+        }
+
+        /**
+         * Are there records waiting to be written?
+         *
+         * @return <tt>true</tt> if the output queue is not empty
+         */
         @Override
         public boolean isOutputQueued()
         {

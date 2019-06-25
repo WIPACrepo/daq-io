@@ -1,7 +1,7 @@
 /*
  * class: PayloadTransmitChannel
  *
- * Version $Id: PayloadTransmitChannel.java 17207 2018-11-08 16:08:59Z dglo $
+ * Version $Id: PayloadTransmitChannel.java 17413 2019-06-25 16:18:20Z dglo $
  *
  * Date: May 15 2005
  *
@@ -28,7 +28,7 @@ import org.apache.log4j.Logger;
  * for returning buffers into the buffer cache.
  *
  * @author mcp
- * @version $Id: PayloadTransmitChannel.java 17207 2018-11-08 16:08:59Z dglo $
+ * @version $Id: PayloadTransmitChannel.java 17413 2019-06-25 16:18:20Z dglo $
  */
 public class PayloadTransmitChannel implements QueuedOutputChannel {
 
@@ -602,6 +602,20 @@ public class PayloadTransmitChannel implements QueuedOutputChannel {
         flushOutQueue();
     }
 
+    /**
+     * This channel will never be paused
+     *
+     * @return <tt>false</tt> always
+     */
+    public boolean isOutputPaused() {
+        return false;
+    }
+
+    /**
+     * Are there records waiting to be written?
+     *
+     * @return <tt>true</tt> if the output queue is not empty
+     */
     @Override
     public boolean isOutputQueued() {
         return !outputQueue.isEmpty();
