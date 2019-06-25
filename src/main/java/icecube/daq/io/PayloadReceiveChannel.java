@@ -1,7 +1,7 @@
 /*
  * class: PayloadReceiveChannel
  *
- * Version $Id: PayloadReceiveChannel.java 17114 2018-09-26 09:51:56Z dglo $
+ * Version $Id: PayloadReceiveChannel.java 17420 2019-06-25 23:14:19Z dglo $
  *
  * Date: May 15 2005
  *
@@ -25,15 +25,14 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.spi.AbstractSelectableChannel;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Logger;
 
 /**
  * This class provides the ReadableByteChannel operations. It is also responsible
  * for acquiring buffers into the buffer cache and managing the flow control.
  *
  * @author mcp
- * @version $Id: PayloadReceiveChannel.java 17114 2018-09-26 09:51:56Z dglo $
+ * @version $Id: PayloadReceiveChannel.java 17420 2019-06-25 23:14:19Z dglo $
  */
 public class PayloadReceiveChannel implements IOChannel {
 
@@ -123,7 +122,7 @@ public class PayloadReceiveChannel implements IOChannel {
     private long recordsReceived = 0;
     private long stopMsgReceived = 0;
     // set up logging channel for this component
-    private Log log = LogFactory.getLog(PayloadReceiveChannel.class);
+    private Logger log = Logger.getLogger(PayloadReceiveChannel.class);
     // buffer manager limits....receive engines only
     private long limitToStopAllocation = 0;
     private long limitToRestartAllocation = 0;
@@ -236,7 +235,7 @@ public class PayloadReceiveChannel implements IOChannel {
             // queue the output
             try {
                 inputQueue.put(payloadBuf);
-                if (TRACE_DATA && log.isErrorEnabled()) {
+                if (TRACE_DATA) {
                     log.error(id + ":RECVBODY:Queued buffer is " +
                               (inputQueue.isEmpty() ? "" : "NOT ") + "empty");
                 }
@@ -728,7 +727,7 @@ public class PayloadReceiveChannel implements IOChannel {
     private boolean initializeBuffer()
     {
         if (payloadBuf.capacity() < neededBufBlen) {
-            if (TRACE_DATA && log.isErrorEnabled()) {
+            if (TRACE_DATA) {
                 log.error(id + ":RECV:Buf is too small");
             }
             return false;
@@ -770,7 +769,7 @@ public class PayloadReceiveChannel implements IOChannel {
 
         // received header, check for illegal length and allocate buffer
         neededBufBlen = inputBuf.getInt(bufPos);
-        if (TRACE_DATA && log.isErrorEnabled()) {
+        if (TRACE_DATA) {
             log.error(id + ":RECV:GetBuf LEN=" + neededBufBlen);
         }
         if (neededBufBlen < INT_SIZE) {
@@ -782,11 +781,9 @@ public class PayloadReceiveChannel implements IOChannel {
             if (bufferMgr.getCurrentAquiredBytes() >=
                 limitToStopAllocation)
             {
-                if (log.isErrorEnabled()) {
-                    log.error(id + ":RECV:AcqBytes " +
-                              bufferMgr.getCurrentAquiredBytes() + " >= " +
-                              limitToStopAllocation);
-                }
+                log.error(id + ":RECV:AcqBytes " +
+                          bufferMgr.getCurrentAquiredBytes() + " >= " +
+                          limitToStopAllocation);
                 allocationStopped = true;
                 payloadBuf = null;
             } else {
@@ -796,7 +793,7 @@ public class PayloadReceiveChannel implements IOChannel {
 
         // verify correct capacity, if buffer was allocated
         if (payloadBuf == null) {
-            if (TRACE_DATA && log.isErrorEnabled()) {
+            if (TRACE_DATA) {
                 log.error(id + ":RECV:Buf was null");
             }
             // if payloadBuf == null, always cancel selector interest

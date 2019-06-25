@@ -9,8 +9,7 @@ import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Logger;
 
 public abstract class SimpleChannel
     implements IOChannel, Runnable
@@ -24,7 +23,7 @@ public abstract class SimpleChannel
     public static final long PERCENT_RESTART_ALLOCATION = 50;
 
     /** logging object */
-    private static final Log LOG = LogFactory.getLog(SimpleChannel.class);
+    private static final Logger LOG = Logger.getLogger(SimpleChannel.class);
 
     /** size of initial integer payload length */
     private static final int INT_SIZE = 4;
@@ -221,11 +220,9 @@ public abstract class SimpleChannel
             // check for allocation limits
             if (bufMgr.getCurrentAquiredBytes() >= limitToStopAllocation) {
                 if (!allocationStopped) {
-                    if (LOG.isErrorEnabled()) {
-                        LOG.error("Channel " + name + " stopped: AcqBytes " +
-                                  bufMgr.getCurrentAquiredBytes() +
-                                  " >= limit " + limitToStopAllocation);
-                    }
+                    LOG.error("Channel " + name + " stopped: AcqBytes " +
+                              bufMgr.getCurrentAquiredBytes() +
+                              " >= limit " + limitToStopAllocation);
                     allocationStopped = true;
                 }
 
@@ -248,11 +245,9 @@ public abstract class SimpleChannel
 
                 // restart allocation
                 allocationStopped = false;
-                if (LOG.isErrorEnabled()) {
-                    LOG.error("Channel " + name + " restarted: AcqBytes " +
-                              bufMgr.getCurrentAquiredBytes() + " <= limit " +
-                              limitToRestartAllocation);
-                }
+                LOG.error("Channel " + name + " restarted: AcqBytes " +
+                          bufMgr.getCurrentAquiredBytes() + " <= limit " +
+                          limitToRestartAllocation);
             }
 
             // if buffer does not contain enough bytes for the payload length...

@@ -12,15 +12,14 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Logger;
 
 public class SpliceableSimpleChannel
     extends SimpleChannel
 {
     /** logging object */
-    private static final Log LOG =
-        LogFactory.getLog(SpliceableSimpleChannel.class);
+    private static final Logger LOG =
+        Logger.getLogger(SpliceableSimpleChannel.class);
 
     private SpliceableFactory factory;
     private StrandTail strandTail;
@@ -72,14 +71,12 @@ public class SpliceableSimpleChannel
     {
         Spliceable spliceable = factory.createSpliceable(payBuf);
         if (spliceable == null) {
-            if (LOG.isErrorEnabled()) {
-                LOG.error("Couldn't use buffer (limit " +
-                          payBuf.limit() + ", capacity " + payBuf.capacity() +
-                          ") to create payload (length " +
-                          (payBuf.limit() < 4 ? -1 : payBuf.getInt(0)) +
-                          ", capacity " +
-                          (payBuf.limit() < 8 ? -1 : payBuf.getInt(4)) + ")");
-            }
+            LOG.error("Couldn't use buffer (limit " +
+                      payBuf.limit() + ", capacity " + payBuf.capacity() +
+                      ") to create payload (length " +
+                      (payBuf.limit() < 4 ? -1 : payBuf.getInt(0)) +
+                      ", capacity " +
+                      (payBuf.limit() < 8 ? -1 : payBuf.getInt(4)) + ")");
 
             throw new RuntimeException("Couldn't create a Spliceable");
         }
@@ -104,20 +101,14 @@ public class SpliceableSimpleChannel
                 ILoadablePayload payload =
                     (ILoadablePayload) spliceable;
 
-                if (LOG.isErrorEnabled()) {
-                    if (LOG.isErrorEnabled()) {
-                        LOG.error("Couldn't push payload type " +
-                                  payload.getPayloadType() +
-                                  ", length " +
-                                  payload.length() +
-                                  ", time " +
-                                  payload.getPayloadTimeUTC() +
-                                  "; recycling", ex);
-                    }
-                }
+                LOG.error("Couldn't push payload type " +
+                          payload.getPayloadType() +
+                          ", length " + payload.length() +
+                          ", time " + payload.getPayloadTimeUTC() +
+                          "; recycling", ex);
 
                 payload.recycle();
-            } else if (LOG.isErrorEnabled()) {
+            } else {
                 LOG.error("Couldn't push " +
                           spliceable.getClass().getName(), ex);
             }

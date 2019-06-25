@@ -8,14 +8,13 @@ import java.io.IOException;
 import java.nio.channels.SelectableChannel;
 import java.util.ArrayList;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Logger;
 
 public class SpliceableSimpleReader
     extends SimpleStreamReader
 {
-    private static final Log LOG =
-        LogFactory.getLog(SpliceableSimpleReader.class);
+    private static final Logger LOG =
+        Logger.getLogger(SpliceableSimpleReader.class);
 
     // maximum number of stop attempts
     private static final int MAX_STOP_TRIES = 10;
@@ -103,7 +102,7 @@ public class SpliceableSimpleReader
                 throw new Error("Couldn't stop splicer");
             }
 
-            if (tries == 1 && LOG.isWarnEnabled()) {
+            if (tries == 1) {
                 LOG.warn("Splicer should have been in STOPPED state, not " +
                          splicer.getState().name() +
                          ".  Calling Splicer.forceStop()");
@@ -114,9 +113,7 @@ public class SpliceableSimpleReader
             try {
                 Thread.sleep(100);
             } catch (InterruptedException ie) {
-                if (LOG.isErrorEnabled()) {
-                    LOG.error("problem while sleeping: ", ie);
-                }
+                LOG.error("problem while sleeping: ", ie);
             }
         }
 

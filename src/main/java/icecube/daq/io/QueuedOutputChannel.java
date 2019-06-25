@@ -15,6 +15,13 @@ public interface QueuedOutputChannel
     void flushOutQueue();
 
     /**
+     * Is this channel paused because of a full output queue?
+     *
+     * @return <tt>true</tt> if the engine is paused
+     */
+    boolean isOutputPaused();
+
+    /**
      * Is there data queued for output?
      *
      * @return <tt>true</tt> if the output queue is not empty

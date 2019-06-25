@@ -9,15 +9,17 @@ import java.nio.channels.SelectableChannel;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Logger;
 
 public class SpliceableStreamReader
     extends DAQStreamReader
     implements LimitedChannelParent
 {
-    private static final Log LOG =
-        LogFactory.getLog(SpliceableStreamReader.class);
+    private static final Logger LOG =
+        Logger.getLogger(SpliceableStreamReader.class);
+
+    // should we log every time the strand tail is paused/resumed?
+    private static final boolean LOG_PAUSE = false;
 
     // maximum number of stop attempts
     private static final int MAX_STOP_TRIES = 10;
@@ -151,7 +153,7 @@ public class SpliceableStreamReader
                 throw new Error("Couldn't stop splicer");
             }
 
-            if (tries == 1 && LOG.isWarnEnabled()) {
+            if (tries == 1) {
                 LOG.warn("Splicer should have been in STOPPED state, not " +
                          splicer.getState().name() +
                          ".  Calling Splicer.forceStop()");
@@ -162,9 +164,7 @@ public class SpliceableStreamReader
             try {
                 Thread.sleep(100);
             } catch (InterruptedException ie) {
-                if (LOG.isErrorEnabled()) {
-                    LOG.error("problem while sleeping: ", ie);
-                }
+                LOG.error("problem while sleeping: ", ie);
             }
         }
 
@@ -205,13 +205,17 @@ public class SpliceableStreamReader
         synchronized (chan) {
             Thread thrd = Thread.currentThread();
 
-            LOG.error(chan.toString() +
-                      " strand tail is too large -- pausing " +
-                      thrd.getName());
+            if (LOG_PAUSE) {
+                LOG.error(chan.toString() +
+                          " strand tail is too large -- pausing " +
+                          thrd.getName());
+            }
             try {
                 chan.wait();
-                LOG.error(chan.toString() + " strand tail has resumed " +
-                          thrd.getName());
+                if (LOG_PAUSE) {
+                    LOG.error(chan.toString() + " strand tail has resumed " +
+                              thrd.getName());
+                }
             } catch (InterruptedException iex) {
                 LOG.error(chan.toString() + " interrupted waiting " +
                           thrd.getName(), iex);

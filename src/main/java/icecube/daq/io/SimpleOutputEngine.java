@@ -14,8 +14,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Logger;
 
 /**
  * Simplified output engine.
@@ -27,7 +26,7 @@ public class SimpleOutputEngine
     private static final int DEFAULT_SELECTOR_TIMEOUT_MSEC = 250;
 
     /** Error logger. */
-    private static final Log LOG = LogFactory.getLog(SimpleOutputEngine.class);
+    private static final Logger LOG = Logger.getLogger(SimpleOutputEngine.class);
 
     /** All possible states. */
     private enum State { STOPPED, RUNNING, DESTROYED, ERROR }
@@ -748,6 +747,8 @@ public class SimpleOutputEngine
 
         /** Number of records sent by this channel. */
         private long chanSent;
+        /** <tt>True</tt> if this channel has been paused. */
+        private boolean paused;
         /** <tt>True</tt> if this channel has been stopped. */
         private boolean stopped;
 
@@ -821,6 +822,16 @@ public class SimpleOutputEngine
         }
 
         /**
+         * Is this channel paused because of a full output queue?
+         *
+         * @return <tt>true</tt> if the channel is paused
+         */
+        public boolean isOutputPaused()
+        {
+            return paused;
+        }
+
+        /**
          * Are there records waiting to be written?
          *
          * @return <tt>true</tt> if the output queue is not empty
@@ -878,6 +889,7 @@ public class SimpleOutputEngine
             synchronized (outputQueue) {
                 boolean warned = false;
                 while (outputQueue.size() > maxDepth) {
+                    paused = true;
                     if (!warned) {
                         LOG.error("Pausing " + parent + ":" + name +
                                   " queue (depth=" + outputQueue.size() +
@@ -886,10 +898,11 @@ public class SimpleOutputEngine
                     }
                     try {
                         // IC86 sees ~2600 requests per second
-                        Thread.sleep(SLEEP_USEC);
+                        outputQueue.wait(SLEEP_USEC);
                     } catch (InterruptedException iex) {
                     }
                 }
+                paused = false;
                 if (warned) {
                     LOG.error("Resuming " + parent + ":" + name +
                               " queue (maxDepth=" + maxDepth);
