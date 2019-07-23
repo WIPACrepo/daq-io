@@ -29,11 +29,26 @@ public class SimpleDestinationOutputEngine
     implements DAQSourceIdOutputProcess,
                IPayloadDestinationCollectionController
 {
+    /** Default value for maximum per-channel output queue depth */
+    private static final int DEFAULT_MAX_CHANNEL_DEPTH = 60000;
+
     /** Byte buffer manager. */
     private IByteBufferCache bufMgr;
 
     /** Payload destination collection. */
     private IPayloadDestinationCollection payloadDestinationCollection;
+
+    /**
+     * Create a destination output engine.
+     *
+     * @param type engine type
+     * @param id engine ID
+     * @param fcn engine function
+     */
+    public SimpleDestinationOutputEngine(String type, int id, String fcn)
+    {
+        this(type, id, fcn, DEFAULT_MAX_CHANNEL_DEPTH);
+    }
 
     /**
      * Create a destination output engine.
