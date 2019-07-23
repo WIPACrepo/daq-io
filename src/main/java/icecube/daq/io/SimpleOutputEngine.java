@@ -725,7 +725,7 @@ public class SimpleOutputEngine
         /** Approximate maximum number of bytes to send at a time. */
         private static final int XMIT_GROUP_MAX_BYTES = 2048;
         /** Amount of time to sleep when channel exceeds 'maxDepth' */
-        private static final int SLEEP_USEC = 1000;
+        private static final int SLEEP_USEC = 1;
 
         /** Parent engine. */
         private SimpleOutputEngine parent;
@@ -737,6 +737,8 @@ public class SimpleOutputEngine
         private IByteBufferCache bufferMgr;
         /** Maximum channel depth */
         private int maxDepth;
+        /** Depth below which a paused channel can be unpaused */
+        private int unpauseDepth;
 
         /** Queue of records to be written. */
         private LinkedList<ByteBuffer> outputQueue =
@@ -775,6 +777,9 @@ public class SimpleOutputEngine
             this.channel = channel;
             this.bufferMgr = bufferMgr;
             this.maxDepth = maxDepth;
+
+            // unpause after output queue has dropped by 1%
+            unpauseDepth = maxDepth - (maxDepth / 100);
         }
 
         /**
@@ -887,25 +892,24 @@ public class SimpleOutputEngine
             }
 
             synchronized (outputQueue) {
-                boolean warned = false;
-                while (outputQueue.size() > maxDepth) {
+                if (outputQueue.size() > maxDepth) {
                     paused = true;
-                    if (!warned) {
-                        LOG.error("Pausing " + parent + ":" + name +
-                                  " queue (depth=" + outputQueue.size() +
-                                  ", maxDepth=" + maxDepth + ")");
-                        warned = true;
+                    LOG.error("Pausing " + parent + ":" + name +
+                              " queue (depth=" + outputQueue.size() +
+                              ", maxDepth=" + maxDepth + ")");
+
+                    // wait for the output queue to empty a bit
+                    while (outputQueue.size() > unpauseDepth) {
+                        try {
+                            // IC86 sees ~2600 requests per second
+                            outputQueue.wait(SLEEP_USEC);
+                        } catch (InterruptedException iex) {
+                        }
                     }
-                    try {
-                        // IC86 sees ~2600 requests per second
-                        outputQueue.wait(SLEEP_USEC);
-                    } catch (InterruptedException iex) {
-                    }
-                }
-                paused = false;
-                if (warned) {
+
+                    paused = false;
                     LOG.error("Resuming " + parent + ":" + name +
-                              " queue (maxDepth=" + maxDepth);
+                              " queue (depth=" + outputQueue.size() + ")");
                 }
 
                 outputQueue.add(buf);
