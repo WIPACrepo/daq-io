@@ -80,6 +80,13 @@ public class PayloadByteReader
         this.file = file;
         this.cache = cache;
 
+        if (file.getName().contains(".tar") ||
+            file.getName().contains(".tgz"))
+        {
+            throw new IOException("Cannot read tar file \"" + file.getName() +
+                                  "\"");
+        }
+
         FileInputStream fin = new FileInputStream(file);
 
         InputStream tmpStream = new BufferedInputStream(fin);
@@ -287,7 +294,7 @@ public class PayloadByteReader
             throw new PayloadException(msg);
         }
 
-        if (len < 32) {
+        if (len < 20) {
             final String msg =
                 String.format("Got short payload #%d (%d bytes) in %s",
                               nextNum, len, file);
