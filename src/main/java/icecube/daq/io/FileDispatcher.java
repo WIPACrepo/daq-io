@@ -612,6 +612,18 @@ public class FileDispatcher implements Dispatcher {
     }
 
     /**
+     * Set the run number to use as part of the file name.  This is intended
+     * to be used only in testing/simulation since during normal operations
+     * the run number is set by the "data boundary" calls.
+     *
+     * @param run run number
+     */
+    public void setRunNumber(int newNumber)
+    {
+        runNumber = newNumber;
+    }
+
+    /**
      * Returns the number of units still available in the disk (measured in MB).
      * If it fails to check the disk space, then it returns -1.
      *
