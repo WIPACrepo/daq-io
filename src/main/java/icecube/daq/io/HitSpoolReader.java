@@ -236,7 +236,8 @@ public class HitSpoolReader
         final String fullStr;
         if (SourceIdRegistry.isIcetopHubSourceID(hubId)) {
             hubStr = null;
-            fullStr = String.format("ithub%02d", hubId - 200);
+            fullStr = String.format("ithub%02d",
+                                    hubId - SourceIdRegistry.ICETOP_ID_OFFSET);
         } else if (SourceIdRegistry.isIniceHubSourceID(hubId)) {
             hubStr = String.format("hub%02d", hubId);
             fullStr = String.format("ichub%02d", hubId);
