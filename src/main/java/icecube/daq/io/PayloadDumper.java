@@ -244,6 +244,7 @@ public class PayloadDumper
 
         boolean dumpHex = false;
         boolean dumpFull = false;
+        boolean summarize = false;
         boolean validate = false;
 
         boolean getMax = false;
@@ -307,6 +308,9 @@ public class PayloadDumper
                             usage = true;
                         }
                     }
+                    break;
+                case 'S':
+                    summarize = true;
                     break;
                 case 'c':
                     if (args[i].length() == 2) {
@@ -379,6 +383,7 @@ public class PayloadDumper
             System.err.print("Usage: ");
             System.err.print("java PayloadDumper");
             System.err.print(" [-D configDir]");
+            System.err.print(" [-S(ummarize)]");
             System.err.print(" [-c runConfigName)]");
             System.err.print(" [-f(ullDump)]");
             System.err.print(" [-h(exDump)]");
@@ -391,31 +396,56 @@ public class PayloadDumper
 
         for (File f : files) {
             long numPayloads = 0;
+            long firstTime = Long.MIN_VALUE;
+            long lastTime = Long.MIN_VALUE;
+
             PayloadFileReader rdr = new PayloadFileReader(f);
             for (Object obj : rdr) {
                 ILoadablePayload payload = (ILoadablePayload) obj;
 
-                if (dumpHex) {
-                    ByteBuffer buf = payload.getPayloadBacking();
-                    if (buf != null) {
-                        System.out.println(BasePayload.toHexString(buf, 0));
+                if (summarize) {
+                    if (firstTime == Long.MIN_VALUE) {
+                        firstTime = payload.getUTCTime();
                     }
-                }
-
-                if (!dumpFull) {
-                    dumpSimple(payload);
+                    lastTime = payload.getUTCTime();
                 } else {
-                    dumpComplex(payload);
-                }
+                    if (dumpHex) {
+                        ByteBuffer buf = payload.getPayloadBacking();
+                        if (buf == null) {
+                            System.err.println("Cannot get payload backing" +
+                                               " for " + payload);
+                        } else {
+                            String hexStr = BasePayload.toHexString(buf, 0);
+                            System.out.println(hexStr);
+                        }
+                    }
 
-                if (validate) {
-                    if (!PayloadChecker.validatePayload(payload, true)) {
-                        System.err.println("***** Payload was not valid");
+                    if (!dumpFull) {
+                        dumpSimple(payload);
+                    } else {
+                        dumpComplex(payload);
                     }
                 }
 
+                if (validate &&
+                    PayloadChecker.validatePayload(payload, true))
+                {
+                    System.err.printf("***** Payload#%d was not valid\n",
+                                      numPayloads);
+                }
+
+                // exit loop if we've seen the requested number of payloads
                 if (++numPayloads >= maxPayloads) {
                     break;
+                }
+            }
+
+            if (summarize) {
+                if (firstTime == Long.MIN_VALUE) {
+                    System.out.printf("%s: NO DATA\n", f);
+                } else {
+                    System.out.printf("%s: %d payloads, %d-%d\n", f,
+                                      numPayloads, firstTime, lastTime);
                 }
             }
         }
