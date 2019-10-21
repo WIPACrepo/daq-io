@@ -192,7 +192,7 @@ public class SpliceableStreamReader
     /**
      * Add the limited channel to a watchlist and put the calling thread in
      * a WAIT state.  The channel will be notified (via
-     * <tt>LimitedChannel.wakeChannel()<tt>) when it's no longer limited.
+     * <tt>LimitedChannel.wakeChannel()</tt>) when it's no longer limited.
      *
      * @param chan linmited channel
      */
