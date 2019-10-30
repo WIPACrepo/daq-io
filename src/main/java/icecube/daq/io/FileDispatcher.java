@@ -86,6 +86,18 @@ public class FileDispatcher implements Dispatcher {
         this.numBytesWritten=0;
     }
 
+    private void checkDisk(){
+        if (!dispatchDir.exists()) {
+            // can't check disk if dispatch directory doesn't exist
+            diskSize = -1;
+            diskAvailable = -1;
+            return;
+        }
+
+        diskSize = dispatchDir.getTotalSpace() / BYTES_IN_MB;
+        diskAvailable = dispatchDir.getUsableSpace() / BYTES_IN_MB;
+    }
+
     /**
      * Close current file (if open)
      *
@@ -378,6 +390,35 @@ public class FileDispatcher implements Dispatcher {
         return dir;
     }
 
+    private File getDestFile(){
+        final String fileName =
+            String.format("%s_%06d_%06d_%d_%d.dat", baseFileName, runNumber,
+                          fileIndex++, startingEventNum, numDispatchedEvents);
+        return new File(dispatchDir, fileName);
+    }
+
+    /**
+     * Returns the number of units still available in the disk (measured in MB).
+     * If it fails to check the disk space, then it returns -1.
+     *
+     * @return the number of units still available in the disk.
+     */
+    @Override
+    public long getDiskAvailable(){
+        return diskAvailable;
+    }
+
+    /**
+     * Returns the total number of units in the disk (measured in MB).
+     * If it fails to check the disk space, then it returns -1.
+     *
+     * @return the total number of units in the disk.
+     */
+    @Override
+    public long getDiskSize(){
+        return diskSize;
+    }
+
     /**
      * Get the destination directory where the dispatch files will be saved.
      *
@@ -414,12 +455,49 @@ public class FileDispatcher implements Dispatcher {
         }
     }
 
+    /**
+     * Get the number of bytes written to disk
+     *
+     * @return a long value ( number of bytes written to disk )
+     */
+    @Override
+    public long getNumBytesWritten() {
+        return numBytesWritten;
+    }
+
+    /**
+     * Get the  number of events dispatched during this run
+     * @return a long value
+     */
+    @Override
+    public long getNumDispatchedEvents() {
+        return numDispatchedEvents;
+    }
+
+    @Override
+    public int getRunNumber()
+    {
+        return runNumber;
+    }
+
     public static File getTempFile(String destDirName, String baseFileName)
         throws DispatchException
     {
         return getTempFile(new File(destDirName), baseFileName);
     }
 
+    /**
+     * Create a new file in directory <tt>destDir</tt> named
+     * <tt>TEMP_PREFIX<tt> + <tt>baseFileName</tt>.  If that file exists, add
+     * or increment a numeric suffix until an unused filename is found.
+     *
+     * @param destDir directory where temporary file is created
+     * @param baseFileName base file name (e.g. "sn", "tcal", etc.)
+     *
+     * @return File object for newly created temporary file
+     *
+     * @throws DispatchException if directory does not exist
+     */
     public static File getTempFile(File destDir, String baseFileName)
         throws DispatchException
     {
@@ -443,31 +521,6 @@ public class FileDispatcher implements Dispatcher {
         return tmpFile;
     }
 
-    @Override
-    public int getRunNumber()
-    {
-        return runNumber;
-    }
-
-    /**
-     * Get the number of bytes written to disk
-     *
-     * @return a long value ( number of bytes written to disk )
-     */
-    @Override
-    public long getNumBytesWritten() {
-        return numBytesWritten;
-    }
-
-    /**
-     * Get the  number of events dispatched during this run
-     * @return a long value
-     */
-    @Override
-    public long getNumDispatchedEvents() {
-        return numDispatchedEvents;
-    }
-
     /**
      * Get the total of the dispatched events
      *
@@ -487,6 +540,40 @@ public class FileDispatcher implements Dispatcher {
     public boolean isStarted()
     {
         return running;
+    }
+
+    private void moveToDest()
+        throws DispatchException
+    {
+        if (outChannel == null || !outChannel.isOpen()) {
+            return;
+        }
+
+        synchronized (fileLock) {
+            try {
+                outChannel.close();
+            } catch(IOException ioe){
+                LOG.error("Problem when closing file channel: ", ioe);
+                throw new DispatchException(ioe);
+            }
+
+            File destFile = getDestFile();
+            if (!tempFile.exists()) {
+                LOG.error("Couldn't move nonexistent temp file " + tempFile);
+            } else if (destFile.exists()) {
+                String errorMsg = "Couldn't overwrite existing " + destFile +
+                    " with temp file " + tempFile;
+                throw new DispatchException(errorMsg);
+            } else if (!tempFile.renameTo(destFile)) {
+                String errorMsg = "Couldn't move temp file " + tempFile +
+                    " to " + destFile;
+                throw new DispatchException(errorMsg);
+            }
+
+            startingEventNum = numDispatchedEvents + 1;
+        }
+
+        checkDisk();
     }
 
     public WritableByteChannel openFile(File file)
@@ -621,81 +708,6 @@ public class FileDispatcher implements Dispatcher {
     public void setRunNumber(int newNumber)
     {
         runNumber = newNumber;
-    }
-
-    /**
-     * Returns the number of units still available in the disk (measured in MB).
-     * If it fails to check the disk space, then it returns -1.
-     *
-     * @return the number of units still available in the disk.
-     */
-    @Override
-    public long getDiskAvailable(){
-        return diskAvailable;
-    }
-
-    /**
-     * Returns the total number of units in the disk (measured in MB).
-     * If it fails to check the disk space, then it returns -1.
-     *
-     * @return the total number of units in the disk.
-     */
-    @Override
-    public long getDiskSize(){
-        return diskSize;
-    }
-
-    private File getDestFile(){
-        final String fileName =
-            String.format("%s_%06d_%06d_%d_%d.dat", baseFileName, runNumber,
-                          fileIndex++, startingEventNum, numDispatchedEvents);
-        return new File(dispatchDir, fileName);
-    }
-
-    private void moveToDest()
-        throws DispatchException
-    {
-        if (outChannel == null || !outChannel.isOpen()) {
-            return;
-        }
-
-        synchronized (fileLock) {
-            try {
-                outChannel.close();
-            } catch(IOException ioe){
-                LOG.error("Problem when closing file channel: ", ioe);
-                throw new DispatchException(ioe);
-            }
-
-            File destFile = getDestFile();
-            if (!tempFile.exists()) {
-                LOG.error("Couldn't move nonexistent temp file " + tempFile);
-            } else if (destFile.exists()) {
-                String errorMsg = "Couldn't overwrite existing " + destFile +
-                    " with temp file " + tempFile;
-                throw new DispatchException(errorMsg);
-            } else if (!tempFile.renameTo(destFile)) {
-                String errorMsg = "Couldn't move temp file " + tempFile +
-                    " to " + destFile;
-                throw new DispatchException(errorMsg);
-            }
-
-            startingEventNum = numDispatchedEvents + 1;
-        }
-
-        checkDisk();
-    }
-
-    private void checkDisk(){
-        if (!dispatchDir.exists()) {
-            // can't check disk if dispatch directory doesn't exist
-            diskSize = -1;
-            diskAvailable = -1;
-            return;
-        }
-
-        diskSize = dispatchDir.getTotalSpace() / BYTES_IN_MB;
-        diskAvailable = dispatchDir.getUsableSpace() / BYTES_IN_MB;
     }
 
     /**
