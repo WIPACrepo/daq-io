@@ -210,7 +210,7 @@ public class FileDispatcherTest
     {
         super.setUp();
 
-        File tempFile = FileDispatcher.getTempFile(".", "physics");
+        File tempFile = new File(FileDispatcher.TEMP_PREFIX + "physics");
         if (tempFile.exists()) {
             tempFile.delete();
         }
@@ -220,7 +220,7 @@ public class FileDispatcherTest
     protected void tearDown()
         throws Exception
     {
-        File tempFile = FileDispatcher.getTempFile(".", "physics");
+        File tempFile = new File(FileDispatcher.TEMP_PREFIX + "physics");
         if (tempFile.exists()) {
             tempFile.delete();
         }
