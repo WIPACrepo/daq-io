@@ -18,6 +18,8 @@ import org.apache.log4j.Logger;
 public class FileDispatcher implements Dispatcher {
     public static final String DISPATCH_DEST_STORAGE = "/mnt/data/pdaqlocal";
 
+    public static final String TEMP_PREFIX = "temp-";
+
     private static final Logger LOG = Logger.getLogger(FileDispatcher.class);
 
     private static final long BYTES_IN_MB = 1024 * 1024;
@@ -137,33 +139,11 @@ public class FileDispatcher implements Dispatcher {
         }
 
         if (message.startsWith(START_PREFIX)) {
-            int prevNum;
             String runStr = message.substring(START_PREFIX.length());
-            try {
-                int tmpNum = Integer.parseInt(runStr);
-                prevNum = runNumber;
-                runNumber = tmpNum;
-            } catch (java.lang.NumberFormatException nfe) {
-                throw new DispatchException("Cannot start run;" +
-                                            " bad run number \"" + runStr +
-                                            "\"");
-            }
 
-            if (running) {
-                LOG.error("Run " + runNumber + " started without stopping" +
-                          " run " + prevNum);
-            }
-
-            startDispatch();
-            running = true;
+            startDispatch(runStr, false);
         } else if (message.startsWith(STOP_PREFIX)) {
-            if (!running) {
-                throw new DispatchException("FileDispatcher stopped while" +
-                                            " not running!");
-            } else {
-                running = false;
-                moveToDest();
-            }
+            stopDispatch();
         } else if (message.startsWith(SUBRUN_START_PREFIX) ||
                    message.startsWith(CLOSE_PREFIX))
         {
@@ -176,20 +156,7 @@ public class FileDispatcher implements Dispatcher {
 
             String runStr = message.substring(SWITCH_PREFIX.length());
 
-            int newNumber;
-            try {
-                newNumber = Integer.parseInt(runStr);
-            } catch (java.lang.NumberFormatException nfe) {
-                throw new DispatchException("Cannot switch run;" +
-                                            " bad run number \"" + runStr +
-                                            "\"");
-            }
-
-            synchronized (fileLock) {
-                moveToDest();
-                runNumber = newNumber;
-                startDispatch();
-            }
+            startDispatch(runStr, true);
         } else {
             throw new DispatchException("Unknown dispatcher message: " +
                                         message);
@@ -224,8 +191,8 @@ public class FileDispatcher implements Dispatcher {
                 outChannel = openFile(tempFile);
                 currFileSize = tempFile.length();
                 if (tempExists) {
-                    LOG.error("The last temp-" + baseFileName + " file was" +
-                              " not moved to the dispatch storage!!!");
+                    LOG.error("Temporary file " + tempFile.getPath() +
+                              " was not moved to the dispatch storage!!!");
                 }
             }
 
@@ -689,13 +656,49 @@ public class FileDispatcher implements Dispatcher {
     /**
      * This is called whenever the run number changes (every run start/switch)
      */
-    private void startDispatch()
+    public void startDispatch(String runStr, boolean switching)
+        throws DispatchException
     {
-        numDispatchedEvents = 0;
-        firstDispatchedTime = Long.MIN_VALUE;
-        lastDispatchedTime = 0;
-        startingEventNum = 0;
-        fileIndex = 0;
+        int newNumber;
+        try {
+            newNumber = Integer.parseInt(runStr);
+        } catch (java.lang.NumberFormatException nfe) {
+            throw new DispatchException("Bad run number \"" + runStr + "\"");
+        }
+
+        if (running && !switching) {
+            LOG.error("Run " + newNumber + " started without stopping run " +
+                      runNumber);
+        }
+
+        if (switching) {
+            moveToDest();
+        }
+
+        synchronized (metadataLock) {
+            runNumber = newNumber;
+
+            // reset counters
+            numDispatchedEvents = 0;
+            firstDispatchedTime = Long.MIN_VALUE;
+            lastDispatchedTime = 0;
+            startingEventNum = 0;
+            fileIndex = 0;
+        }
+
+        running = true;
+    }
+
+    public void stopDispatch()
+        throws DispatchException
+    {
+        if (!running) {
+            throw new DispatchException("FileDispatcher stopped while" +
+                                        " not running!");
+        }
+        running = false;
+
+        moveToDest();
     }
 
     /**
