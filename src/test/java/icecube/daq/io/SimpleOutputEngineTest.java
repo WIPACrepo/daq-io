@@ -10,8 +10,6 @@
 
 package icecube.daq.io;
 
-import EDU.oswego.cs.dl.util.concurrent.LinkedQueue;
-
 import icecube.daq.common.DAQCmdInterface;
 import icecube.daq.io.test.IOTestUtil;
 import icecube.daq.io.test.LoggingCase;
@@ -293,7 +291,7 @@ public class SimpleOutputEngineTest
 
                 Thread.sleep(10);
             }
-            assertFalse("PayloadTransmitChannel did not send buf#" + i,
+            assertFalse("Output channel did not send buf#" + i,
                         transmitEng.isOutputQueued());
 
             testInBuf.position(0);
@@ -384,7 +382,7 @@ public class SimpleOutputEngineTest
 
                 Thread.sleep(10);
             }
-            assertFalse("PayloadTransmitChannel did not send buf#" + i,
+            assertFalse("Output channel did not send buf#" + i,
                         transmitEng.isOutputQueued());
 
             if (i < 50) {
@@ -488,7 +486,7 @@ public class SimpleOutputEngineTest
 
                 Thread.sleep(10);
             }
-            assertFalse("PayloadTransmitChannel did not send buf#" + i,
+            assertFalse("Output channel did not send buf#" + i,
                         transmitEng.isOutputQueued());
 
             testInBuf.position(0);

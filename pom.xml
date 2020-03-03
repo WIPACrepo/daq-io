@@ -33,11 +33,6 @@
       <artifactId>payload</artifactId>
     </dependency>
 
-    <dependency>
-      <groupId>oswego-concurrent</groupId>
-      <artifactId>concurrent</artifactId>
-    </dependency>
-
   </dependencies>
 
 </project>
