@@ -130,26 +130,25 @@ public class SpliceableInputChannelTest
             time = buf.getLong(8);
         }
 
+        @Override
         public int compareSpliceable(Spliceable spl)
         {
             throw new Error("Unimplemented");
         }
 
+        @Override
         public Object deepCopy()
         {
             throw new Error("Unimplemented");
         }
 
+        @Override
         public ByteBuffer getPayloadBacking()
         {
             throw new Error("Unimplemented");
         }
 
-        public int getPayloadInterfaceType()
-        {
-            throw new Error("Unimplemented");
-        }
-
+        @Override
         public IUTCTime getPayloadTimeUTC()
         {
             if (timeObj == null) {
@@ -159,26 +158,31 @@ public class SpliceableInputChannelTest
             return timeObj;
         }
 
+        @Override
         public int getPayloadType()
         {
             return type;
         }
 
+        @Override
         public long getUTCTime()
         {
             return time;
         }
 
+        @Override
         public int length()
         {
             return len;
         }
 
+        @Override
         public void loadPayload()
         {
             // do nothing
         }
 
+        @Override
         public void recycle()
         {
             bufMgr.returnBuffer(buf);

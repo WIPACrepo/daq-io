@@ -145,12 +145,6 @@ public class SpliceableSimpleChannelTest
         }
 
         @Override
-        public int getPayloadInterfaceType()
-        {
-            throw new Error("Unimplemented");
-        }
-
-        @Override
         public IUTCTime getPayloadTimeUTC()
         {
             if (timeObj == null) {
