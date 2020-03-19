@@ -1,7 +1,7 @@
 /*
  * interface: Dispatcher
  *
- * Version $Id: Dispatcher.java 16957 2018-03-29 16:56:20Z dglo $
+ * Version $Id: Dispatcher.java 17771 2020-03-19 22:06:07Z dglo $
  *
  * Date: April 1 2004
  *
@@ -11,7 +11,7 @@
 package icecube.daq.io;
 
 import icecube.daq.payload.IByteBufferCache;
-import icecube.daq.payload.IWriteablePayload;
+import icecube.daq.payload.IPayload;
 
 import java.io.File;
 import java.nio.ByteBuffer;
@@ -20,7 +20,7 @@ import java.nio.ByteBuffer;
  * This interface specifies how events are dispatched from the DAQ system.
  *
  * @author patton
- * @version $Id: Dispatcher.java 16957 2018-03-29 16:56:20Z dglo $
+ * @version $Id: Dispatcher.java 17771 2020-03-19 22:06:07Z dglo $
  */
 public interface Dispatcher
 {
@@ -81,7 +81,7 @@ public interface Dispatcher
      * @param event A payload object.
      * @throws DispatchException if there is a problem in the Dispatch system.
      */
-    void dispatchEvent(IWriteablePayload event)
+    void dispatchEvent(IPayload event)
         throws DispatchException;
 
     /**

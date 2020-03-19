@@ -218,10 +218,10 @@ public abstract class SimpleChannel
             }
 
             // check for allocation limits
-            if (bufMgr.getCurrentAquiredBytes() >= limitToStopAllocation) {
+            if (bufMgr.getCurrentAcquiredBytes() >= limitToStopAllocation) {
                 if (!allocationStopped) {
                     LOG.error("Channel " + name + " stopped: AcqBytes " +
-                              bufMgr.getCurrentAquiredBytes() +
+                              bufMgr.getCurrentAcquiredBytes() +
                               " >= limit " + limitToStopAllocation);
                     allocationStopped = true;
                 }
@@ -231,7 +231,7 @@ public abstract class SimpleChannel
 
             // if byte buffer allocation was stopped...
             if (allocationStopped) {
-                if (bufMgr.getCurrentAquiredBytes() >
+                if (bufMgr.getCurrentAcquiredBytes() >
                     limitToRestartAllocation)
                 {
                     // give buffer cache a chance to clear out
@@ -246,7 +246,7 @@ public abstract class SimpleChannel
                 // restart allocation
                 allocationStopped = false;
                 LOG.error("Channel " + name + " restarted: AcqBytes " +
-                          bufMgr.getCurrentAquiredBytes() + " <= limit " +
+                          bufMgr.getCurrentAcquiredBytes() + " <= limit " +
                           limitToRestartAllocation);
             }
 
@@ -401,8 +401,8 @@ public abstract class SimpleChannel
         allocationStopped = false;
 
         final long maxAllocation;
-        if (bufMgr.getIsCacheBounded()) {
-            maxAllocation = bufMgr.getMaxAquiredBytes();
+        if (bufMgr.isCacheBounded()) {
+            maxAllocation = bufMgr.getMaxAcquiredBytes();
         } else {
             maxAllocation = DEFAULT_MAX_BYTES_ALLOCATION_LIMIT;
         }

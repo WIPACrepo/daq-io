@@ -3,9 +3,9 @@ package icecube.daq.io;
 import icecube.daq.io.test.LoggingCase;
 import icecube.daq.io.test.MockBufferCache;
 import icecube.daq.payload.IByteBufferCache;
+import icecube.daq.payload.IPayload;
 import icecube.daq.payload.IUTCTime;
-import icecube.daq.payload.IWriteablePayload;
-import icecube.daq.payload.Poolable;
+import icecube.daq.payload.PayloadFormatException;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -18,7 +18,7 @@ import junit.framework.TestSuite;
 import junit.textui.TestRunner;
 
 class AdjustablePayload
-    implements IWriteablePayload
+    implements IPayload
 {
     private int len;
     private int value;
@@ -30,12 +30,6 @@ class AdjustablePayload
 
     @Override
     public Object deepCopy()
-    {
-        throw new Error("Unimplemented");
-    }
-
-    @Override
-    public void dispose()
     {
         throw new Error("Unimplemented");
     }
@@ -73,6 +67,13 @@ class AdjustablePayload
     public int length()
     {
         return len;
+    }
+
+    @Override
+    public void loadPayload()
+        throws IOException, PayloadFormatException
+    {
+        throw new Error("Unimplemented");
     }
 
     @Override
@@ -538,7 +539,7 @@ public class FileDispatcherTest
             fd.dataBoundary(Dispatcher.START_PREFIX + i);
             assertEquals("Incorrect run number", i, fd.getRunNumber());
 
-            IWriteablePayload payload = new AdjustablePayload(i);
+            IPayload payload = new AdjustablePayload(i);
 
             assertEquals("Number of dispatched events is not zero",
                          0, fd.getNumDispatchedEvents());

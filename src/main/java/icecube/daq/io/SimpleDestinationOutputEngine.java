@@ -11,10 +11,10 @@
 package icecube.daq.io;
 
 import icecube.daq.payload.IByteBufferCache;
+import icecube.daq.payload.IPayload;
 import icecube.daq.payload.IPayloadDestinationCollection;
 import icecube.daq.payload.IPayloadDestinationCollectionController;
 import icecube.daq.payload.ISourceID;
-import icecube.daq.payload.IWriteablePayload;
 import icecube.daq.payload.PayloadDestination;
 import icecube.daq.payload.PayloadDestinationCollection;
 import icecube.daq.payload.impl.SourceID;
@@ -198,24 +198,6 @@ public class SimpleDestinationOutputEngine
          * be invoke the write method itself, or to pass the payload by
          * refernce to the target.
          *
-         * @param tPayload Payload to which to write to this destination
-         * @return the length in bytes which was written to the ByteBuffer.
-         *
-         * @throws IOException if an error occurs during the process
-         */
-        @Override
-        public int writePayload(IWriteablePayload tPayload)
-            throws IOException
-        {
-            return writePayload(false,tPayload);
-        }
-
-        /**
-         * This methods proxies the call to write Payload to allow the whole
-         * payload to be passed to the payload destination to allow it to
-         * be invoke the write method itself, or to pass the payload by
-         * refernce to the target.
-         *
          * @param bWriteLoaded boolean to indicate if the loaded vs buffered
          *  payload should be written.
          * @param tPayload Payload to which to write to this destination
@@ -224,8 +206,7 @@ public class SimpleDestinationOutputEngine
          * @throws IOException if an error occurs during the process
          */
         @Override
-        public int writePayload(boolean bWriteLoaded,
-                                IWriteablePayload tPayload)
+        public int writePayload(boolean bWriteLoaded, IPayload tPayload)
             throws IOException
         {
             if (outChan == null) {

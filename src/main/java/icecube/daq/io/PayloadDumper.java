@@ -5,7 +5,7 @@ import icecube.daq.payload.impl.TriggerRequest;
 import icecube.daq.payload.IEventHitRecord;
 import icecube.daq.payload.IEventPayload;
 import icecube.daq.payload.IEventTriggerRecord;
-import icecube.daq.payload.ILoadablePayload;
+import icecube.daq.payload.IPayload;
 import icecube.daq.payload.IReadoutRequest;
 import icecube.daq.payload.ITriggerRequestPayload;
 import icecube.daq.payload.PayloadChecker;
@@ -17,6 +17,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -28,7 +29,7 @@ public class PayloadDumper
 
     private static final String INDENT = "   ";
 
-    public static void dumpComplex(ILoadablePayload payload)
+    public static void dumpComplex(IPayload payload)
     {
         try {
             payload.loadPayload();
@@ -81,21 +82,6 @@ public class PayloadDumper
             foundErr = true;
         }
 
-        try {
-            boolean printHdr = true;
-            for (Object obj : evt.getReadoutDataPayloads()) {
-                if (!printHdr) {
-                    System.out.println("-- Readout Data");
-                    printHdr = false;
-                }
-
-                dumpComplex((ILoadablePayload) obj);
-                foundRdout = true;
-            }
-        } catch (Error err) {
-            foundErr = true;
-        }
-
         if (showHitRecords) {
             try {
                 boolean printHdr = true;
@@ -126,7 +112,7 @@ public class PayloadDumper
         }
     }
 
-    public static void dumpSimple(ILoadablePayload payload)
+    public static void dumpSimple(IPayload payload)
     {
         try {
             payload.loadPayload();
@@ -201,7 +187,7 @@ public class PayloadDumper
             System.out.println(indent + "--- No ReadoutRequest data");
         }
 
-        List compList;
+        Collection<IPayload> compList;
         try {
             compList = trigReq.getPayloads();
         } catch (Exception ex) {
@@ -209,12 +195,12 @@ public class PayloadDumper
             return;
         }
 
-        for (Object obj : compList) {
-            if (obj instanceof ITriggerRequestPayload) {
-                dumpTriggerRequest((ITriggerRequestPayload) obj,
+        for (IPayload pay : compList) {
+            if (pay instanceof ITriggerRequestPayload) {
+                dumpTriggerRequest((ITriggerRequestPayload) pay,
                                    indent + INDENT);
             } else {
-                System.out.println(indent + INDENT + obj);
+                System.out.println(indent + INDENT + pay);
             }
         }
     }
@@ -401,7 +387,7 @@ public class PayloadDumper
 
             PayloadFileReader rdr = new PayloadFileReader(f);
             for (Object obj : rdr) {
-                ILoadablePayload payload = (ILoadablePayload) obj;
+                IPayload payload = (IPayload) obj;
 
                 if (summarize) {
                     if (firstTime == Long.MIN_VALUE) {

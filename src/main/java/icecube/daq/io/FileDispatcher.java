@@ -1,7 +1,7 @@
 package icecube.daq.io;
 
 import icecube.daq.payload.IByteBufferCache;
-import icecube.daq.payload.IWriteablePayload;
+import icecube.daq.payload.IPayload;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -249,7 +249,7 @@ public class FileDispatcher implements Dispatcher {
      * @throws DispatchException if there is a problem in the Dispatch system.
      */
     @Override
-    public void dispatchEvent(IWriteablePayload event)
+    public void dispatchEvent(IPayload event)
         throws DispatchException
     {
         if (bufferCache == null) {

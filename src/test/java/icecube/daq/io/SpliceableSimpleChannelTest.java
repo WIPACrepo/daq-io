@@ -4,7 +4,7 @@ import icecube.daq.io.test.LoggingCase;
 import icecube.daq.io.test.MockBufferCache;
 import icecube.daq.io.test.MockUTCTime;
 import icecube.daq.payload.IByteBufferCache;
-import icecube.daq.payload.ILoadablePayload;
+import icecube.daq.payload.IPayload;
 import icecube.daq.payload.IUTCTime;
 import icecube.daq.splicer.ClosedStrandException;
 import icecube.daq.splicer.OrderingException;
@@ -107,7 +107,7 @@ public class SpliceableSimpleChannelTest
     }
 
     public class MockSpliceable
-        implements ILoadablePayload, Spliceable
+        implements IPayload, Spliceable
     {
         private IByteBufferCache bufMgr;
         private ByteBuffer buf;
@@ -189,6 +189,14 @@ public class SpliceableSimpleChannelTest
         {
             throw new Error("Unimplemented");
         }
+
+        @Override
+        public int writePayload(boolean writeLoaded, int destOffset,
+                                ByteBuffer buf)
+            throws IOException
+        {
+            throw new Error("Unimplemented");
+        }
     }
 
     public class MockFactory
@@ -265,7 +273,7 @@ public class SpliceableSimpleChannelTest
         final long time = 123456L;
 
         for (int i = 0; i < 2; i++) {
-            final long expBytes = bufMgr.getCurrentAquiredBytes();
+            final long expBytes = bufMgr.getCurrentAcquiredBytes();
 
             ByteBuffer buf = bufMgr.acquireBuffer(16);
             buf.putInt(buf.capacity());
@@ -294,7 +302,7 @@ public class SpliceableSimpleChannelTest
             //assertEquals("Expected queue to be empty",
             //             0, chan.getQueueDepth());
             assertEquals("Buffer cache memory leak",
-                         expBytes, bufMgr.getCurrentAquiredBytes());
+                         expBytes, bufMgr.getCurrentAcquiredBytes());
 
             chan.notifyOnStop();
 

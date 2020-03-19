@@ -140,12 +140,12 @@ if(DEBUG_FILL)System.err.println("FillEnd "+inputBuf+" bufPos "+bufPos+" payBuf 
 
     long getBufferCurrentAcquiredBuffers()
     {
-        return bufMgr.getCurrentAquiredBuffers();
+        return bufMgr.getCurrentAcquiredBuffers();
     }
 
     long getBufferCurrentAcquiredBytes()
     {
-        return bufMgr.getCurrentAquiredBytes();
+        return bufMgr.getCurrentAcquiredBytes();
     }
 
     long getBytesReceived()
@@ -268,11 +268,11 @@ if(DEBUG_SELECT)System.err.println("  GotStop");
             }
 
             // check for allocation limits
-            if (bufMgr.getCurrentAquiredBytes() >= limitToStopAllocation) {
+            if (bufMgr.getCurrentAcquiredBytes() >= limitToStopAllocation) {
                 if (!allocationStopped) {
                     LOG.error(name + " channel#" + id +
                               " stopped: AcqBytes " +
-                              bufMgr.getCurrentAquiredBytes() +
+                              bufMgr.getCurrentAcquiredBytes() +
                               " >= limit " + limitToStopAllocation);
 if(DEBUG_SELECT)System.err.println("  AllocStopped");
                     allocationStopped = true;
@@ -283,7 +283,7 @@ if(DEBUG_SELECT)System.err.println("  AllocStopped");
 
             // if byte buffer allocation was stopped...
             if (allocationStopped) {
-                if (bufMgr.getCurrentAquiredBytes() >
+                if (bufMgr.getCurrentAcquiredBytes() >
                     limitToRestartAllocation)
                 {
                     // give buffer cache a chance to clear out
@@ -300,7 +300,7 @@ if(DEBUG_SELECT)System.err.println("  RestartAlloc");
                 allocationStopped = false;
                 LOG.error(name + " channel#" + id +
                           " restarted: AcqBytes " +
-                          bufMgr.getCurrentAquiredBytes() + " <= limit " +
+                          bufMgr.getCurrentAcquiredBytes() + " <= limit " +
                           limitToRestartAllocation);
             }
 
@@ -350,8 +350,8 @@ if(DEBUG_SELECT)System.err.println("  Got "+payBuf);
         allocationStopped = false;
 
         final long maxAllocation;
-        if (bufMgr.getIsCacheBounded()) {
-            maxAllocation = bufMgr.getMaxAquiredBytes();
+        if (bufMgr.isCacheBounded()) {
+            maxAllocation = bufMgr.getMaxAcquiredBytes();
         } else {
             maxAllocation = DEFAULT_MAX_BYTES_ALLOCATION_LIMIT;
         }

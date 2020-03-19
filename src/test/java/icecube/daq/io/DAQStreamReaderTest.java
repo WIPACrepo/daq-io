@@ -592,7 +592,7 @@ public class DAQStreamReaderTest
 
                 assertEquals("There are acquired byte buffers before start" +
                              " (msgSize " + msgSize + ", bufLen " + bufLen +
-                             ")", 0, bufMgr.getCurrentAquiredBuffers());
+                             ")", 0, bufMgr.getCurrentAcquiredBuffers());
 
                 // now move some buffers
                 ByteBuffer testBuf;
@@ -655,7 +655,7 @@ public class DAQStreamReaderTest
 
                 assertEquals("There are still unreturned byte buffers" +
                              " (msgSize " + msgSize + ", bufLen " + bufLen +
-                             ")", 0, bufMgr.getCurrentAquiredBuffers());
+                             ")", 0, bufMgr.getCurrentAcquiredBuffers());
 
             }
         }

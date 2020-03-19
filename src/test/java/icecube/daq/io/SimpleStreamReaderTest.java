@@ -181,13 +181,13 @@ public class SimpleStreamReaderTest
                 break;
             case 3:
                 name = "curAcqBuf";
-                bufArray[0] = bufMgr.getCurrentAquiredBuffers();
+                bufArray[0] = bufMgr.getCurrentAcquiredBuffers();
                 data = bufArray;
                 val = bufsAcquired;
                 break;
             case 4:
                 name = "curAcqByt";
-                bufArray[0] = bufMgr.getCurrentAquiredBytes();
+                bufArray[0] = bufMgr.getCurrentAcquiredBytes();
                 data = bufArray;
                 val = bytesAcquired;
                 break;
@@ -593,7 +593,7 @@ public class SimpleStreamReaderTest
 
                 assertEquals("There are acquired byte buffers before start" +
                              " (msgSize " + msgSize + ", bufLen " + bufLen +
-                             ")", 0, bufMgr.getCurrentAquiredBuffers());
+                             ")", 0, bufMgr.getCurrentAcquiredBuffers());
 
                 // now move some buffers
                 ByteBuffer testBuf;
@@ -654,7 +654,7 @@ public class SimpleStreamReaderTest
                            observer.gotSinkStop());
 
                 for (int i = 0; i < 5; i++) {
-                    if (bufMgr.getCurrentAquiredBuffers() == 0) {
+                    if (bufMgr.getCurrentAcquiredBuffers() == 0) {
                         break;
                     }
 
@@ -667,7 +667,7 @@ System.err.println("sleep#"+i+" BM "+bufMgr);
                 }
 
                 assertEquals("There are still unreturned byte buffers",
-                             0, bufMgr.getCurrentAquiredBuffers());
+                             0, bufMgr.getCurrentAcquiredBuffers());
             }
         }
     }

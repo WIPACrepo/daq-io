@@ -1,7 +1,7 @@
 package icecube.daq.io;
 
 import icecube.daq.payload.IByteBufferCache;
-import icecube.daq.payload.ILoadablePayload;
+import icecube.daq.payload.IPayload;
 import icecube.daq.splicer.ClosedStrandException;
 import icecube.daq.splicer.OrderingException;
 import icecube.daq.splicer.Spliceable;
@@ -97,9 +97,8 @@ public class SpliceableSimpleChannel
         }
 
         if (ex != null) {
-            if (spliceable instanceof ILoadablePayload) {
-                ILoadablePayload payload =
-                    (ILoadablePayload) spliceable;
+            if (spliceable instanceof IPayload) {
+                IPayload payload = (IPayload) spliceable;
 
                 LOG.error("Couldn't push payload type " +
                           payload.getPayloadType() +
